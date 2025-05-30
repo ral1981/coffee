@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Coffee Overview</title>
-  <script src="https://cdn.jsdelivr.net/npm/tabletop@1.5.4/tabletop.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; }
     .coffee { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 10px; }
@@ -16,28 +16,28 @@
   <div id="coffee-list">Loading...</div>
 
   <script>
-    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/1wUHT2YjpM6kb2Ikc-uL7sV9EBTff-LFuz5pBlZ-7zy0/edit?usp=sharing';
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/1wUHT2YjpM6kb2Ikc-uL7sV9EBTff-LFuz5pBlZ-7zy0/export?format=csv';
+    
+    Papa.parse(sheetUrl, {
+      download: true,
+      header: true,
+      complete: function(results) {
+        const data = results.data;
+        const container = document.getElementById("coffee-list");
+        container.innerHTML = '';
 
-    function showInfo(data) {
-      const container = document.getElementById("coffee-list");
-      container.innerHTML = '';
-      data.forEach(coffee => {
-        container.innerHTML += `
-          <div class="coffee">
-            <h2>${coffee.Name}</h2>
-            <p><strong>Origin:</strong> ${coffee.Origin}</p>
-            <p><strong>Notes:</strong> ${coffee.Notes}</p>
-            <p><strong>Roast:</strong> ${coffee.Roast}</p>
-          </div>`;
-      });
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      Tabletop.init({
-        key: publicSpreadsheetURL,
-        simpleSheet: true,
-        callback: showInfo
-      });
+        data.forEach(coffee => {
+          if (coffee.Name) { // skip empty rows
+            container.innerHTML += `
+              <div class="coffee">
+                <h2>${coffee.Name}</h2>
+                <p><strong>Origin:</strong> ${coffee.Origin}</p>
+                <p><strong>Notes:</strong> ${coffee.Notes}</p>
+                <p><strong>Roast:</strong> ${coffee.Roast}</p>
+              </div>`;
+          }
+        });
+      }
     });
   </script>
 
