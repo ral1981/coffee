@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Coffee Overview</title>
+  <script src="https://cdn.jsdelivr.net/npm/tabletop@1.5.4/tabletop.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .coffee { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 10px; }
+    h2 { margin: 0 0 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>My Coffee Collection</h1>
+  <div id="coffee-list">Loading...</div>
+
+<script>
+    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS9fmICGu-FVYIsMmkgshyg-4TWTF2ghMk-eKI5PxtqOdwm0T14s0ahbqNV5eYE-3uf7aNdfLoH4zPF/pubhtml';
+
+    function showInfo(data) {
+      const container = document.getElementById("coffee-list");
+      container.innerHTML = '';
+      data.forEach(coffee => {
+        container.innerHTML += `
+          <div class="coffee">
+            <h2>${coffee.Name}</h2>
+            <p><strong>Name:</strong> ${coffee.Name}</p>
+            <p><strong>Shop:</strong> ${coffee.Shop}</p>
+            <p><strong>Origin:</strong> ${coffee.Origin}</p>
+            <p><strong>Region:</strong> ${coffee.Region}</p>
+            <p><strong>Height(m):</strong> ${coffee.Height(m)}</p>
+          </div>`;
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      Tabletop.init({
+        key: publicSpreadsheetURL,
+        simpleSheet: true,
+        callback: showInfo
+      });
+    });
+</script>
+
+
+</body>
+</html>
