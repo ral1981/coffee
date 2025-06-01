@@ -48,7 +48,7 @@ tbody td {
           <th>Shop</th>
           <th>Origin</th>
           <th>Region</th>
-          <th>Height</th>
+          <th>Height (m)</th>
         </tr>
       </thead>
       <tbody id="coffee-body">
@@ -72,11 +72,11 @@ tbody td {
         if (coffee.Name) {
           const row = `
             <tr>
-              <td>${coffee.Name}</td>
-              <td>${coffee.Shop}</td>
-              <td>${coffee.Origin}</td>
-              <td>${coffee.Region}</td>
-              <td>${coffee.Height}</td>
+              <td>${coffee["Name"]}</td>
+              <td>${coffee["Shop"]}</td>
+              <td>${coffee["Origin"]}</td>
+              <td>${coffee["Region"]}</td>
+              <td>${coffee["Height (m)"]}</td>
             </tr>`;
           tbody.innerHTML += row;
         }
