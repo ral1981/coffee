@@ -36,14 +36,14 @@ thead th {
   padding: 10px;
   border-bottom: 2px solid #999;
   text-align: left;
-  z-index: 2;
+  z-index: 3;
 }
 
 .sticky-col {
   position: sticky;
   left: 0;
   background: #ffffff;
-  z-index: 3;
+  z-index: 2;
 }
 
 tbody td {
@@ -93,7 +93,7 @@ tbody td {
         if (coffee.Name) {
           const row = `
             <tr>
-              <td>${coffee["Name"]}</td>
+              <td class="sticky-col">${coffee["Name"]}</td>
               <td>${coffee["Shop"]}</td>
               <td>${coffee["Origin"]}</td>
               <td>${coffee["Region"]}</td>
