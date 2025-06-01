@@ -9,10 +9,8 @@
     .coffee { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 10px; }
     h2 { margin: 0 0 5px; }
     .table-container {
-  max-height: 400px;
-  overflow-y: auto;
+  overflow: auto;
   max-width: 100%;
-  overflow-x: auto;
   border: 1px solid #ccc;
   border-radius: 10px;
 }
@@ -29,6 +27,7 @@ th, td {
   white-space: nowrap;
 }
 
+/* Sticky top row */
 thead th {
   position: sticky;
   top: 0;
@@ -39,11 +38,17 @@ thead th {
   z-index: 2;
 }
 
+/* Sticky first column */
 .sticky-col {
   position: sticky;
   left: 0;
   background: #ffffff;
-  z-index: 2;
+  z-index: 1;
+}
+
+/* Sticky top-left corner (first cell) needs highest z-index */
+.sticky-col.sticky-header {
+  z-index: 5;
 }
 
 tbody td {
@@ -60,7 +65,7 @@ tbody td {
     <table id="coffee-table">
       <thead>
         <tr>
-          <th class="sticky-col">Name</th>
+          <th class="sticky-col sticky-header">Name</th>
           <th>Shop</th>
           <th>Origin</th>
           <th>Region</th>
