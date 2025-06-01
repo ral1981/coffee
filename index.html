@@ -49,6 +49,11 @@ tbody td {
           <th>Origin</th>
           <th>Region</th>
           <th>Height (m)</th>
+          <th>Botanic Variety</th>
+          <th>Farm / Producer</th>
+          <th>Processing Method</th>
+          <th>SCA</th>
+          <th>Flavor</th>
         </tr>
       </thead>
       <tbody id="coffee-body">
@@ -77,6 +82,11 @@ tbody td {
               <td>${coffee["Origin"]}</td>
               <td>${coffee["Region"]}</td>
               <td>${coffee["Height (m)"]}</td>
+              <td>${coffee["Botanic Variety"]}</td>
+              <td>${coffee["Farm / Producer"]}</td>
+              <td>${coffee["Processing Method"]}</td>
+              <td>${coffee["SCA"]}</td>
+              <td>${coffee["Flavor"]}</td>
             </tr>`;
           tbody.innerHTML += row;
         }
