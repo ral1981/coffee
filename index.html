@@ -11,13 +11,22 @@
     .table-container {
   max-height: 400px;
   overflow-y: auto;
+  max-width: 100%;
+  overflow-x: auto;
   border: 1px solid #ccc;
   border-radius: 10px;
 }
 
 table {
   border-collapse: collapse;
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
+}
+
+th, td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  white-space: nowrap;
 }
 
 thead th {
@@ -27,7 +36,14 @@ thead th {
   padding: 10px;
   border-bottom: 2px solid #999;
   text-align: left;
-  z-index: 1;
+  z-index: 2;
+}
+
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background: #ffffff;
+  z-index: 3;
 }
 
 tbody td {
@@ -44,7 +60,7 @@ tbody td {
     <table id="coffee-table">
       <thead>
         <tr>
-          <th>Name</th>
+          <th class="sticky-col">Name</th>
           <th>Shop</th>
           <th>Origin</th>
           <th>Region</th>
