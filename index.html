@@ -109,13 +109,16 @@
         parsed.data.forEach(coffee => {
           let containerClass = '';
           let iconHTML = '';
+          let link = '#';
           
           if (coffee["Container"] === "green") {
             containerClass = 'in-green';
             iconHTML = '🟢';
+            link = 'https://ral1981.github.io/coffee/container_01';
           } else if (coffee["Container"] === "grey") {
             containerClass = 'in-grey';
             iconHTML = '⚪';
+            link = 'https://ral1981.github.io/coffee/container_02';
           }
 
           const row = document.createElement('tr');
@@ -123,7 +126,10 @@
 
           row.innerHTML = `
             <td class="sticky-col ${containerClass}">
-              ${coffee["Name"]} ${iconHTML}
+              ${coffee["Name"]}
+              <a href="${containerUrl}" title="Go to container page" target="_blank">
+                ${iconHTML}
+              </a>
             </td>
             <td>
               <a href="${coffee['Shop URL']}" target="_blank">
