@@ -9,64 +9,60 @@
     .coffee { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 10px; }
     h2 { margin: 0 0 5px; }
     .table-container {
-  overflow: auto;
-  max-width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-}
+      overflow: auto;
+      max-width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
 
-table {
-  border-collapse: collapse;
-  width: max-content;
-  min-width: 100%;
-}
+    table {
+      border-collapse: collapse;
+      width: max-content;
+      min-width: 100%;
+    }
 
-th, td {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-  white-space: nowrap;
-}
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      white-space: nowrap;
+    }
 
-/* Sticky top row */
-thead th {
-  position: sticky;
-  top: 0;
-  background: #f0f0f0;
-  padding: 10px;
-  border-bottom: 2px solid #999;
-  text-align: left;
-  z-index: 2;
-}
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #f0f0f0;
+      padding: 10px;
+      border-bottom: 2px solid #999;
+      text-align: left;
+      z-index: 2;
+    }
 
-thead th:first-child {
-  background: #f0f0f0;
-}
+    thead th:first-child {
+      background: #f0f0f0;
+    }
 
-.in-green {
-  background-color: #e0f7e9; /* light green */
-}
-.in-grey {
-  background-color: #eeeeee; /* light grey */
-}
-    
-/* Sticky first column */
-.sticky-col {
-  position: sticky;
-  left: 0;
-  background-color: inherit;
-  z-index: 1;
-}
+    .in-green {
+      background-color: #e0f7e9;
+    }
+    .in-grey {
+      background-color: #eeeeee;
+    }
 
-/* Sticky top-left corner (first cell) needs highest z-index */
-.sticky-col.sticky-header {
-  z-index: 5;
-}
+    .sticky-col {
+      position: sticky;
+      left: 0;
+      background-color: inherit;
+      z-index: 1;
+    }
 
-tbody td {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-}
+    .sticky-col.sticky-header {
+      z-index: 5;
+    }
 
+    tbody td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+    }
   </style>
 </head>
 <body>
@@ -97,64 +93,65 @@ tbody td {
         </tr>
       </thead>
       <tbody id="coffee-body">
-        
       </tbody>
     </table>
   </div>
 
   <script>
-  const sheetUrl = 'https://docs.google.com/spreadsheets/d/10NVColZhsKRWRUdpxmCzuWskvQzTSlFakOhRA8xFY5Y/export?format=csv';
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/10NVColZhsKRWRUdpxmCzuWskvQzTSlFakOhRA8xFY5Y/export?format=csv';
 
-  fetch(sheetUrl)
-    .then(response => response.text())
-    .then(csv => {
-      const parsed = Papa.parse(csv, { header: true });
-      const tbody = document.getElementById('coffee-body');
+    fetch(sheetUrl)
+      .then(response => response.text())
+      .then(csv => {
+        const parsed = Papa.parse(csv, { header: true });
+        const tbody = document.getElementById('coffee-body');
 
-      parsed.data.forEach(coffee => {
-        let containerClass = '';
-        let iconHTML = '';
-        if (coffee["Container"] === "green") {
-          containerClass = 'in-green';
-          iconHTML = '🟢';
-        } else if (coffee["Container"] === "grey") {
-          containerClass = 'in-grey';
-          iconHTML = '⚪';
-        }
+        parsed.data.forEach(coffee => {
+          let containerClass = '';
+          let iconHTML = '';
+          let label = '';
 
-        console.log(coffee);
+          if (coffee["Container"] === "green") {
+            containerClass = 'in-green';
+            iconHTML = '🟢';
+            label = 'Green Container';
+          } else if (coffee["Container"] === "grey") {
+            containerClass = 'in-grey';
+            iconHTML = '⚪';
+            label = 'Grey Container';
+          }
 
-        const row = document.createElement('tr');
-        row.className = containerClass;
+          const row = document.createElement('tr');
+          row.className = containerClass;
 
-        row.innerHTML = `
-          <td class="sticky-col ${containerClass}">
-            ${iconHTML} ${coffee["Name"]}</td>
-            <br><span class="label">${label}</span>
-          <td>
-            <a href="${coffee['Shop URL']}" target="_blank">
-              ${coffee["Shop Name"]}
-            </a>
-          </td>
-          <td>${coffee["Origin"]}</td>
-          <td>${coffee["Region"]}</td>
-          <td>${coffee["Height (m)"]}</td>
-          <td>${coffee["Botanic Variety"]}</td>
-          <td>${coffee["Farm / Producer"]}</td>
-          <td>${coffee["Processing Method"]}</td>
-          <td>${coffee["SCA"]}</td>
-          <td>${coffee["Flavor"]}</td>
-          <td>${coffee["Recipe: Ratio"]}</td>
-          <td>${coffee["Recipe: In (gr)"]}</td>
-          <td>${coffee["Recipe: Out (gr)"]}</td>
-          <td>${coffee["Recipe: Time (s)"]}</td>
-          <td>${coffee["Recipe: Temperature (°C)"]}</td>
-        `;
+          row.innerHTML = `
+            <td class="sticky-col ${containerClass}">
+              ${iconHTML} ${coffee["Name"]}<br><span class="label">${label}</span>
+            </td>
+            <td>
+              <a href="${coffee['Shop URL']}" target="_blank">
+                ${coffee["Shop Name"]}
+              </a>
+            </td>
+            <td>${coffee["Origin"]}</td>
+            <td>${coffee["Region"]}</td>
+            <td>${coffee["Height (m)"]}</td>
+            <td>${coffee["Botanic Variety"]}</td>
+            <td>${coffee["Farm / Producer"]}</td>
+            <td>${coffee["Processing Method"]}</td>
+            <td>${coffee["SCA"]}</td>
+            <td>${coffee["Flavor"]}</td>
+            <td>${coffee["Recipe: Ratio"]}</td>
+            <td>${coffee["Recipe: In (gr)"]}</td>
+            <td>${coffee["Recipe: Out (gr)"]}</td>
+            <td>${coffee["Recipe: Time (s)"]}</td>
+            <td>${coffee["Recipe: Temperature (°C)"]}</td>
+          `;
 
-        tbody.appendChild(row);
+          tbody.appendChild(row);
+        });
       });
-    });
-</script>
+  </script>
 
 </body>
 </html>
