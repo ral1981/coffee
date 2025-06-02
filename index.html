@@ -69,6 +69,13 @@
       margin-left: 5px;
     }
   </style>
+  <link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+  integrity="sha512-ZGy5F9HfSdpd3/..."
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+  />
 </head>
 <body>
 
@@ -118,12 +125,16 @@
           
           if (coffee["Container"] === "green") {
             containerClass = 'in-green';
-            iconHTML = '🟢';
             containerUrl = 'https://ral1981.github.io/coffee/container_01';
+            iconHTML = `<a href="${containerUrl}" target="_blank" title="Container: Green">
+                          <i class="fas fa-seedling" style="color:green;"></i>
+                        </a>`;
           } else if (coffee["Container"] === "grey") {
             containerClass = 'in-grey';
-            iconHTML = '⚪';
             containerUrl = 'https://ral1981.github.io/coffee/container_02';
+            iconHTML = `<a href="${containerUrl}" target="_blank" title="Container: Grey">
+                          <i class="fas fa-seedling" style="color:grey;"></i>
+                        </a>`;
           }
 
           const row = document.createElement('tr');
@@ -131,10 +142,7 @@
 
           row.innerHTML = `
             <td class="sticky-col ${containerClass}">
-              ${coffee["Name"]}
-              <a class="icon-link" href="${containerUrl}" title="Container: ${coffee["Container"]}" target="_blank">
-                ${iconHTML}
-              </a>
+              ${coffee["Name"]} ${iconHTML}
             </td>
             <td>
               <a href="${coffee['Shop URL']}" target="_blank">
