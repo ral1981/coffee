@@ -6,6 +6,8 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; }
+    .coffee { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 10px; }
+    h2 { margin: 0 0 5px; }
     .table-container {
       overflow: auto;
       max-width: 100%;
@@ -29,6 +31,7 @@
       position: sticky;
       top: 0;
       background: #f0f0f0;
+      padding: 10px;
       border-bottom: 2px solid #999;
       text-align: left;
       z-index: 2;
@@ -54,6 +57,11 @@
 
     .sticky-col.sticky-header {
       z-index: 5;
+    }
+
+    tbody td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
     }
   </style>
 </head>
@@ -84,7 +92,8 @@
           <th>Temperature (°C)</th>
         </tr>
       </thead>
-      <tbody id="coffee-body"></tbody>
+      <tbody id="coffee-body">
+      </tbody>
     </table>
   </div>
 
@@ -98,20 +107,15 @@
         const tbody = document.getElementById('coffee-body');
 
         parsed.data.forEach(coffee => {
-          if (!coffee["Name"]) return;
-          
           let containerClass = '';
           let iconHTML = '';
-          let link = '#';
           
           if (coffee["Container"] === "green") {
             containerClass = 'in-green';
             iconHTML = '🟢';
-            link = 'https://ral1981.github.io/coffee/container_01';
           } else if (coffee["Container"] === "grey") {
             containerClass = 'in-grey';
             iconHTML = '⚪';
-            link = 'https://ral1981.github.io/coffee/container_02';
           }
 
           const row = document.createElement('tr');
@@ -119,10 +123,7 @@
 
           row.innerHTML = `
             <td class="sticky-col ${containerClass}">
-              ${coffee["Name"]}
-              <a href="${containerUrl}" title="Container: ${coffee["Container"]}" target="_blank">
-                ${iconHTML}
-              </a>
+              ${coffee["Name"]} ${iconHTML}
             </td>
             <td>
               <a href="${coffee['Shop URL']}" target="_blank">
