@@ -107,15 +107,18 @@
         const tbody = document.getElementById('coffee-body');
 
         parsed.data.forEach(coffee => {
+          if (!coffee["Name"]) return;
+          
           let containerClass = '';
           let iconHTML = '';
+          let containerUrl = '';
           
           if (coffee["Container"] === "green") {
             containerClass = 'in-green';
-            iconHTML = '🟢';
+            iconHTML = '<a href="https://ral1981.github.io/coffee/container_01" title="Container: green" target="_blank">🟢</a>';
           } else if (coffee["Container"] === "grey") {
             containerClass = 'in-grey';
-            iconHTML = '⚪';
+            iconHTML = '<a href="https://ral1981.github.io/coffee/container_02" title="Container: grey" target="_blank">⚪</a>';
           }
 
           const row = document.createElement('tr');
