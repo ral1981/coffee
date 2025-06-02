@@ -122,7 +122,8 @@ tbody td {
         row.className = containerClass;
 
         row.innerHTML = `
-          <td class="sticky-col">${coffee["Name"]}</td>
+          <td class="sticky-col ${containerClass}">${coffee["Name"]}</td>
+
           <td>
             <a href="${coffee['Shop URL']}" target="_blank">
               ${coffee["Shop Name"]}
