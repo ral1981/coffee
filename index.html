@@ -113,8 +113,14 @@ tbody td {
 
       parsed.data.forEach(coffee => {
         let containerClass = '';
-        if (coffee["Container"] === "green") containerClass = 'in-green';
-        else if (coffee["Container"] === "grey") containerClass = 'in-grey';
+        let iconHTML = '';
+        if (coffee["Container"] === "green") {
+          containerClass = 'in-green';
+          iconHTML = '🟢';
+        } else if (coffee["Container"] === "grey") {
+          containerClass = 'in-grey';
+          iconHTML = '⚪';
+        }
 
         console.log(coffee);
 
@@ -122,7 +128,9 @@ tbody td {
         row.className = containerClass;
 
         row.innerHTML = `
-          <td class="sticky-col ${containerClass}">${coffee["Name"]}</td>
+          <td class="sticky-col ${containerClass}">
+            ${iconHTML} ${coffee["Name"]}</td>
+            <br><span class="label">${label}</span>
           <td>
             <a href="${coffee['Shop URL']}" target="_blank">
               ${coffee["Shop Name"]}
