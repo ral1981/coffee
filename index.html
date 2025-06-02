@@ -53,7 +53,7 @@ thead th:first-child {
 .sticky-col {
   position: sticky;
   left: 0;
-  background: #ffffff;
+  background-color: inherit;
   z-index: 1;
 }
 
@@ -116,7 +116,7 @@ tbody td {
         if (coffee["Container"] === "green") containerClass = 'in-green';
         else if (coffee["Container"] === "grey") containerClass = 'in-grey';
 
-        console.log(coffee); // Moved outside of incorrect block
+        console.log(coffee);
 
         const row = document.createElement('tr');
         row.className = containerClass;
