@@ -103,50 +103,50 @@ tbody td {
   </div>
 
   <script>
-    const sheetUrl = 'https://docs.google.com/spreadsheets/d/10NVColZhsKRWRUdpxmCzuWskvQzTSlFakOhRA8xFY5Y/export?format=csv';
+  const sheetUrl = 'https://docs.google.com/spreadsheets/d/10NVColZhsKRWRUdpxmCzuWskvQzTSlFakOhRA8xFY5Y/export?format=csv';
 
-    fetch(sheetUrl)
-      .then(response => response.text())
-      .then(csv => {
-        const parsed = Papa.parse(csv, {header: true });
-        const tbody = document.getElementById('coffee-body');
-      
-        parsed.data.forEach(coffee => {
-          let containerClass = '';
-          if (coffee["Container"] === "green") containerClass = 'in-green';
-          else if (coffee["Container"] === "grey") containerClass = 'in-grey';
-          
-          console.log(coffee);
+  fetch(sheetUrl)
+    .then(response => response.text())
+    .then(csv => {
+      const parsed = Papa.parse(csv, { header: true });
+      const tbody = document.getElementById('coffee-body');
 
-          const row = document.createElement('tr');
-          row.className = containerClass
+      parsed.data.forEach(coffee => {
+        let containerClass = '';
+        if (coffee["Container"] === "green") containerClass = 'in-green';
+        else if (coffee["Container"] === "grey") containerClass = 'in-grey';
 
-          row.innerHTML =
-            <td class="sticky-col">${coffee["Name"]}</td>
-            <td>
-              <a href="${coffee['Shop URL']}" target="_blank">
-               ${coffee["Shop Name"]}
-              </a>
-            </td>
-            <td>${coffee["Origin"]}</td>
-            <td>${coffee["Region"]}</td>
-            <td>${coffee["Height (m)"]}</td>
-            <td>${coffee["Botanic Variety"]}</td>
-            <td>${coffee["Farm / Producer"]}</td>
-            <td>${coffee["Processing Method"]}</td>
-            <td>${coffee["SCA"]}</td>
-            <td>${coffee["Flavor"]}</td>
-            <td>${coffee["Recipe: Ratio"]}</td>
-            <td>${coffee["Recipe: In (gr)"]}</td>
-            <td>${coffee["Recipe: Out (gr)"]}</td>
-            <td>${coffee["Recipe: Time (s)"]}</td>
-            <td>${coffee["Recipe: Temperature (°C)"]}</td>
-            `;
-          
-          tbody.appendChild(row);
-        });
+        console.log(coffee); // Moved outside of incorrect block
+
+        const row = document.createElement('tr');
+        row.className = containerClass;
+
+        row.innerHTML = `
+          <td class="sticky-col">${coffee["Name"]}</td>
+          <td>
+            <a href="${coffee['Shop URL']}" target="_blank">
+              ${coffee["Shop Name"]}
+            </a>
+          </td>
+          <td>${coffee["Origin"]}</td>
+          <td>${coffee["Region"]}</td>
+          <td>${coffee["Height (m)"]}</td>
+          <td>${coffee["Botanic Variety"]}</td>
+          <td>${coffee["Farm / Producer"]}</td>
+          <td>${coffee["Processing Method"]}</td>
+          <td>${coffee["SCA"]}</td>
+          <td>${coffee["Flavor"]}</td>
+          <td>${coffee["Recipe: Ratio"]}</td>
+          <td>${coffee["Recipe: In (gr)"]}</td>
+          <td>${coffee["Recipe: Out (gr)"]}</td>
+          <td>${coffee["Recipe: Time (s)"]}</td>
+          <td>${coffee["Recipe: Temperature (°C)"]}</td>
+        `;
+
+        tbody.appendChild(row);
       });
-    </script>
+    });
+</script>
 
 </body>
 </html>
