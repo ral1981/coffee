@@ -65,20 +65,28 @@ tbody td {
     <table id="coffee-table">
       <thead>
         <tr>
-          <th class="sticky-col sticky-header">Name</th>
-          <th>Shop</th>
-          <th>Origin</th>
-          <th>Region</th>
-          <th>Height (m)</th>
-          <th>Botanic Variety</th>
-          <th>Farm / Producer</th>
-          <th>Processing Method</th>
-          <th>SCA</th>
-          <th>Flavor</th>
+          <th class="sticky-col sticky-header" rowspan="2">Name</th>
+          <th rowspan="2">Shop</th>
+          <th rowspan="2">Origin</th>
+          <th rowspan="2">Region</th>
+          <th rowspan="2">Height (m)</th>
+          <th rowspan="2">Botanic Variety</th>
+          <th rowspan="2">Farm / Producer</th>
+          <th rowspan="2">Processing Method</th>
+          <th rowspan="2">SCA</th>
+          <th rowspan="2">Flavor</th>
+          <th colspan="5">Recipe</th>
+        </tr>
+        <tr>
+          <th>Ratio</th>
+          <th>In (gr)</th>
+          <th>Out (gr)</th>
+          <th>Time (s)</th>
+          <th>Temperature (C)</th>
         </tr>
       </thead>
       <tbody id="coffee-body">
-        <tr><td colspan="4">Loading...</td></tr>
+        
       </tbody>
     </table>
   </div>
@@ -108,6 +116,11 @@ tbody td {
               <td>${coffee["Processing Method"]}</td>
               <td>${coffee["SCA"]}</td>
               <td>${coffee["Flavor"]}</td>
+              <td>${coffee["Ratio"]}</td>
+              <td>${coffee["In (gr)"]}</td>
+              <td>${coffee["Out (gr)"]}</td>
+              <td>${coffee["Time (s)"]}</td>
+              <td>${coffee["Temperature (C)"]}</td>
             </tr>`;
           tbody.innerHTML += row;
         }
