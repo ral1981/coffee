@@ -109,7 +109,11 @@ tbody td {
           const row = `
             <tr>
               <td class="sticky-col">${coffee["Name"]}</td>
-              <td>${coffee["Shop"]}</td>
+              <td>
+                <a href="${coffee['Shop URL']}" target="_blank">
+                  ${coffee["Shop Name"]}
+                </a>
+              </td>
               <td>${coffee["Origin"]}</td>
               <td>${coffee["Region"]}</td>
               <td>${coffee["Height (m)"]}</td>
