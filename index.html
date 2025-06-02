@@ -82,7 +82,7 @@ tbody td {
           <th>In (gr)</th>
           <th>Out (gr)</th>
           <th>Time (s)</th>
-          <th>Temperature (C)</th>
+          <th>Temperature (°C)</th>
         </tr>
       </thead>
       <tbody id="coffee-body">
@@ -118,11 +118,11 @@ tbody td {
               <td>${coffee["Processing Method"]}</td>
               <td>${coffee["SCA"]}</td>
               <td>${coffee["Flavor"]}</td>
-              <td>${coffee["Ratio"]}</td>
-              <td>${coffee["In (gr)"]}</td>
-              <td>${coffee["Out (gr)"]}</td>
-              <td>${coffee["Time (s)"]}</td>
-              <td>${coffee["Temperature (C)"]}</td>
+              <td>${coffee["Recipe: Ratio"]}</td>
+              <td>${coffee["Recipe: In (gr)"]}</td>
+              <td>${coffee["Recipe: Out (gr)"]}</td>
+              <td>${coffee["Recipe: Time (s)"]}</td>
+              <td>${coffee["Recipe: Temperature (°C)"]}</td>
             </tr>`;
           tbody.innerHTML += row;
         }
