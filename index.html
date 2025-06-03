@@ -12,24 +12,31 @@
       background-color: #f9fafb;
       color: #1f2937;
       font-size: 16px; /* Increased base font size */
+      margin: 0; /* Ensure no default body margin interferes */
     }
     h1 {
       color: #374151;
       text-align: center;
+      margin-top: 20px; /* Ensure some space above h1 if body padding is small */
       margin-bottom: 20px; /* Adjusted margin */
       font-size: 1.75rem; /* Responsive font size for h1 */
     }
     .table-container {
-      overflow: auto;
+      overflow: auto; /* Handles horizontal scrolling if table is wider */
+      /* overflow-y: auto; Explicitly for vertical scrolling; auto on its own handles this */
+      max-height: 75vh; /* Constrains the height, making it scrollable if content exceeds this */
       max-width: 100%;
       border: 1px solid #d1d5db;
       border-radius: 12px;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      margin-left: auto; /* Center the table container if page is wider */
+      margin-right: auto; /* Center the table container if page is wider */
+      /* Adjust max-width if you want to constrain width on larger screens, e.g., max-width: 1200px; */
     }
     table {
       border-collapse: collapse;
-      width: max-content;
-      min-width: 100%;
+      width: max-content; /* Allows table to be as wide as its content */
+      min-width: 100%; /* Ensures table takes full width of its container */
     }
     th, td {
       padding: 14px 18px; /* Increased padding */
@@ -40,48 +47,52 @@
     }
     thead th {
       position: sticky;
-      top: 0;
-      background: #f3f4f6;
+      top: 0; /* Stick to the top of the .table-container */
+      background: #f3f4f6; /* Light gray background for header */
       padding: 14px 18px; /* Increased padding */
-      border-bottom: 2px solid #9ca3af;
-      font-weight: 600;
-      z-index: 2;
+      border-bottom: 2px solid #9ca3af; /* Darker border for header bottom */
+      font-weight: 600; /* Bolder text for headers */
+      z-index: 2; /* Ensures header is above table body but below sticky corner */
       font-size: 1rem; /* Larger font for headers */
     }
-    thead th:first-child {
-      background: #f3f4f6;
+    /* The first th in thead (Name cell) needs to be sticky left and top */
+    thead th.sticky-col.sticky-header {
+      left: 0; /* Stick to the left */
+      z-index: 3; /* Highest z-index to be on top of other headers and sticky column cells */
+      /* Background is already #f3f4f6 from thead th and .sticky-header */
     }
+    /* General sticky column styling for td elements in tbody */
+    .sticky-col {
+      position: sticky;
+      left: 0; /* Stick to the left of the .table-container */
+      background-color: #ffffff; /* Default background for sticky column cells */
+      z-index: 1; /* Above normal cells but below header cells */
+      border-right: 1px solid #e5e7eb; /* Visual separator for the sticky column */
+    }
+
+    /* Ensure colored rows also color their sticky column cell */
+    .in-green .sticky-col {
+      background-color: #d1fae5; /* Match green row background */
+    }
+    .in-grey .sticky-col {
+      background-color: #f3f4f6; /* Match grey row background */
+    }
+    /* Hover effect for rows, including their sticky column cell */
+    tbody tr:hover {
+      background-color: #e5e7eb; /* Light grey hover for rows */
+    }
+    tbody tr:hover .sticky-col {
+        background-color: #e5e7eb; /* Ensure sticky column matches hover */
+    }
+
     .in-green {
       background-color: #d1fae5;
     }
     .in-grey {
       background-color: #f3f4f6;
     }
-    .sticky-col {
-      position: sticky;
-      left: 0;
-      background-color: #ffffff;
-      z-index: 1;
-      border-right: 1px solid #e5e7eb;
-    }
-    .sticky-col.sticky-header {
-      z-index: 3;
-      background-color: #f3f4f6;
-    }
-    .in-green .sticky-col {
-      background-color: #d1fae5;
-    }
-    .in-grey .sticky-col {
-      background-color: #f3f4f6;
-    }
-    tbody tr:hover {
-      background-color: #e5e7eb;
-    }
-    tbody tr:hover .sticky-col {
-        background-color: #e5e7eb;
-    }
     tbody td {
-      padding: 14px 18px; /* Increased padding */
+      padding: 14px 18px;
       border-bottom: 1px solid #e5e7eb;
     }
     .icon-link {
@@ -91,21 +102,24 @@
     }
     .icon-link svg {
         display: inline-block;
-        width: 18px; /* Slightly larger icon */
-        height: 18px; /* Slightly larger icon */
+        width: 18px;
+        height: 18px;
     }
 
     /* Responsive adjustments for smaller screens */
     @media (max-width: 768px) {
       body {
-        font-size: 15px; /* Adjust base font for medium screens */
+        font-size: 15px;
         padding: 15px;
       }
       h1 {
         font-size: 1.5rem;
       }
+      .table-container {
+        max-height: 80vh; /* Allow a bit more height on tablets */
+      }
       th, td {
-        padding: 10px 12px; /* Adjust padding for smaller cells */
+        padding: 10px 12px;
         font-size: 0.9rem;
       }
       thead th {
@@ -120,15 +134,19 @@
 
     @media (max-width: 480px) {
       body {
-        font-size: 14px; /* Adjust base font for very small screens */
+        font-size: 14px;
         padding: 10px;
       }
       h1 {
         font-size: 1.3rem;
       }
+      .table-container {
+        max-height: 85vh; /* Allow more height on small mobile screens */
+        border-radius: 8px; /* Slightly smaller radius for smaller screens */
+      }
       th, td {
-        padding: 8px 10px; /* Further reduce padding */
-        font-size: 0.85rem; /* Smaller font for very small screens */
+        padding: 8px 10px;
+        font-size: 0.85rem;
       }
       thead th {
         padding: 8px 10px;
@@ -139,7 +157,6 @@
         height: 14px;
       }
     }
-
   </style>
 </head>
 <body>
@@ -220,7 +237,7 @@
           } else if (coffee["Container"] === "grey") {
             containerClass = 'in-grey';
             // SVG icon for the grey container
-            iconHTML = `<a href="https://ral1981.github.io/coffee/container_01" class="icon-link" target="_self" title="Go to grey container">
+            iconHTML = `<a href="https://ral1981.github.io/coffee/container_02" class="icon-link" target="_self" title="Go to grey container">
               <svg xmlns="http://www.w3.org/2000/svg" fill="grey" viewBox="0 0 550 550">
                 <path d="M356.771,61.341L374.313,0H137.686l17.544,61.341c-55.96,5.308-99.886,52.562-99.886,109.887v262.008
 				c0,43.431,35.333,78.765,78.763,78.765h41.353v-15.208h-41.353c-35.044,0-63.555-28.512-63.555-63.557V171.228
