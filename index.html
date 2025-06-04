@@ -56,6 +56,7 @@
     thead th.sticky-col.sticky-header {
       left: 0;
       z-index: 3;
+      background-color: #f3f4f6;
     }
     .sticky-col {
       position: sticky;
@@ -109,9 +110,14 @@
     }
     }
     td.sticky-col {
+      position: sticky;
+      left: 0;
+      background-color: #ffffff;
+      z-index: 1;
+      border-right: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     td.sticky-col::before {
       content: '';
