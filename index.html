@@ -8,83 +8,77 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      padding: 10px; /* Reduced padding for smaller screens */
+      padding: 10px;
       background-color: #f9fafb;
       color: #1f2937;
-      font-size: 16px; /* Increased base font size */
-      margin: 0; /* Ensure no default body margin interferes */
+      font-size: 16px;
+      margin: 0;
     }
     h1 {
       color: #374151;
       text-align: center;
-      margin-top: 20px; /* Ensure some space above h1 if body padding is small */
-      margin-bottom: 20px; /* Adjusted margin */
-      font-size: 1.75rem; /* Responsive font size for h1 */
+      margin-top: 20px;
+      margin-bottom: 20px;
+      font-size: 1.75rem;
     }
     .table-container {
-      overflow: auto; /* Handles horizontal scrolling if table is wider */
-      /* overflow-y: auto; Explicitly for vertical scrolling; auto on its own handles this */
-      max-height: 75vh; /* Constrains the height, making it scrollable if content exceeds this */
+      overflow: auto;
+      max-height: 75vh;
       max-width: 100%;
       border: 1px solid #d1d5db;
       border-radius: 12px;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      margin-left: auto; /* Center the table container if page is wider */
-      margin-right: auto; /* Center the table container if page is wider */
-      /* Adjust max-width if you want to constrain width on larger screens, e.g., max-width: 1200px; */
+      margin-left: auto;
+      margin-right: auto;
     }
     table {
       border-collapse: collapse;
-      width: max-content; /* Allows table to be as wide as its content */
-      min-width: 100%; /* Ensures table takes full width of its container */
+      width: max-content;
+      min-width: 100%;
     }
     th, td {
-      padding: 14px 18px; /* Increased padding */
+      padding: 14px 18px;
       border-bottom: 1px solid #e5e7eb;
       white-space: nowrap;
       text-align: left;
-      font-size: 0.95rem; /* Slightly larger font for table cells */
+      font-size: 0.95rem;
     }
     thead th {
       position: sticky;
-      top: 0; /* Stick to the top of the .table-container */
-      background: #f3f4f6; /* Light gray background for header */
-      padding: 14px 18px; /* Increased padding */
-      border-bottom: 2px solid #9ca3af; /* Darker border for header bottom */
-      font-weight: 600; /* Bolder text for headers */
-      z-index: 2; /* Ensures header is above table body but below sticky corner */
-      font-size: 1rem; /* Larger font for headers */
+      top: 0;
+      background: #f3f4f6;
+      padding: 14px 18px;
+      border-bottom: 2px solid #9ca3af;
+      font-weight: 600;
+      z-index: 2;
+      font-size: 1rem;
     }
-    /* The first th in thead (Name cell) needs to be sticky left and top */
     thead th.sticky-col.sticky-header {
-      left: 0; /* Stick to the left */
-      z-index: 3; /* Highest z-index to be on top of other headers and sticky column cells */
-      /* Background is already #f3f4f6 from thead th and .sticky-header */
+      left: 0;
+      z-index: 3;
     }
-    /* General sticky column styling for td elements in tbody */
     .sticky-col {
       position: sticky;
-      left: 0; /* Stick to the left of the .table-container */
-      background-color: #ffffff; /* Default background for sticky column cells */
-      z-index: 1; /* Above normal cells but below header cells */
-      border-right: 1px solid #e5e7eb; /* Visual separator for the sticky column */
+      left: 0;
+      background-color: #ffffff;
+      z-index: 1;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-
-    /* Ensure colored rows also color their sticky column cell */
     .in-green .sticky-col {
-      background-color: #d1fae5; /* Match green row background */
+      background-color: #d1fae5;
     }
     .in-grey .sticky-col {
-      background-color: #f3f4f6; /* Match grey row background */
+      background-color: #f3f4f6;
     }
-    /* Hover effect for rows, including their sticky column cell */
     tbody tr:hover {
-      background-color: #e5e7eb; /* Light grey hover for rows */
+      background-color: #e5e7eb;
     }
     tbody tr:hover .sticky-col {
-        background-color: #e5e7eb; /* Ensure sticky column matches hover */
+      background-color: #e5e7eb;
     }
-
     .in-green {
       background-color: #d1fae5;
     }
@@ -97,21 +91,21 @@
     }
     .icon-link {
       text-decoration: none;
-      margin-left: 8px;
       vertical-align: middle;
     }
     .icon-link svg {
-        display: inline-block;
-        width: 80px;
-        height: 80px;
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      vertical-align: middle;
     }
-	  
-    /* Uniform row height to accommodate larger icons */
-    tbody tr {
-    height: 90px; /* Adjust if needed for visual balance */
+    td.sticky-col::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      visibility: hidden;
     }
-
-    /* Responsive adjustments for smaller screens */
     @media (max-width: 768px) {
       body {
         font-size: 15px;
@@ -121,7 +115,7 @@
         font-size: 1.5rem;
       }
       .table-container {
-        max-height: 80vh; /* Allow a bit more height on tablets */
+        max-height: 80vh;
       }
       th, td {
         padding: 10px 12px;
@@ -131,12 +125,15 @@
         padding: 10px 12px;
         font-size: 0.95rem;
       }
-       .icon-link svg {
-        width: 16px;
-        height: 16px;
+      .icon-link svg {
+        width: 20px;
+        height: 20px;
+      }
+      td.sticky-col::before {
+        width: 20px;
+        height: 20px;
+      }
     }
-    }
-
     @media (max-width: 480px) {
       body {
         font-size: 14px;
@@ -146,8 +143,8 @@
         font-size: 1.3rem;
       }
       .table-container {
-        max-height: 85vh; /* Allow more height on small mobile screens */
-        border-radius: 8px; /* Slightly smaller radius for smaller screens */
+        max-height: 85vh;
+        border-radius: 8px;
       }
       th, td {
         padding: 8px 10px;
@@ -158,8 +155,12 @@
         font-size: 0.9rem;
       }
       .icon-link svg {
-        width: 14px;
-        height: 14px;
+        width: 18px;
+        height: 18px;
+      }
+      td.sticky-col::before {
+        width: 18px;
+        height: 18px;
       }
     }
   </style>
