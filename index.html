@@ -44,14 +44,14 @@
       font-size: 0.95rem;
     }
     thead th {
-      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      background-color: #f3f4f6;
+      z-index: 2;
     }
     thead th.sticky-col.sticky-header {
       left: 0;
       z-index: 3;
-      background-color: #f3f4f6;
-      display: table-cell !important;
-      white-space: nowrap;
     }
     .sticky-col {
       position: sticky;
@@ -107,9 +107,8 @@
     td.sticky-col {
       position: sticky;
       left: 0;
-      background-color: #ffffff;
+      background-color: inherit;
       z-index: 1;
-      border-right: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
       gap: 6px;
