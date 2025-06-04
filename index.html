@@ -22,14 +22,7 @@
       font-size: 1.75rem;
     }
     .table-container {
-      overflow: auto;
-      max-height: 75vh;
-      max-width: 100%;
-      border: 1px solid #d1d5db;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      margin-left: auto;
-      margin-right: auto;
+      position: relative;
     }
     table {
       border-collapse: collapse;
@@ -48,10 +41,12 @@
       top: 0;
       background-color: #f3f4f6;
       z-index: 2;
+      white-space: nowrap;
     }
     thead th.sticky-col.sticky-header {
       left: 0;
-      z-index: 3;
+      z-index: 4;
+      background-color: #f3f4f6;
     }
     .sticky-col {
       position: sticky;
@@ -72,8 +67,23 @@
     tbody tr:hover {
       background-color: #e5e7eb;
     }
+    tbody tr.in-green td.sticky-col {
+      background-color: #d1fae5;
+    }
+    tbody tr.in-grey td.sticky-col {
+      background-color: #f3f4f6;
+    }
     tbody tr:hover .sticky-col {
       background-color: #e5e7eb;
+    }
+    tbody td.sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background-color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .in-green {
       background-color: #d1fae5;
