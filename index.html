@@ -299,6 +299,22 @@
             color: #166534;
         }
 
+        .debug-info {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px auto;
+            max-width: 1400px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .debug-info h4 {
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
@@ -342,12 +358,27 @@
         </div>
     </div>
 
+    <div id="debug-info" class="debug-info" style="display: none;">
+        <h4>Debug Info:</h4>
+        <div id="debug-content"></div>
+    </div>
+
     <div class="coffee-grid" id="coffee-grid">
         <!-- Coffee cards will be populated by JavaScript -->
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script>
+        // Function to safely get a value from multiple possible property names
+        function getValueFromObject(obj, possibleKeys, defaultValue = 'N/A') {
+            for (let key of possibleKeys) {
+                if (obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
+                    return obj[key];
+                }
+            }
+            return defaultValue;
+        }
+
         // Function to load data from Google Sheets CSV using Papa Parse
         async function loadCoffeeData() {
             try {
@@ -359,12 +390,25 @@
                     header: true,
                     skipEmptyLines: true,
                     dynamicTyping: false,
-                    transformHeader: header => header.trim().toLowerCase().replace(/\s+/g, '_'),
+                    transformHeader: header => header.trim().toLowerCase().replace(/\s+/g, '_').replace(/[()]/g, ''),
                     transform: value => value ? value.trim() : ''
                 });
                 
                 if (parsed.errors.length > 0) {
                     console.warn('CSV parsing warnings:', parsed.errors);
+                }
+
+                // Debug: Show available column names
+                if (parsed.data.length > 0) {
+                    const debugDiv = document.getElementById('debug-info');
+                    const debugContent = document.getElementById('debug-content');
+                    debugContent.innerHTML = `
+                        <strong>Available columns:</strong><br>
+                        ${Object.keys(parsed.data[0]).join(', ')}<br><br>
+                        <strong>First row data:</strong><br>
+                        ${JSON.stringify(parsed.data[0], null, 2)}
+                    `;
+                    debugDiv.style.display = 'block';
                 }
                 
                 return parsed.data.filter(row => row.name && row.name.trim());
@@ -379,8 +423,14 @@
             grid.innerHTML = '';
 
             // Update container status
-            const greenContainer = coffees.find(c => c.container === 'Green' || c.container === 'Container_01');
-            const greyContainer = coffees.find(c => c.container === 'Grey' || c.container === 'Container_02');
+            const greenContainer = coffees.find(c => {
+                const container = getValueFromObject(c, ['container', 'container_01', 'green_container'], '').toLowerCase();
+                return container.includes('green') || container.includes('container_01');
+            });
+            const greyContainer = coffees.find(c => {
+                const container = getValueFromObject(c, ['container', 'container_02', 'grey_container'], '').toLowerCase();
+                return container.includes('grey') || container.includes('gray') || container.includes('container_02');
+            });
             
             document.getElementById('green-container-coffee').textContent = 
                 greenContainer ? `Currently: ${greenContainer.name}` : 'Currently: Empty';
@@ -388,9 +438,29 @@
                 greyContainer ? `Currently: ${greyContainer.name}` : 'Currently: Empty';
 
             coffees.forEach(coffee => {
-                const isInContainer = coffee.container && coffee.container !== '';
+                const containerValue = getValueFromObject(coffee, ['container', 'container_01', 'container_02'], '');
+                const isInContainer = containerValue && containerValue !== '';
                 const containerBadge = isInContainer ? 
-                    `<div class="container-badge">${coffee.container} Container</div>` : '';
+                    `<div class="container-badge">${containerValue} Container</div>` : '';
+
+                // Get values using multiple possible column names
+                const origin = getValueFromObject(coffee, ['origin', 'country']);
+                const region = getValueFromObject(coffee, ['region', 'area', 'district']);
+                const height = getValueFromObject(coffee, ['height', 'height_m', 'altitude', 'elevation']);
+                const variety = getValueFromObject(coffee, ['variety', 'botanic_variety', 'cultivar']);
+                const farm = getValueFromObject(coffee, ['farm', 'producer', 'farm_producer', 'estate']);
+                const processing = getValueFromObject(coffee, ['processing', 'processing_method', 'process']);
+                const sca = getValueFromObject(coffee, ['sca', 'sca_score', 'score']);
+                const flavor = getValueFromObject(coffee, ['flavor', 'flavor_profile', 'notes', 'tasting_notes']);
+                const shop = getValueFromObject(coffee, ['shop', 'shop_name', 'roaster']);
+                const shopUrl = getValueFromObject(coffee, ['shopurl', 'shop_url', 'url', 'website']);
+
+                // Recipe values
+                const ratio = getValueFromObject(coffee, ['ratio', 'brew_ratio'], '1:2');
+                const inGr = getValueFromObject(coffee, ['in_gr', 'in', 'dose', 'coffee_in'], '18');
+                const outGr = getValueFromObject(coffee, ['out_gr', 'out', 'yield', 'coffee_out'], '36');
+                const timeS = getValueFromObject(coffee, ['time_s', 'time', 'extraction_time'], '28');
+                const tempC = getValueFromObject(coffee, ['temp_c', 'temperature', 'brew_temp'], '93');
 
                 const card = document.createElement('div');
                 card.className = `coffee-card ${isInContainer ? 'in-container' : ''}`;
@@ -399,8 +469,8 @@
                     <div class="coffee-header">
                         <div class="coffee-name">${coffee.name}</div>
                         <div class="coffee-shop">
-                            <a href="${coffee.shopUrl || coffee.shop_url || '#'}" target="_blank">
-                                ${coffee.shop || coffee.shop_name || 'Local Roaster'}
+                            <a href="${shopUrl !== 'N/A' ? shopUrl : '#'}" target="_blank">
+                                ${shop}
                             </a>
                         </div>
                     </div>
@@ -408,37 +478,37 @@
                     <div class="coffee-details">
                         <div class="detail-item">
                             <div class="detail-label">Origin</div>
-                            <div class="detail-value">${coffee.origin}</div>
+                            <div class="detail-value">${origin}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Region</div>
-                            <div class="detail-value">${coffee.region}</div>
+                            <div class="detail-value">${region}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Height (m)</div>
-                            <div class="detail-value">${coffee.height}</div>
+                            <div class="detail-value">${height}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Variety</div>
-                            <div class="detail-value">${coffee.variety || coffee.botanic_variety}</div>
+                            <div class="detail-value">${variety}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Farm/Producer</div>
-                            <div class="detail-value">${coffee.farm || coffee.producer}</div>
+                            <div class="detail-value">${farm}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Processing</div>
-                            <div class="detail-value">${coffee.processing || coffee.processing_method}</div>
+                            <div class="detail-value">${processing}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">SCA Score</div>
-                            <div class="detail-value">${coffee.sca}</div>
+                            <div class="detail-value">${sca}</div>
                         </div>
                     </div>
 
                     <div class="flavor-notes">
                         <h4>Flavor Profile</h4>
-                        <p>${coffee.flavor}</p>
+                        <p>${flavor}</p>
                     </div>
 
                     <div class="recipe">
@@ -446,23 +516,23 @@
                         <div class="recipe-grid">
                             <div class="recipe-item">
                                 <div class="recipe-label">Ratio</div>
-                                <div class="recipe-value">${coffee.ratio || '1:2'}</div>
+                                <div class="recipe-value">${ratio}</div>
                             </div>
                             <div class="recipe-item">
                                 <div class="recipe-label">In (g)</div>
-                                <div class="recipe-value">${coffee.in_gr || coffee.in || '18'}</div>
+                                <div class="recipe-value">${inGr}</div>
                             </div>
                             <div class="recipe-item">
                                 <div class="recipe-label">Out (g)</div>
-                                <div class="recipe-value">${coffee.out_gr || coffee.out || '36'}</div>
+                                <div class="recipe-value">${outGr}</div>
                             </div>
                             <div class="recipe-item">
                                 <div class="recipe-label">Time (s)</div>
-                                <div class="recipe-value">${coffee.time_s || coffee.time || '28'}</div>
+                                <div class="recipe-value">${timeS}</div>
                             </div>
                             <div class="recipe-item">
                                 <div class="recipe-label">Temp (°C)</div>
-                                <div class="recipe-value">${coffee.temp_c || coffee.temperature || '93'}</div>
+                                <div class="recipe-value">${tempC}</div>
                             </div>
                         </div>
                     </div>
