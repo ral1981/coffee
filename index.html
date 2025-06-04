@@ -94,22 +94,30 @@
       vertical-align: middle;
     }
     .icon-link svg {
-      width: 24px;
-      height: 24px;
-      vertical-align: middle;
+      width: 32px !important;
+      height: 32px !important;
+      min-width: 32px;
+      min-height: 32px;
+      max-width: 32px;
+      max-height: 32px;
       display: inline-block;
+      vertical-align: middle;
       fill: currentColor;
     }
     .icon-link svg path {
-      vector-effect: non-scaling-stroke;
-      stroke-width: 1;
-      fill: inherit;
+      fill: currentColor;
+    }
+    }
+    td.sticky-col {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     td.sticky-col::before {
       content: '';
       display: inline-block;
-      width: 24px;
-      height: 24px;
+      width: 32px;
+      height: 32px;
       visibility: hidden;
     }
     @media (max-width: 768px) {
