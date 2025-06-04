@@ -6,160 +6,179 @@
   <title>Coffee Overview</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
   <style>
-  body {
-    font-family: 'Inter', sans-serif;
-    padding: 10px;
-    background-color: #f9fafb;
-    color: #1f2937;
-    font-size: 16px;
-    margin: 0;
-  }
-  h1 {
-    color: #374151;
-    text-align: center;
-    margin: 20px 0;
-    font-size: 1.75rem;
-  }
-  .table-container {
-    overflow: auto;
-    max-height: 75vh;
-    max-width: 100%;
-    border: 1px solid #d1d5db;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    margin: auto;
-    position: relative;
-  }
-  table {
-    border-collapse: collapse;
-    width: max-content;
-    min-width: 100%;
-  }
-  th, td {
-    padding: 14px 18px;
-    border-bottom: 1px solid #e5e7eb;
-    white-space: nowrap;
-    text-align: left;
-    font-size: 0.95rem;
-  }
-  thead th {
-    position: sticky;
-    top: 0;
-    background: #f3f4f6;
-    border-bottom: 2px solid #9ca3af;
-    font-weight: 600;
-    z-index: 2;
-  }
-  thead th.sticky-col.sticky-header {
-    left: 0;
-    z-index: 4;
-    background-color: #f3f4f6;
-  }
-  td.sticky-col {
-    position: sticky;
-    left: 0;
-    background-color: #ffffff;
-    z-index: 1;
-    border-right: 1px solid #e5e7eb;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  tbody tr.in-green td.sticky-col {
-    background-color: #d1fae5;
-  }
-  tbody tr.in-grey td.sticky-col {
-    background-color: #f3f4f6;
-  }
-  tbody tr:hover {
-    background-color: #e5e7eb;
-  }
-  tbody tr:hover td.sticky-col {
-    background-color: #e5e7eb;
-  }
-  .in-green {
-    background-color: #d1fae5;
-  }
-  .in-grey {
-    background-color: #f3f4f6;
-  }
-  .icon-link {
-    text-decoration: none;
-    vertical-align: middle;
-  }
-  .icon-link svg {
-    width: 32px;
-    height: 32px;
-    display: inline-block;
-    vertical-align: middle;
-    fill: currentColor;
-  }
-  .icon-link svg path {
-    fill: currentColor;
-  }
-  td.sticky-col::before {
-    content: '';
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    visibility: hidden;
-  }
-  @media (max-width: 768px) {
     body {
-      font-size: 15px;
-      padding: 15px;
+      font-family: 'Inter', sans-serif;
+      padding: 10px;
+      background-color: #f9fafb;
+      color: #1f2937;
+      font-size: 16px;
+      margin: 0;
     }
     h1 {
-      font-size: 1.5rem;
+      color: #374151;
+      text-align: center;
+      margin-top: 20px;
+      margin-bottom: 20px;
+      font-size: 1.75rem;
     }
     .table-container {
-      max-height: 80vh;
+      overflow: auto;
+      max-height: 75vh;
+      max-width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      margin-left: auto;
+      margin-right: auto;
+    }
+    table {
+      border-collapse: collapse;
+      width: max-content;
+      min-width: 100%;
     }
     th, td {
-      padding: 10px 12px;
-      font-size: 0.9rem;
-    }
-    thead th {
+      padding: 14px 18px;
+      border-bottom: 1px solid #e5e7eb;
+      white-space: nowrap;
+      text-align: left;
       font-size: 0.95rem;
     }
-    .icon-link svg {
-      width: 24px;
-      height: 24px;
-    }
-    td.sticky-col::before {
-      width: 24px;
-      height: 24px;
-    }
-  }
-  @media (max-width: 480px) {
-    body {
-      font-size: 14px;
-      padding: 10px;
-    }
-    h1 {
-      font-size: 1.3rem;
-    }
-    .table-container {
-      max-height: 85vh;
-      border-radius: 8px;
-    }
-    th, td {
-      padding: 8px 10px;
-      font-size: 0.85rem;
-    }
     thead th {
-      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    thead th.sticky-col.sticky-header {
+      left: 0;
+      z-index: 3;
+      background-color: #f3f4f6;
+      display: table-cell !important;
+      white-space: nowrap;
+    }
+    .sticky-col {
+      position: sticky;
+      left: 0;
+      background-color: #ffffff;
+      z-index: 1;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .in-green .sticky-col {
+      background-color: #d1fae5;
+    }
+    .in-grey .sticky-col {
+      background-color: #f3f4f6;
+    }
+    tbody tr:hover {
+      background-color: #e5e7eb;
+    }
+    tbody tr:hover .sticky-col {
+      background-color: #e5e7eb;
+    }
+    .in-green {
+      background-color: #d1fae5;
+    }
+    .in-grey {
+      background-color: #f3f4f6;
+    }
+    tbody td {
+      padding: 14px 18px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .icon-link {
+      text-decoration: none;
+      vertical-align: middle;
     }
     .icon-link svg {
-      width: 20px;
-      height: 20px;
+      width: 32px !important;
+      height: 32px !important;
+      min-width: 32px;
+      min-height: 32px;
+      max-width: 32px;
+      max-height: 32px;
+      display: inline-block;
+      vertical-align: middle;
+      fill: currentColor;
+    }
+    .icon-link svg path {
+      fill: currentColor;
+    }
+    }
+    td.sticky-col {
+      position: sticky;
+      left: 0;
+      background-color: #ffffff;
+      z-index: 1;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     td.sticky-col::before {
-      width: 20px;
-      height: 20px;
+      content: '';
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      visibility: hidden;
     }
-  }
-</style>
+    @media (max-width: 768px) {
+      body {
+        font-size: 15px;
+        padding: 15px;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+      .table-container {
+        max-height: 80vh;
+      }
+      th, td {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+      }
+      thead th {
+        padding: 10px 12px;
+        font-size: 0.95rem;
+      }
+      .icon-link svg {
+        width: 20px;
+        height: 20px;
+      }
+      td.sticky-col::before {
+        width: 20px;
+        height: 20px;
+      }
+    }
+    @media (max-width: 480px) {
+      body {
+        font-size: 14px;
+        padding: 10px;
+      }
+      h1 {
+        font-size: 1.3rem;
+      }
+      .table-container {
+        max-height: 85vh;
+        border-radius: 8px;
+      }
+      th, td {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+      }
+      thead th {
+        padding: 8px 10px;
+        font-size: 0.9rem;
+      }
+      .icon-link svg {
+        width: 18px;
+        height: 18px;
+      }
+      td.sticky-col::before {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  </style>
 </head>
 <body>
   <script src="https://cdn.tailwindcss.com"></script> <h1>My Coffee Collection</h1>
