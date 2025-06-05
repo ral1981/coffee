@@ -96,10 +96,103 @@
             font-weight: 500;
             font-size: 0.9rem;
             transition: background 0.2s ease;
+            border: none;
+            cursor: pointer;
         }
 
         .container-link:hover {
             background: #4338ca;
+        }
+
+        .filters-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 0 auto 32px;
+            max-width: 1400px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .filters-container h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #374151;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group select {
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: white;
+            color: #1f2937;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .filter-group select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .clear-filters-btn {
+            padding: 10px 20px;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clear-filters-btn:hover {
+            background: #e5e7eb;
+            color: #1f2937;
+        }
+
+        .results-count {
+            text-align: center;
+            margin: 20px 0;
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .no-results h3 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            color: #9ca3af;
         }
 
         .coffee-grid {
@@ -345,29 +438,75 @@
 </head>
 <body>
     <header>
-        <h1>Coffee Tracker</h1>
-        <p class="subtitle">Specialty Coffee Beans</p>
+        <h1>☕ My Coffee Collection</h1>
+        <p class="subtitle">Specialty beans from around the world</p>
     </header>
 
     <div class="container-status">
         <div class="container-card">
             <div class="container-name">Green Container</div>
-            <div class="container-coffee" id="green-container-coffee">Currently contains: loading...</div>
-            <a href="https://ral1981.github.io/coffee/container_01" class="container-link">View Details & Recipe</a>
+            <div class="container-coffee" id="green-container-coffee">Currently: Loading...</div>
+            <button class="container-link" onclick="filterByContainer('green')">Filter to Green Container</button>
         </div>
         <div class="container-card">
             <div class="container-name">Grey Container</div>
-            <div class="container-coffee" id="grey-container-coffee">Currently contains: loading...</div>
-            <a href="https://ral1981.github.io/coffee/container_02" class="container-link">View Details & Recipe</a>
+            <div class="container-coffee" id="grey-container-coffee">Currently: Loading...</div>
+            <button class="container-link" onclick="filterByContainer('grey')">Filter to Grey Container</button>
         </div>
     </div>
 
+    <div class="filters-section">
+        <div class="filters-container">
+            <h3>Filter Coffee Collection</h3>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label for="container-filter">Container:</label>
+                    <select id="container-filter" onchange="applyFilters()">
+                        <option value="">All Containers</option>
+                        <option value="green">Green Container</option>
+                        <option value="grey">Grey Container</option>
+                        <option value="none">Not in Container</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="shop-filter">Shop:</label>
+                    <select id="shop-filter" onchange="applyFilters()">
+                        <option value="">All Shops</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="origin-filter">Origin:</label>
+                    <select id="origin-filter" onchange="applyFilters()">
+                        <option value="">All Origins</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <button class="clear-filters-btn" onclick="clearAllFilters()">Clear All Filters</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="results-count" id="results-count"></div>
+    
     <div class="coffee-grid" id="coffee-grid">
         <!-- Coffee cards will be populated by JavaScript -->
+    </div>
+    
+    <div class="no-results" id="no-results" style="display: none;">
+        <h3>No coffee found</h3>
+        <p>Try adjusting your filters to see more results.</p>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script>
+        // Global variables
+        let allCoffees = [];
+        let filteredCoffees = [];
+
         // Function to extract domain from URL
         function getDomainFromUrl(url) {
             try {
@@ -451,6 +590,110 @@
             return logoContainer;
         }
 
+        // Function to populate filter dropdowns
+        function populateFilters(coffees) {
+            // Get unique shops and origins
+            const shops = [...new Set(coffees.map(coffee => coffee.shop_name || 'N/A'))].filter(shop => shop !== 'N/A').sort();
+            const origins = [...new Set(coffees.map(coffee => coffee.origin || 'N/A'))].filter(origin => origin !== 'N/A').sort();
+            
+            // Populate shop filter
+            const shopFilter = document.getElementById('shop-filter');
+            shopFilter.innerHTML = '<option value="">All Shops</option>';
+            shops.forEach(shop => {
+                const option = document.createElement('option');
+                option.value = shop;
+                option.textContent = shop;
+                shopFilter.appendChild(option);
+            });
+            
+            // Populate origin filter
+            const originFilter = document.getElementById('origin-filter');
+            originFilter.innerHTML = '<option value="">All Origins</option>';
+            origins.forEach(origin => {
+                const option = document.createElement('option');
+                option.value = origin;
+                option.textContent = origin;
+                originFilter.appendChild(option);
+            });
+        }
+
+        // Function to apply filters
+        function applyFilters() {
+            const containerFilter = document.getElementById('container-filter').value;
+            const shopFilter = document.getElementById('shop-filter').value;
+            const originFilter = document.getElementById('origin-filter').value;
+            
+            filteredCoffees = allCoffees.filter(coffee => {
+                // Container filter
+                if (containerFilter) {
+                    const containerValue = (coffee.container || '').toLowerCase();
+                    if (containerFilter === 'green' && !(containerValue.includes('green') || containerValue.includes('container_01'))) {
+                        return false;
+                    }
+                    if (containerFilter === 'grey' && !(containerValue.includes('grey') || containerValue.includes('gray') || containerValue.includes('container_02'))) {
+                        return false;
+                    }
+                    if (containerFilter === 'none' && containerValue && containerValue.trim() !== '') {
+                        return false;
+                    }
+                }
+                
+                // Shop filter
+                if (shopFilter && (coffee.shop_name || 'N/A') !== shopFilter) {
+                    return false;
+                }
+                
+                // Origin filter
+                if (originFilter && (coffee.origin || 'N/A') !== originFilter) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            renderCoffeeCards(filteredCoffees);
+            updateResultsCount(filteredCoffees.length, allCoffees.length);
+        }
+
+        // Function to filter by container (called from container buttons)
+        function filterByContainer(container) {
+            document.getElementById('container-filter').value = container;
+            applyFilters();
+        }
+
+        // Function to clear all filters
+        function clearAllFilters() {
+            document.getElementById('container-filter').value = '';
+            document.getElementById('shop-filter').value = '';
+            document.getElementById('origin-filter').value = '';
+            filteredCoffees = [...allCoffees];
+            renderCoffeeCards(filteredCoffees);
+            updateResultsCount(filteredCoffees.length, allCoffees.length);
+        }
+
+        // Function to update results count
+        function updateResultsCount(filtered, total) {
+            const resultsElement = document.getElementById('results-count');
+            const noResultsElement = document.getElementById('no-results');
+            const gridElement = document.getElementById('coffee-grid');
+            
+            if (filtered === 0) {
+                resultsElement.style.display = 'none';
+                noResultsElement.style.display = 'block';
+                gridElement.style.display = 'none';
+            } else {
+                resultsElement.style.display = 'block';
+                noResultsElement.style.display = 'none';
+                gridElement.style.display = 'grid';
+                
+                if (filtered === total) {
+                    resultsElement.textContent = `Showing all ${total} coffees`;
+                } else {
+                    resultsElement.textContent = `Showing ${filtered} of ${total} coffees`;
+                }
+            }
+        }
+
         // Function to load data from Google Sheets CSV using Papa Parse
         async function loadCoffeeData() {
             try {
@@ -492,9 +735,9 @@
             });
             
             document.getElementById('green-container-coffee').textContent = 
-                greenContainer ? `Currently contains: ${greenContainer.name}` : 'Currently empty';
+                greenContainer ? `Currently: ${greenContainer.name}` : 'Currently: Empty';
             document.getElementById('grey-container-coffee').textContent = 
-                greyContainer ? `Currently contains: ${greyContainer.name}` : 'Currently empty';
+                greyContainer ? `Currently: ${greyContainer.name}` : 'Currently: Empty';
 
             coffees.forEach(coffee => {
                 const containerValue = coffee.container || '';
@@ -636,7 +879,11 @@
 
         // Load and render coffee data
         loadCoffeeData().then(coffees => {
-            renderCoffeeCards(coffees);
+            allCoffees = coffees;
+            filteredCoffees = [...coffees];
+            populateFilters(coffees);
+            renderCoffeeCards(filteredCoffees);
+            updateResultsCount(filteredCoffees.length, allCoffees.length);
         });
     </script>
 </body>
