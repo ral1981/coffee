@@ -442,6 +442,7 @@
                 const flavor = coffee.flavor || 'N/A';
                 const shop = coffee.shop_name || 'N/A';
                 const shopUrl = coffee.shop_url || '#';
+                const shopLogo = coffee.shop_logo || '';
 
                 // Recipe values using exact column names
                 const ratio = coffee['recipe:_ratio'] || '1:2';
@@ -457,8 +458,9 @@
                     <div class="coffee-header">
                         <div class="coffee-name">${coffee.name}</div>
                         <div class="coffee-shop">
-                            <a href="${shopUrl !== 'N/A' && shopUrl !== '#' ? shopUrl : '#'}" target="_blank">
-                                ${shop}
+                            <a href="${shopUrl !== 'N/A' && shopUrl !== '#' ? shopUrl : '#'}" target="_blank" class="shop-link">
+                                ${shopLogo ? `<img src="${shopLogo}" alt="${shop} logo" class="shop-logo">` : ''}
+                                <span class="shop-name">${shop}</span>
                             </a>
                         </div>
                     </div>
