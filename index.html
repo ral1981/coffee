@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -124,14 +125,14 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
-        .coffee-card.in-container-mint {
+        .coffee-card.in-container-green {
+            background: linear-gradient(145deg, #ecfdf5, #f0fdf4);
             border-left: 4px solid #10b981;
-            background: linear-gradient(145deg, #ecfdf5, #ffffff);
         }
 
-        .coffee-card.in-container-beige {
-            border-left: 4px solid #d97706;
-            background: linear-gradient(145deg, #fef7ed, #ffffff);
+        .coffee-card.in-container-grey {
+            background: linear-gradient(145deg, #fafaf9, #f5f5f4);
+            border-left: 4px solid #a8a29e;
         }
 
         .container-badge {
@@ -146,13 +147,13 @@
             letter-spacing: 0.5px;
         }
 
-        .container-badge.mint {
+        .container-badge.green {
             background: #10b981;
             color: white;
         }
 
-        .container-badge.beige {
-            background: #d97706;
+        .container-badge.grey {
+            background: #a8a29e;
             color: white;
         }
 
@@ -197,6 +198,25 @@
             background: white;
             padding: 2px;
             border: 1px solid #e5e7eb;
+            flex-shrink: 0;
+        }
+
+        .shop-logo.hidden {
+            display: none;
+        }
+
+        .shop-icon {
+            width: 48px;
+            height: 48px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+            flex-shrink: 0;
         }
 
         .shop-name {
@@ -255,14 +275,14 @@
         }
 
         .recipe {
-            background: #f0fdf4;
+            background: #fff7ed;
             padding: 20px;
             border-radius: 12px;
-            border-left: 3px solid #22c55e;
+            border-left: 3px solid #ea580c;
         }
 
         .recipe h4 {
-            color: #166534;
+            color: #c2410c;
             margin-bottom: 16px;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -281,7 +301,7 @@
             background: white;
             padding: 12px 8px;
             border-radius: 8px;
-            border: 1px solid #d1fae5;
+            border: 1px solid #fed7aa;
         }
 
         .recipe-label {
@@ -296,39 +316,7 @@
         .recipe-value {
             font-size: 1rem;
             font-weight: 700;
-            color: #166534;
-        }
-
-        .debug-info {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 20px auto;
-            max-width: 1400px;
-            font-family: monospace;
-            font-size: 0.85rem;
-        }
-
-        .debug-info h4 {
-            color: #92400e;
-            margin-bottom: 8px;
-        }
-
-        .debug-info {
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 20px auto;
-            max-width: 1400px;
-            font-family: monospace;
-            font-size: 0.85rem;
-        }
-
-        .debug-info h4 {
-            color: #92400e;
-            margin-bottom: 8px;
+            color: #c2410c;
         }
 
         @media (max-width: 768px) {
@@ -380,10 +368,93 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script>
+        // Function to extract domain from URL
+        function getDomainFromUrl(url) {
+            try {
+                return new URL(url).hostname.replace('www.', '');
+            } catch {
+                return null;
+            }
+        }
+
+        // Function to get favicon URL
+        function getFaviconUrl(shopUrl) {
+            const domain = getDomainFromUrl(shopUrl);
+            if (domain) {
+                return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+            }
+            return null;
+        }
+
+        // Function to create shop logo element
+        function createShopLogoElement(shopLogo, shopUrl, shopName) {
+            const logoContainer = document.createElement('div');
+            
+            if (shopLogo && shopLogo !== 'N/A' && shopLogo.trim() !== '') {
+                // Try to use provided logo URL
+                const img = document.createElement('img');
+                img.src = shopLogo;
+                img.alt = `${shopName} logo`;
+                img.className = 'shop-logo';
+                
+                // Fallback to favicon if provided logo fails
+                img.onerror = function() {
+                    const faviconUrl = getFaviconUrl(shopUrl);
+                    if (faviconUrl) {
+                        this.src = faviconUrl;
+                        this.onerror = function() {
+                            // If favicon also fails, hide the image
+                            this.className = 'shop-logo hidden';
+                            // Show generic icon instead
+                            const icon = document.createElement('div');
+                            icon.className = 'shop-icon';
+                            icon.textContent = '🏪';
+                            this.parentNode.insertBefore(icon, this);
+                        };
+                    } else {
+                        this.className = 'shop-logo hidden';
+                        const icon = document.createElement('div');
+                        icon.className = 'shop-icon';
+                        icon.textContent = '🏪';
+                        this.parentNode.insertBefore(icon, this);
+                    }
+                };
+                
+                logoContainer.appendChild(img);
+            } else {
+                // Try favicon first if no logo provided
+                const faviconUrl = getFaviconUrl(shopUrl);
+                if (faviconUrl) {
+                    const img = document.createElement('img');
+                    img.src = faviconUrl;
+                    img.alt = `${shopName} favicon`;
+                    img.className = 'shop-logo';
+                    
+                    img.onerror = function() {
+                        this.className = 'shop-logo hidden';
+                        const icon = document.createElement('div');
+                        icon.className = 'shop-icon';
+                        icon.textContent = '🏪';
+                        this.parentNode.insertBefore(icon, this);
+                    };
+                    
+                    logoContainer.appendChild(img);
+                } else {
+                    // Default to generic icon
+                    const icon = document.createElement('div');
+                    icon.className = 'shop-icon';
+                    icon.textContent = '🏪';
+                    logoContainer.appendChild(icon);
+                }
+            }
+            
+            return logoContainer;
+        }
+
         // Function to load data from Google Sheets CSV using Papa Parse
         async function loadCoffeeData() {
             try {
-                const response = await fetch('https://docs.google.com/spreadsheets/d/1T0jd2altQ4A6Le0X2XnAGvxN8VmRHF25KdGCHx9d2E8/export?format=csv');
+                const response = await fetch('https://docs.google.com/spreadsheets/d/10NVColZhsKRWRUdpxmCzuWskvQzTSlFakOhRA8xFY5Y/export?format=csv');
                 const csvText = await response.text();
                 
                 // Parse CSV using Papa Parse with robust options
@@ -402,7 +473,7 @@
                 return parsed.data.filter(row => row.name && row.name.trim());
             } catch (error) {
                 console.log('Using sample data due to fetch error:', error);
-                return sampleData;
+                return [];
             }
         }
 
@@ -428,8 +499,20 @@
             coffees.forEach(coffee => {
                 const containerValue = coffee.container || '';
                 const isInContainer = containerValue && containerValue !== '';
-                const containerBadge = isInContainer ? 
-                    `<div class="container-badge">${containerValue} Container</div>` : '';
+                
+                // Determine container type and styling
+                let containerClass = '';
+                let containerBadge = '';
+                if (isInContainer) {
+                    const containerLower = containerValue.toLowerCase();
+                    if (containerLower.includes('green') || containerLower.includes('container_01')) {
+                        containerClass = 'in-container-green';
+                        containerBadge = `<div class="container-badge green">Green Container</div>`;
+                    } else if (containerLower.includes('grey') || containerLower.includes('gray') || containerLower.includes('container_02')) {
+                        containerClass = 'in-container-grey';
+                        containerBadge = `<div class="container-badge grey">Grey Container</div>`;
+                    }
+                }
 
                 // Get values using the exact column names from your Google Sheet
                 const origin = coffee.origin || 'N/A';
@@ -452,17 +535,33 @@
                 const tempC = coffee['recipe:_temperature_°c'] || '93';
 
                 const card = document.createElement('div');
-                card.className = `coffee-card ${isInContainer ? 'in-container' : ''}`;
+                card.className = `coffee-card ${containerClass}`;
+                
+                // Create the shop link with improved logo handling
+                const shopLinkDiv = document.createElement('div');
+                shopLinkDiv.className = 'coffee-shop';
+                
+                const shopLink = document.createElement('a');
+                shopLink.href = shopUrl !== 'N/A' && shopUrl !== '#' ? shopUrl : '#';
+                shopLink.target = '_blank';
+                shopLink.className = 'shop-link';
+                
+                // Add logo/icon
+                const logoContainer = createShopLogoElement(shopLogo, shopUrl, shop);
+                shopLink.appendChild(logoContainer.firstChild);
+                
+                // Add shop name
+                const shopNameSpan = document.createElement('span');
+                shopNameSpan.className = 'shop-name';
+                shopNameSpan.textContent = shop;
+                shopLink.appendChild(shopNameSpan);
+                
+                shopLinkDiv.appendChild(shopLink);
+
                 card.innerHTML = `
                     ${containerBadge}
                     <div class="coffee-header">
                         <div class="coffee-name">${coffee.name}</div>
-                        <div class="coffee-shop">
-                            <a href="${shopUrl !== 'N/A' && shopUrl !== '#' ? shopUrl : '#'}" target="_blank" class="shop-link">
-                                ${shopLogo ? `<img src="${shopLogo}" alt="${shop} logo" class="shop-logo">` : ''}
-                                <span class="shop-name">${shop}</span>
-                            </a>
-                        </div>
                     </div>
                     
                     <div class="coffee-details">
@@ -527,6 +626,10 @@
                         </div>
                     </div>
                 `;
+                
+                // Insert the shop link after the coffee name
+                card.querySelector('.coffee-header').appendChild(shopLinkDiv);
+                
                 grid.appendChild(card);
             });
         }
