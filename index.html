@@ -492,9 +492,9 @@
             });
             
             document.getElementById('green-container-coffee').textContent = 
-                greenContainer ? `Currently: ${greenContainer.name}` : 'Currently: Empty';
+                greenContainer ? `Currently contains: ${greenContainer.name}` : 'Currently empty';
             document.getElementById('grey-container-coffee').textContent = 
-                greyContainer ? `Currently: ${greyContainer.name}` : 'Currently: Empty';
+                greyContainer ? `Currently contains: ${greyContainer.name}` : 'Currently empty';
 
             coffees.forEach(coffee => {
                 const containerValue = coffee.container || '';
