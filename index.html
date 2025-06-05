@@ -315,6 +315,22 @@
             margin-bottom: 8px;
         }
 
+        .debug-info {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px auto;
+            max-width: 1400px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .debug-info h4 {
+            color: #92400e;
+            margin-bottom: 8px;
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
@@ -358,27 +374,12 @@
         </div>
     </div>
 
-    <div id="debug-info" class="debug-info" style="display: none;">
-        <h4>Debug Info:</h4>
-        <div id="debug-content"></div>
-    </div>
-
     <div class="coffee-grid" id="coffee-grid">
         <!-- Coffee cards will be populated by JavaScript -->
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script>
-        // Function to safely get a value from multiple possible property names
-        function getValueFromObject(obj, possibleKeys, defaultValue = 'N/A') {
-            for (let key of possibleKeys) {
-                if (obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
-                    return obj[key];
-                }
-            }
-            return defaultValue;
-        }
-
         // Function to load data from Google Sheets CSV using Papa Parse
         async function loadCoffeeData() {
             try {
@@ -397,19 +398,6 @@
                 if (parsed.errors.length > 0) {
                     console.warn('CSV parsing warnings:', parsed.errors);
                 }
-
-                // Debug: Show available column names
-                if (parsed.data.length > 0) {
-                    const debugDiv = document.getElementById('debug-info');
-                    const debugContent = document.getElementById('debug-content');
-                    debugContent.innerHTML = `
-                        <strong>Available columns:</strong><br>
-                        ${Object.keys(parsed.data[0]).join(', ')}<br><br>
-                        <strong>First row data:</strong><br>
-                        ${JSON.stringify(parsed.data[0], null, 2)}
-                    `;
-                    debugDiv.style.display = 'block';
-                }
                 
                 return parsed.data.filter(row => row.name && row.name.trim());
             } catch (error) {
@@ -424,11 +412,11 @@
 
             // Update container status
             const greenContainer = coffees.find(c => {
-                const container = getValueFromObject(c, ['container', 'container_01', 'green_container'], '').toLowerCase();
+                const container = (c.container || '').toLowerCase();
                 return container.includes('green') || container.includes('container_01');
             });
             const greyContainer = coffees.find(c => {
-                const container = getValueFromObject(c, ['container', 'container_02', 'grey_container'], '').toLowerCase();
+                const container = (c.container || '').toLowerCase();
                 return container.includes('grey') || container.includes('gray') || container.includes('container_02');
             });
             
@@ -438,29 +426,29 @@
                 greyContainer ? `Currently: ${greyContainer.name}` : 'Currently: Empty';
 
             coffees.forEach(coffee => {
-                const containerValue = getValueFromObject(coffee, ['container', 'container_01', 'container_02'], '');
+                const containerValue = coffee.container || '';
                 const isInContainer = containerValue && containerValue !== '';
                 const containerBadge = isInContainer ? 
                     `<div class="container-badge">${containerValue} Container</div>` : '';
 
-                // Get values using multiple possible column names
-                const origin = getValueFromObject(coffee, ['origin', 'country']);
-                const region = getValueFromObject(coffee, ['region', 'area', 'district']);
-                const height = getValueFromObject(coffee, ['height', 'height_m', 'altitude', 'elevation']);
-                const variety = getValueFromObject(coffee, ['variety', 'botanic_variety', 'cultivar']);
-                const farm = getValueFromObject(coffee, ['farm', 'producer', 'farm_producer', 'estate']);
-                const processing = getValueFromObject(coffee, ['processing', 'processing_method', 'process']);
-                const sca = getValueFromObject(coffee, ['sca', 'sca_score', 'score']);
-                const flavor = getValueFromObject(coffee, ['flavor', 'flavor_profile', 'notes', 'tasting_notes']);
-                const shop = getValueFromObject(coffee, ['shop', 'shop_name', 'roaster']);
-                const shopUrl = getValueFromObject(coffee, ['shopurl', 'shop_url', 'url', 'website']);
+                // Get values using the exact column names from your Google Sheet
+                const origin = coffee.origin || 'N/A';
+                const region = coffee.region || 'N/A';
+                const height = coffee.height_m || 'N/A';
+                const variety = coffee.botanic_variety || 'N/A';
+                const farm = coffee['farm_/_producer'] || 'N/A';
+                const processing = coffee.processing_method || 'N/A';
+                const sca = coffee.sca || 'N/A';
+                const flavor = coffee.flavor || 'N/A';
+                const shop = coffee.shop_name || 'N/A';
+                const shopUrl = coffee.shop_url || '#';
 
-                // Recipe values
-                const ratio = getValueFromObject(coffee, ['ratio', 'brew_ratio'], '1:2');
-                const inGr = getValueFromObject(coffee, ['in_gr', 'in', 'dose', 'coffee_in'], '18');
-                const outGr = getValueFromObject(coffee, ['out_gr', 'out', 'yield', 'coffee_out'], '36');
-                const timeS = getValueFromObject(coffee, ['time_s', 'time', 'extraction_time'], '28');
-                const tempC = getValueFromObject(coffee, ['temp_c', 'temperature', 'brew_temp'], '93');
+                // Recipe values using exact column names
+                const ratio = coffee['recipe:_ratio'] || '1:2';
+                const inGr = coffee['recipe:_in_gr'] || '18';
+                const outGr = coffee['recipe:_out_gr'] || '36';
+                const timeS = coffee['recipe:_time_s'] || '28';
+                const tempC = coffee['recipe:_temperature_°c'] || '93';
 
                 const card = document.createElement('div');
                 card.className = `coffee-card ${isInContainer ? 'in-container' : ''}`;
@@ -469,7 +457,7 @@
                     <div class="coffee-header">
                         <div class="coffee-name">${coffee.name}</div>
                         <div class="coffee-shop">
-                            <a href="${shopUrl !== 'N/A' ? shopUrl : '#'}" target="_blank">
+                            <a href="${shopUrl !== 'N/A' && shopUrl !== '#' ? shopUrl : '#'}" target="_blank">
                                 ${shop}
                             </a>
                         </div>
