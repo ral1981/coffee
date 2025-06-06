@@ -576,27 +576,41 @@
             };
         }
 
+
         // Function to apply URL parameters to filters
         function applyUrlParameters() {
             const params = getUrlParameters();
             let hasParams = false;
             
             if (params.container) {
-                document.getElementById('container-filter').value = params.container;
-                hasParams = true;
+                const containerFilter = document.getElementById('container-filter');
+                if (containerFilter) {
+                    containerFilter.value = params.container;
+                    hasParams = true;
+                }
             }
             if (params.shop) {
-                document.getElementById('shop-filter').value = params.shop;
-                hasParams = true;
+                const shopFilter = document.getElementById('shop-filter');
+                // Check if the shop value exists in the dropdown options
+                const shopOption = Array.from(shopFilter.options).find(option => option.value === params.shop);
+                if (shopOption) {
+                    shopFilter.value = params.shop;
+                    hasParams = true;
+                }
             }
             if (params.origin) {
-                document.getElementById('origin-filter').value = params.origin;
-                hasParams = true;
+                const originFilter = document.getElementById('origin-filter');
+                // Check if the origin value exists in the dropdown options
+                const originOption = Array.from(originFilter.options).find(option => option.value === params.origin);
+                if (originOption) {
+                    originFilter.value = params.origin;
+                    hasParams = true;
+                }
             }
             
             // Apply filters after setting values
             applyFilters();
-
+            
             // If URL parameters were present, scroll to results after a brief delay
             if (hasParams) {
                 setTimeout(() => {
@@ -609,7 +623,7 @@
                     }
                 }, 300);
             }
-        }            
+        }           
 
         // Function to apply filters
         function applyFilters() {
