@@ -577,6 +577,11 @@
         }
 
 
+        // Function to normalize strings for comparison (remove spaces, lowercase, etc.)
+        function normalizeForComparison(str) {
+            return str.toLowerCase().replace(/\s+/g, '').replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
+        }
+
         // Function to apply URL parameters to filters
         function applyUrlParameters() {
             const params = getUrlParameters();
@@ -596,9 +601,9 @@
                 const shopFilter = document.getElementById('shop-filter');
                 console.log('Available shop options:', Array.from(shopFilter.options).map(o => o.value));
                 console.log('Looking for shop:', params.shop);
-                // Case-insensitive search for shop
+                // Flexible search for shop (case-insensitive, no spaces)
                 const shopOption = Array.from(shopFilter.options).find(option => 
-                    option.value.toLowerCase() === params.shop.toLowerCase()
+                    normalizeForComparison(option.value) === normalizeForComparison(params.shop)
                 );
                 if (shopOption) {
                     shopFilter.value = shopOption.value;
@@ -612,9 +617,9 @@
                 const originFilter = document.getElementById('origin-filter');
                 console.log('Available origin options:', Array.from(originFilter.options).map(o => o.value));
                 console.log('Looking for origin:', params.origin);
-                // Case-insensitive search for origin
+                // Flexible search for origin (case-insensitive, no spaces, accent-insensitive)
                 const originOption = Array.from(originFilter.options).find(option => 
-                    option.value.toLowerCase() === params.origin.toLowerCase()
+                    normalizeForComparison(option.value) === normalizeForComparison(params.origin)
                 );
                 if (originOption) {
                     originFilter.value = originOption.value;
@@ -625,6 +630,23 @@
                 }
             }
             
+            // Apply filters after setting values
+            applyFilters();
+            
+            // If URL parameters were present, scroll to results after a brief delay
+            if (hasParams) {
+                setTimeout(() => {
+                    const resultsSection = document.getElementById('results-count');
+                    if (resultsSection && resultsSection.style.display !== 'none') {
+                        resultsSection.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    }
+                }, 300);
+            }
+        }
+        
             // Apply filters after setting values
             applyFilters();
             
