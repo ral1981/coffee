@@ -577,34 +577,47 @@
         }
 
 
-        // Function to apply URL parameters to filters
+// Function to apply URL parameters to filters
         function applyUrlParameters() {
             const params = getUrlParameters();
             let hasParams = false;
+            
+            console.log('URL Parameters:', params);
             
             if (params.container) {
                 const containerFilter = document.getElementById('container-filter');
                 if (containerFilter) {
                     containerFilter.value = params.container;
                     hasParams = true;
+                    console.log('Set container filter to:', params.container);
                 }
             }
             if (params.shop) {
                 const shopFilter = document.getElementById('shop-filter');
+                console.log('Available shop options:', Array.from(shopFilter.options).map(o => o.value));
+                console.log('Looking for shop:', params.shop);
                 // Check if the shop value exists in the dropdown options
                 const shopOption = Array.from(shopFilter.options).find(option => option.value === params.shop);
                 if (shopOption) {
                     shopFilter.value = params.shop;
                     hasParams = true;
+                    console.log('Set shop filter to:', params.shop);
+                } else {
+                    console.log('Shop not found in options:', params.shop);
                 }
             }
             if (params.origin) {
                 const originFilter = document.getElementById('origin-filter');
+                console.log('Available origin options:', Array.from(originFilter.options).map(o => o.value));
+                console.log('Looking for origin:', params.origin);
                 // Check if the origin value exists in the dropdown options
                 const originOption = Array.from(originFilter.options).find(option => option.value === params.origin);
                 if (originOption) {
                     originFilter.value = params.origin;
                     hasParams = true;
+                    console.log('Set origin filter to:', params.origin);
+                } else {
+                    console.log('Origin not found in options:', params.origin);
                 }
             }
             
@@ -623,8 +636,7 @@
                     }
                 }, 300);
             }
-        }           
-
+        }
         // Function to apply filters
         function applyFilters() {
             const containerFilter = document.getElementById('container-filter').value;
