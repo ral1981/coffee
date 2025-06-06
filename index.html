@@ -566,6 +566,34 @@
             });
         }
 
+        // Function to get URL parameters
+        function getUrlParameters() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                container: params.get('container'),
+                shop: params.get('shop'),
+                origin: params.get('origin')
+            };
+        }
+
+        // Function to apply URL parameters to filters
+        function applyUrlParameters() {
+            const params = getUrlParameters();
+            
+            if (params.container) {
+                document.getElementById('container-filter').value = params.container;
+            }
+            if (params.shop) {
+                document.getElementById('shop-filter').value = params.shop;
+            }
+            if (params.origin) {
+                document.getElementById('origin-filter').value = params.origin;
+            }
+            
+            // Apply filters after setting values
+            applyFilters();
+        }        
+
         // Function to apply filters
         function applyFilters() {
             const containerFilter = document.getElementById('container-filter').value;
@@ -810,8 +838,15 @@
             allCoffees = coffees;
             filteredCoffees = [...coffees];
             populateFilters(coffees);
-            renderCoffeeCards(filteredCoffees);
-            updateResultsCount(filteredCoffees.length, allCoffees.length);
+            
+            // Apply URL parameters if they exist
+            applyUrlParameters();
+            
+            // If no URL parameters were applied, show all coffees
+            if (!getUrlParameters().container && !getUrlParameters().shop && !getUrlParameters().origin) {
+                renderCoffeeCards(filteredCoffees);
+                updateResultsCount(filteredCoffees.length, allCoffees.length);
+            }
         });
     </script>
 </body>
