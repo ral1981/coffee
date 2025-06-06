@@ -579,20 +579,37 @@
         // Function to apply URL parameters to filters
         function applyUrlParameters() {
             const params = getUrlParameters();
+            let hasParams = false;
             
             if (params.container) {
                 document.getElementById('container-filter').value = params.container;
+                hasParams = true;
             }
             if (params.shop) {
                 document.getElementById('shop-filter').value = params.shop;
+                hasParams = true;
             }
             if (params.origin) {
                 document.getElementById('origin-filter').value = params.origin;
+                hasParams = true;
             }
             
             // Apply filters after setting values
             applyFilters();
-        }        
+
+            // If URL parameters were present, scroll to results after a brief delay
+            if (hasParams) {
+                setTimeout(() => {
+                    const resultsSection = document.getElementById('results-count');
+                    if (resultsSection && resultsSection.style.display !== 'none') {
+                        resultsSection.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    }
+                }, 300);
+            }
+        }            
 
         // Function to apply filters
         function applyFilters() {
