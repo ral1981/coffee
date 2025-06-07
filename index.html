@@ -707,6 +707,23 @@
             }
         }
 
+            // Apply filters after setting values
+            applyFilters();
+            
+            // If URL parameters were present, scroll to results after a brief delay
+            if (hasParams) {
+                setTimeout(() => {
+                    const resultsSection = document.getElementById('results-count');
+                    if (resultsSection && resultsSection.style.display !== 'none') {
+                        resultsSection.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    }
+                }, 300);
+            }
+        }
+
         // Function to apply filters
         function applyFilters() {
             const containerFilter = document.getElementById('container-filter').value;
