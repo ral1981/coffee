@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -644,7 +645,38 @@
             return str.toLowerCase().replace(/\s+/g, '').replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
         }
 
-        // Function to apply URL parameters to filters
+		        // Function to update URL parameters
+        function updateUrlParameters() {
+            const containerFilter = document.getElementById('container-filter').value;
+            const shopFilter = document.getElementById('shop-filter').value;
+            const originFilter = document.getElementById('origin-filter').value;
+
+            const params = new URLSearchParams();
+
+            if (containerFilter) {
+                params.set('container', containerFilter);
+            }
+            if (shopFilter) {
+                params.set('shop', shopFilter);
+            }
+            if (originFilter) {
+                params.set('origin', originFilter);
+            }
+
+            // Update the URL without reloading the page
+            const newUrl = params.toString() ? 
+                `${window.location.pathname}?${params.toString()}` : 
+                window.location.pathname;
+
+            window.history.replaceState({}, '', newUrl);
+        }
+
+        // Function to clear URL parameters
+        function clearUrlParameters() {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+		
+		// Function to apply URL parameters to filters
         function applyUrlParameters() {
             const params = getUrlParameters();
             let hasParams = false;
@@ -690,38 +722,7 @@
                 } else {
                     console.log('Origin not found in options:', params.origin);
                 }
-
-            // Function to update URL parameters
-            function updateUrlParameters() {
-                const containerFilter = document.getElementById('container-filter').value;
-                const shopFilter = document.getElementById('shop-filter').value;
-                const originFilter = document.getElementById('origin-filter').value;
-    
-                const params = new URLSearchParams();
-    
-                if (containerFilter) {
-                    params.set('container', containerFilter);
-                }
-                if (shopFilter) {
-                    params.set('shop', shopFilter);
-                }
-                if (originFilter) {
-                    params.set('origin', originFilter);
-                }
-    
-                // Update the URL without reloading the page
-                const newUrl = params.toString() ? 
-                `${window.location.pathname}?${params.toString()}` : 
-                window.location.pathname;
-    
-                window.history.replaceState({}, '', newUrl);
-                }
-
-            // Function to clear URL parameters
-            function clearUrlParameters() {
-                window.history.replaceState({}, '', window.location.pathname);
-            }
-                
+      
             // Apply filters after setting values
             applyFilters();
             
