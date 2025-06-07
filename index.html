@@ -359,6 +359,45 @@
             color: #c2410c;
         }
 
+        .back-to-top {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            z-index: 1000;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            }
+
+        .back-to-top:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+            }
+
+        .back-to-top svg {
+            width: 20px;
+            height: 20px;
+            }            
+
         @media (max-width: 768px) {
             body {
                 padding: 20px 12px 40px;
@@ -406,44 +445,6 @@
                 grid-template-columns: 1fr;
             }
 
-        .back-to-top {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 48px;
-            height: 48px;
-            background: #4f46e5;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-            transition: all 0.3s ease;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(20px);
-            z-index: 1000;
-        }
-
-        .back-to-top.visible {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-            }
-
-        .back-to-top:hover {
-            background: #4338ca;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
-            }
-
-        .back-to-top svg {
-            width: 20px;
-            height: 20px;
-            }            
         }
     </style>
 </head>
