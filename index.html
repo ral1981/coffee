@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -397,7 +396,7 @@
         .back-to-top svg {
             width: 20px;
             height: 20px;
-            }            
+            }
 
         @media (max-width: 768px) {
             body {
@@ -445,7 +444,6 @@
             .filters-grid {
                 grid-template-columns: 1fr;
             }
-
         }
     </style>
 </head>
@@ -640,43 +638,13 @@
             };
         }
 
+
         // Function to normalize strings for comparison (remove spaces, lowercase, etc.)
         function normalizeForComparison(str) {
             return str.toLowerCase().replace(/\s+/g, '').replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
         }
 
-		        // Function to update URL parameters
-        function updateUrlParameters() {
-            const containerFilter = document.getElementById('container-filter').value;
-            const shopFilter = document.getElementById('shop-filter').value;
-            const originFilter = document.getElementById('origin-filter').value;
-
-            const params = new URLSearchParams();
-
-            if (containerFilter) {
-                params.set('container', containerFilter);
-            }
-            if (shopFilter) {
-                params.set('shop', shopFilter);
-            }
-            if (originFilter) {
-                params.set('origin', originFilter);
-            }
-
-            // Update the URL without reloading the page
-            const newUrl = params.toString() ? 
-                `${window.location.pathname}?${params.toString()}` : 
-                window.location.pathname;
-
-            window.history.replaceState({}, '', newUrl);
-        }
-
-        // Function to clear URL parameters
-        function clearUrlParameters() {
-            window.history.replaceState({}, '', window.location.pathname);
-        }
-		
-		// Function to apply URL parameters to filters
+        // Function to apply URL parameters to filters
         function applyUrlParameters() {
             const params = getUrlParameters();
             let hasParams = false;
@@ -722,7 +690,7 @@
                 } else {
                     console.log('Origin not found in options:', params.origin);
                 }
-      
+                        
             // Apply filters after setting values
             applyFilters();
             
@@ -739,7 +707,24 @@
                 }, 300);
             }
         }
-     
+        
+            // Apply filters after setting values
+            applyFilters();
+            
+            // If URL parameters were present, scroll to results after a brief delay
+            if (hasParams) {
+                setTimeout(() => {
+                    const resultsSection = document.getElementById('results-count');
+                    if (resultsSection && resultsSection.style.display !== 'none') {
+                        resultsSection.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    }
+                }, 300);
+            }
+        }
+        
         // Function to apply filters
         function applyFilters() {
             const containerFilter = document.getElementById('container-filter').value;
@@ -776,7 +761,6 @@
             
             renderCoffeeCards(filteredCoffees);
             updateResultsCount(filteredCoffees.length, allCoffees.length);
-            updateUrlParameters();
         }
 
         // Function to clear all filters
@@ -787,7 +771,6 @@
             filteredCoffees = [...allCoffees];
             renderCoffeeCards(filteredCoffees);
             updateResultsCount(filteredCoffees.length, allCoffees.length);
-            clearUrlParameters();
         }
 
         // Function to update results count
