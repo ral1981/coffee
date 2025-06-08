@@ -164,6 +164,42 @@
             flex-shrink: 0;
         }
 
+	.filter-group.active label {
+	    color: #4f46e5;
+	    font-weight: 700;
+        }
+
+        .filter-group.active label svg {
+            color: #4f46e5;
+        }
+
+        .filter-group.active select {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .clear-filters-btn:disabled {
+            background: #f9fafb;
+            color: #9ca3af;
+            border-color: #e5e7eb;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .clear-filters-btn:disabled:hover {
+            background: #f9fafb;
+            color: #9ca3af;
+            transform: none;
+        }
+
+        .filters-toggle.has-active-filters {
+            color: #4f46e5;
+        }
+
+        .filters-toggle.has-active-filters svg:first-child {
+            color: #4f46e5;
+        }
+
         .results-count {
             text-align: center;
             margin: 20px 0;
@@ -542,7 +578,7 @@
                 </div>
                 
                 <div class="filter-group">
-                    <button class="clear-filters-btn" onclick="clearAllFilters()">
+                    <button class="clear-filters-btn" id="clear-filters-btn" onclick="clearAllFilters()" disabled>
                         <i data-lucide="funnel-x"></i>
                         Clear All Filters
                     </button>
@@ -715,7 +751,7 @@
             return str.toLowerCase().replace(/\s+/g, '').replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
         }
 
-		        // Function to update URL parameters
+	// Function to update URL parameters
         function updateUrlParameters() {
             const containerFilter = document.getElementById('container-filter').value;
             const shopFilter = document.getElementById('shop-filter').value;
@@ -746,7 +782,7 @@
             window.history.replaceState({}, '', window.location.pathname);
         }
 		
-		// Function to apply URL parameters to filters
+	// Function to apply URL parameters to filters
         function applyUrlParameters() {
             const params = getUrlParameters();
             let hasParams = false;
@@ -829,10 +865,10 @@
      
         // Function to apply filters
         function applyFilters() {
-            const containerFilter = document.getElementById('container-filter').value;
-            const shopFilter = document.getElementById('shop-filter').value;
+	    const containerFilter = document.getElementById('container-filter').value;
+	    const shopFilter = document.getElementById('shop-filter').value;
             const originFilter = document.getElementById('origin-filter').value;
-            
+    
             filteredCoffees = allCoffees.filter(coffee => {
                 // Container filter
                 if (containerFilter) {
@@ -847,23 +883,24 @@
                         return false;
                     }
                 }
-                
+        
                 // Shop filter
                 if (shopFilter && (coffee.shop_name || 'N/A') !== shopFilter) {
                     return false;
                 }
-                
+        
                 // Origin filter
                 if (originFilter && (coffee.origin || 'N/A') !== originFilter) {
                     return false;
                 }
-                
+        
                 return true;
             });
-            
+    
             renderCoffeeCards(filteredCoffees);
             updateResultsCount(filteredCoffees.length, allCoffees.length);
             updateUrlParameters();
+            updateFilterStates();
         }
 
         // Function to clear all filters
@@ -875,6 +912,42 @@
             renderCoffeeCards(filteredCoffees);
             updateResultsCount(filteredCoffees.length, allCoffees.length);
             clearUrlParameters();
+            updateFilterStates();
+        }
+
+	// Function to check if any filters are active
+	function hasActiveFilters() {
+	    const containerFilter = document.getElementById('container-filter').value;
+	    const shopFilter = document.getElementById('shop-filter').value;
+            const originFilter = document.getElementById('origin-filter').value;
+    
+            return containerFilter !== '' || shopFilter !== '' || originFilter !== '';
+        }
+
+        // Function to update filter visual states
+        function updateFilterStates() {
+            const containerFilter = document.getElementById('container-filter');
+            const shopFilter = document.getElementById('shop-filter');
+            const originFilter = document.getElementById('origin-filter');
+            const clearButton = document.getElementById('clear-filters-btn');
+            const filtersToggle = document.querySelector('.filters-toggle');
+    
+            // Update individual filter group states
+            const containerGroup = containerFilter.closest('.filter-group');
+            const shopGroup = shopFilter.closest('.filter-group');
+            const originGroup = originFilter.closest('.filter-group');
+    
+            // Toggle active class based on filter values
+            containerGroup.classList.toggle('active', containerFilter.value !== '');
+            shopGroup.classList.toggle('active', shopFilter.value !== '');
+            originGroup.classList.toggle('active', originFilter.value !== '');
+    
+            // Update clear button state
+            const hasFilters = hasActiveFilters();
+            clearButton.disabled = !hasFilters;
+    
+            // Update toggle button state
+            filtersToggle.classList.toggle('has-active-filters', hasFilters);
         }
 
         // Function to update results count
@@ -1082,6 +1155,9 @@
                 renderCoffeeCards(filteredCoffees);
                 updateResultsCount(filteredCoffees.length, allCoffees.length);
             }
+
+	    // Initialize filter states
+            updateFilterStates();
         });
         
         // Back to top button functionality
