@@ -39,6 +39,49 @@
             font-weight: 400;
         }
 
+	.filters-toggle {
+	    width: 100%;
+	    background: none;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease;
+        }
+
+        .filters-toggle:hover {
+            background: #f9fafb;
+        }
+
+        .filters-toggle .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .filters-toggle[aria-expanded="true"] .toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .filters-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            max-height: 1000px;
+            opacity: 1;
+            margin-top: 20px;
+        }
+
+        .filters-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+        }
+	    
         .filters-section {
             background: white;
             border-radius: 16px;
@@ -456,9 +499,14 @@
         <p class="subtitle">Specialty Coffee Beans</p>
     </header>
 
-    <div class="filters-section">
-        <div class="filters-container">
-            <h3>Filter Coffee Collection</h3>
+<div class="filters-section">
+    <div class="filters-container">
+        <button class="filters-toggle" onclick="toggleFilters()" aria-expanded="false">
+            <i data-lucide="filter" style="width: 18px; height: 18px;"></i>
+            <span>Filter Coffee Collection</span>
+            <i data-lucide="chevron-down" class="toggle-icon" style="width: 18px; height: 18px;"></i>
+        </button>
+        <div class="filters-content collapsed" id="filters-content">
             <div class="filters-grid">
                 <div class="filter-group">
                     <label for="container-filter">
@@ -526,6 +574,21 @@
         // Global variables
         let allCoffees = [];
         let filteredCoffees = [];
+
+	// Function to toggle filter section
+	function toggleFilters() {
+            const filtersContent = document.getElementById('filters-content');
+            const toggleButton = document.querySelector('.filters-toggle');
+            const isCollapsed = filtersContent.classList.contains('collapsed');
+    
+            if (isCollapsed) {
+                filtersContent.classList.remove('collapsed');
+                toggleButton.setAttribute('aria-expanded', 'true');
+            } else {
+                filtersContent.classList.add('collapsed');
+                toggleButton.setAttribute('aria-expanded', 'false');
+            }
+        }
 
         // Function to extract domain from URL
         function getDomainFromUrl(url) {
@@ -1053,7 +1116,15 @@
 
 	// Initialize Lucide icons
 	document.addEventListener('DOMContentLoaded', function() {
-		lucide.createIcons();
+	    lucide.createIcons();
+
+	    // Initialize back to top button state
+            const backToTopButton = document.getElementById('back-to-top');
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+            if (scrollTop > 300) {
+               backToTopButton.classList.add('visible');
+            }
 	});
     </script>
 </body>
