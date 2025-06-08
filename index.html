@@ -447,6 +447,7 @@
 
         }
     </style>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body>
     <header>
@@ -459,7 +460,10 @@
             <h3>Filter Coffee Collection</h3>
             <div class="filters-grid">
                 <div class="filter-group">
-                    <label for="container-filter">Container:</label>
+                    <label for="container-filter">
+			    <i data-lucide="filter"></i>
+			    Container:
+		    </label>
                     <select id="container-filter" onchange="applyFilters()">
                         <option value="">All Containers</option>
                         <option value="green">Green Container</option>
@@ -469,14 +473,20 @@
                 </div>
                 
                 <div class="filter-group">
-                    <label for="shop-filter">Shop:</label>
+                    <label for="shop-filter">
+			    <i data-lucide="filter"></i>
+			    Shop:
+		    </label>
                     <select id="shop-filter" onchange="applyFilters()">
                         <option value="">All Shops</option>
                     </select>
                 </div>
                 
                 <div class="filter-group">
-                    <label for="origin-filter">Origin:</label>
+                    <label for="origin-filter">
+			    <i data-lucide="filter"></i>
+			    Origin:
+		    </label>
                     <select id="origin-filter" onchange="applyFilters()">
                         <option value="">All Origins</option>
                     </select>
@@ -484,10 +494,7 @@
                 
                 <div class="filter-group">
                     <button class="clear-filters-btn" onclick="clearAllFilters()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M13.013 3H2l8 9.46V19l4 2v-8.54l.9-1.055"/>
-                            <path d="m22 3-5 5"/><path d="m17 3 5 5"/>
-                        </svg>
+                        <i data-lucide="funnel-plus"></i>
                         Clear All Filters
                     </button>
                 </div>
@@ -1042,6 +1049,11 @@
                backToTopButton.classList.add('visible');
             }
         });
+
+	// Initialize Lucide icons
+	document.addEventListener('DOMContentLoaded', function() {
+		lucide.createIcons();
+	});
     </script>
 </body>
 </html>
