@@ -718,13 +718,9 @@
     </div>
 
     <button class="back-to-top" id="back-to-top" onclick="scrollToTop()" aria-label="Back to top">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="19" x2="12" y2="5"></line>
-            <polyline points="5,12 12,5 19,12"></polyline>
-        </svg>
+    <i data-lucide="arrow-up"></i>
     </button>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script>
 
 	
@@ -1711,6 +1707,13 @@ function renderNotesSection(coffeeIndex, notes) {
 	    }, 1000);
 	});
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script>
+	
+	// Initialize Lucide icons
+	lucide.createIcons();
+	    
+    </script>    
 </body>
 </html>
