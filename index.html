@@ -40,6 +40,122 @@
             font-weight: 400;
         }
 
+	.add-coffee-section {
+	    margin-bottom: 2rem;
+	    background: white;
+	    border-radius: 12px;
+	    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	    overflow: hidden;
+	}
+	
+	.add-coffee-container {
+	    width: 100%;
+	}
+	
+	.add-coffee-toggle {
+	    width: 100%;
+	    padding: 1rem 1.5rem;
+	    background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+	    color: white;
+	    border: none;
+	    cursor: pointer;
+	    display: flex;
+	    align-items: center;
+	    justify-content: space-between;
+	    font-size: 1rem;
+	    font-weight: 600;
+	    transition: all 0.3s ease;
+	    position: relative;
+	    overflow: hidden;
+	}
+	
+	.add-coffee-toggle:hover:not(:disabled) {
+	    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+	    transform: translateY(-1px);
+	    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+	}
+	
+	.add-coffee-toggle:disabled {
+	    background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+	    cursor: not-allowed;
+	    opacity: 0.6;
+	}
+	
+	.add-coffee-toggle:disabled:hover {
+	    transform: none;
+	    box-shadow: none;
+	}
+	
+	.add-coffee-toggle .toggle-icon {
+	    transition: transform 0.3s ease;
+	}
+	
+	.add-coffee-toggle[aria-expanded="true"] .toggle-icon {
+	    transform: rotate(180deg);
+	}
+	
+	.add-coffee-toggle::before {
+	    content: '';
+	    position: absolute;
+	    top: 0;
+	    left: -100%;
+	    width: 100%;
+	    height: 100%;
+	    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+	    transition: left 0.5s;
+	}
+	
+	.add-coffee-toggle:hover:not(:disabled)::before {
+	    left: 100%;
+	}
+	
+	.add-coffee-content {
+	    padding: 0;
+	    max-height: 0;
+	    overflow: hidden;
+	    transition: all 0.3s ease;
+	    background: #f8fafc;
+	    border-top: 1px solid #e2e8f0;
+	}
+	
+	.add-coffee-content.expanded {
+	    max-height: 500px;
+	    padding: 1.5rem;
+	}
+	
+	.add-coffee-grid {
+	    display: flex;
+	    flex-direction: column;
+	    gap: 1rem;
+	}
+	
+	.add-coffee-info {
+	    display: flex;
+	    align-items: center;
+	    padding: 1rem;
+	    background: #e0f2fe;
+	    border: 1px solid #b3e5fc;
+	    border-radius: 8px;
+	    color: #0277bd;
+	    font-style: italic;
+	}
+	
+	.input-fields-placeholder {
+	    min-height: 50px;
+	    border: 2px dashed #cbd5e1;
+	    border-radius: 8px;
+	    display: flex;
+	    align-items: center;
+	    justify-content: center;
+	    color: #64748b;
+	    font-style: italic;
+	    background: #f1f5f9;
+	}
+	
+	.input-fields-placeholder::before {
+	    content: 'Input fields will be added here';
+	}
+
 	.filters-toggle {
 	    width: 100%;
 	    background: none;
@@ -603,7 +719,16 @@
             h1 {
                 font-size: 2rem;
             }
-            
+
+	    .add-coffee-toggle {
+	        padding: 0.875rem 1rem;
+	        font-size: 0.9rem;
+	    }
+	    
+	    .add-coffee-content.expanded {
+	        padding: 1rem;
+	    }
+		
             .filters-section {
                 margin-left: -8px;
                 margin-right: -8px;
@@ -652,6 +777,29 @@
         <p class="subtitle">Specialty Coffee Beans</p>
     </header>
 
+<div class="add-coffee-section">
+    <div class="add-coffee-container">
+        <button class="add-coffee-toggle" onclick="toggleAddCoffee()" aria-expanded="false" id="add-coffee-toggle" disabled>
+            <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+            <span>Add New Coffee</span>
+            <i data-lucide="chevron-down" class="toggle-icon" style="width: 18px; height: 18px;"></i>
+        </button>
+        <div class="add-coffee-content collapsed" id="add-coffee-content">
+            <div class="add-coffee-grid">
+                <div class="add-coffee-info">
+                    <i data-lucide="info" style="width: 16px; height: 16px; margin-right: 8px;"></i>
+                    <span>Add input fields for new coffee entry here</span>
+                </div>
+                
+                <!-- Placeholder for future input fields -->
+                <div class="input-fields-placeholder">
+                    <!-- Input fields will be added here later -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>	
+	
 <div class="filters-section">
     <div class="filters-container">
         <button class="filters-toggle" onclick="toggleFilters()" aria-expanded="false">
@@ -773,12 +921,30 @@ async function checkAuthorization(email) {
 function updateUIForAuthorizedUser() {
     document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'inline-flex');
     document.querySelectorAll('.notes-input').forEach(input => input.disabled = false);
+
+    const addCoffeeToggle = document.getElementById('add-coffee-toggle');
+    if (addCoffeeToggle) {
+        addCoffeeToggle.disabled = false;
+    }
+	
     addLogoutButton();
 }
 
 function updateUIForUnauthorizedUser() {
     document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'none');
     document.querySelectorAll('.notes-input').forEach(input => input.disabled = true);
+
+    const addCoffeeToggle = document.getElementById('add-coffee-toggle');
+    const addCoffeeContent = document.getElementById('add-coffee-content');
+    if (addCoffeeToggle) {
+        addCoffeeToggle.disabled = true;
+        addCoffeeToggle.setAttribute('aria-expanded', 'false');
+    }
+    if (addCoffeeContent) {
+        addCoffeeContent.classList.remove('expanded');
+        addCoffeeContent.classList.add('collapsed');
+    }
+    
     addLoginButton();
 }
 
@@ -833,6 +999,30 @@ function updateUIForUnauthorizedUser() {
     }
 
     // --- Core Application Functions ---
+
+    // Toggle Add Coffee Section
+    function toggleAddCoffee() {
+	const toggle = document.getElementById('add-coffee-toggle');
+	const content = document.getElementById('add-coffee-content');
+	    
+	if (!isAuthorized) {
+	    showNotification('Please log in to add new coffee entries.', 'warning');
+	    return;
+	}
+	   
+	const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+	  
+	toggle.setAttribute('aria-expanded', !isExpanded);
+	    
+	if (isExpanded) {
+	    content.classList.remove('expanded');
+	    content.classList.add('collapsed');
+	    } else {
+	    content.classList.remove('collapsed');
+	    content.classList.add('expanded');
+	}
+    }
+	    
     function toggleFilters() {
         const filtersContent = document.getElementById('filters-content');
         const toggleButton = document.querySelector('.filters-toggle');
