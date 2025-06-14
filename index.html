@@ -953,7 +953,7 @@ function updateUIForUnauthorizedUser() {
         if (existingBtn) existingBtn.remove();
         const loginBtn = document.createElement('button');
         loginBtn.id = 'auth-btn';
-        loginBtn.innerHTML = '<i data-lucide="lock"></i>Edit';
+        loginBtn.innerHTML = '<i data-lucide="log-in"></i>Edit';
         loginBtn.style.cssText = `position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: background 0.2s;`;
         loginBtn.onmouseover = () => loginBtn.style.background = '#2563eb';
         loginBtn.onmouseout = () => loginBtn.style.background = '#3b82f6';
