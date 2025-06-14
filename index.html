@@ -722,59 +722,65 @@
     </button>
 
     <script>
-    // Authentication variables
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNI42uFbIpijXBd23qMgp-3pnK4fuTTR8ms8ICXVj7dkVvavJ3AZWZEIxXeHzexmG34A/exec'; // Replace with your actual URL
-    let currentUser = null;
-    let isAuthorized = false;
-
+    
     // Global variables
     let allCoffees = [];
-    let filteredCoffees = [];
+    let filteredCoffees = [];	    
+	    
+    // Authentication variables
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyNI42uFbIpijXBd23qMgp-3pnK4fuTTR8ms8ICXVj7dkVvavJ3AZWZEIxXeHzexmG34A/exec'; // Replace with your actual URL
+let currentUser = null;
+let isAuthorized = false;
 
-    // --- Authentication Functions ---
-    async function promptForEmail() {
-        const email = prompt('Please enter your email address to access editing features:');
-        if (email && email.trim()) {
-            await checkAuthorization(email.trim().toLowerCase());
-        }
+// --- Authentication Functions ---
+async function promptForEmail() {
+    const email = prompt('Please enter your email address to access editing features:');
+    if (email && email.trim()) {
+        await checkAuthorization(email.trim().toLowerCase());
     }
+}
 
-    async function checkAuthorization(email) {
-        try {
-            showNotification('Checking authorization...', 'info');
-            const response = await fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'checkAuth', userEmail: email })
-            });
-            const result = await response.json();
-            if (result.success && result.authorized) {
-                currentUser = email;
-                isAuthorized = true;
-                showNotification('Authentication successful! You can now edit notes.', 'success');
-                updateUIForAuthorizedUser();
-            } else {
-                showNotification('You are not authorized to edit notes.', 'error');
-                updateUIForUnauthorizedUser();
-            }
-        } catch (error) {
-            console.error('Auth check failed:', error);
-            showNotification('Authentication failed. Please try again.', 'error');
+async function checkAuthorization(email) {
+    try {
+        showNotification('Checking authorization...', 'info');
+        
+        // Use GET request with URL parameters instead of POST
+        const url = `${APPS_SCRIPT_URL}?action=checkAuth&userEmail=${encodeURIComponent(email)}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.authorized) {
+            currentUser = email;
+            isAuthorized = true;
+            showNotification('Authentication successful! You can now edit notes.', 'success');
+            updateUIForAuthorizedUser();
+        } else {
+            showNotification('You are not authorized to edit notes.', 'error');
             updateUIForUnauthorizedUser();
         }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        showNotification('Authentication failed. Please try again.', 'error');
+        updateUIForUnauthorizedUser();
     }
+}
 
-    function updateUIForAuthorizedUser() {
-        document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'inline-flex');
-        document.querySelectorAll('.notes-input').forEach(input => input.disabled = false);
-        addLogoutButton();
-    }
+function updateUIForAuthorizedUser() {
+    document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'inline-flex');
+    document.querySelectorAll('.notes-input').forEach(input => input.disabled = false);
+    addLogoutButton();
+}
 
-    function updateUIForUnauthorizedUser() {
-        document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'none');
-        document.querySelectorAll('.notes-input').forEach(input => input.disabled = true);
-        addLoginButton();
-    }
+function updateUIForUnauthorizedUser() {
+    document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'none');
+    document.querySelectorAll('.notes-input').forEach(input => input.disabled = true);
+    addLoginButton();
+}
 
     function addLoginButton() {
         const existingBtn = document.getElementById('auth-btn');
