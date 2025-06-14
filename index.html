@@ -726,6 +726,217 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script>
+
+	
+// Authentication variables - ADD THESE AT THE TOP
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyz0HLhGuyCyFCGjuiZ2MjHk-pJ-bTKFhIsgzEIoXmwDG7XuFnrFEYGi0DGAJtmW_DkeA/exec'; // Replace with your actual URL
+let currentUser = null;
+let isAuthorized = false;
+
+// Authentication functions - ADD THESE
+async function promptForEmail() {
+    const email = prompt('Please enter your email address to access editing features:');
+    if (email && email.trim()) {
+        await checkAuthorization(email.trim().toLowerCase());
+    }
+}
+
+async function checkAuthorization(email) {
+    try {
+        showNotification('Checking authorization...', 'info');
+        
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'checkAuth',
+                userEmail: email
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.authorized) {
+            currentUser = email;
+            isAuthorized = true;
+            showNotification('Authentication successful! You can now edit notes.', 'success');
+            updateUIForAuthorizedUser();
+        } else {
+            showNotification('You are not authorized to edit notes.', 'error');
+            updateUIForUnauthorizedUser();
+        }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        showNotification('Authentication failed. Please try again.', 'error');
+        updateUIForUnauthorizedUser();
+    }
+}
+
+function updateUIForAuthorizedUser() {
+    // Show all edit buttons
+    document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => {
+        btn.style.display = 'inline-flex';
+    });
+    
+    // Enable all inputs
+    document.querySelectorAll('.notes-input').forEach(input => {
+        input.disabled = false;
+    });
+    
+    addLogoutButton();
+}
+
+function updateUIForUnauthorizedUser() {
+    // Hide all edit buttons
+    document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => {
+        btn.style.display = 'none';
+    });
+    
+    // Disable all inputs
+    document.querySelectorAll('.notes-input').forEach(input => {
+        input.disabled = true;
+    });
+    
+    addLoginButton();
+}
+
+function addLoginButton() {
+    const existingBtn = document.getElementById('auth-btn');
+    if (existingBtn) existingBtn.remove();
+    
+    const loginBtn = document.createElement('button');
+    loginBtn.id = 'auth-btn';
+    loginBtn.innerHTML = '<i data-lucide="lock"></i> Login to Edit';
+    loginBtn.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: background 0.2s;
+    `;
+    
+    loginBtn.addEventListener('mouseover', () => {
+        loginBtn.style.background = '#2563eb';
+    });
+    
+    loginBtn.addEventListener('mouseout', () => {
+        loginBtn.style.background = '#3b82f6';
+    });
+    
+    loginBtn.addEventListener('click', promptForEmail);
+    document.body.appendChild(loginBtn);
+    lucide.createIcons();
+}
+
+function addLogoutButton() {
+    const existingBtn = document.getElementById('auth-btn');
+    if (existingBtn) existingBtn.remove();
+    
+    const logoutBtn = document.createElement('button');
+    logoutBtn.id = 'auth-btn';
+    logoutBtn.innerHTML = `<i data-lucide="log-out"></i> Logout (${currentUser})`;
+    logoutBtn.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: #6b7280;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: background 0.2s;
+    `;
+    
+    logoutBtn.addEventListener('mouseover', () => {
+        logoutBtn.style.background = '#4b5563';
+    });
+    
+    logoutBtn.addEventListener('mouseout', () => {
+        logoutBtn.style.background = '#6b7280';
+    });
+    
+    logoutBtn.addEventListener('click', logout);
+    document.body.appendChild(logoutBtn);
+    lucide.createIcons();
+}
+
+function logout() {
+    currentUser = null;
+    isAuthorized = false;
+    updateUIForUnauthorizedUser();
+    showNotification('Logged out successfully.', 'info');
+}
+
+// Enhanced notification system
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    document.querySelectorAll('.notification').forEach(n => n.remove());
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        info: '#3b82f6',
+        warning: '#f59e0b'
+    };
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 9999;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        max-width: 300px;
+        background: ${colors[type] || colors.info};
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Remove after 4 seconds
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 4000);
+}
+	    
         // Global variables
         let allCoffees = [];
         let filteredCoffees = [];
@@ -1312,9 +1523,76 @@ function editNotes(coffeeIndex) {
     document.getElementById(`notes-input-${coffeeIndex}`).focus();
 }
 
-function saveNotes(coffeeIndex) {
+// Updated saveNotes function with authentication
+async function saveNotes(coffeeIndex) {
+    if (!isAuthorized) {
+        showNotification('Please log in to save notes.', 'error');
+        promptForEmail();
+        return;
+    }
+    
     const notesInput = document.getElementById(`notes-input-${coffeeIndex}`);
     const newNotes = notesInput.value.trim();
+    const coffeeName = filteredCoffees[coffeeIndex].name;
+    
+    // Show loading state
+    const saveButton = notesInput.parentNode.querySelector('.notes-btn-save');
+    const originalSaveText = saveButton.innerHTML;
+    saveButton.innerHTML = '<i data-lucide="loader-2"></i> Saving...';
+    saveButton.disabled = true;
+    
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                coffeeName: coffeeName,
+                notes: newNotes,
+                userEmail: currentUser
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Update local data
+            filteredCoffees[coffeeIndex].notes = newNotes;
+            
+            const coffeeInAll = allCoffees.find(coffee => coffee.name === coffeeName);
+            if (coffeeInAll) {
+                coffeeInAll.notes = newNotes;
+            }
+            
+            // Re-render the notes section
+            renderNotesSection(coffeeIndex, newNotes);
+            
+            showNotification('Notes saved successfully!', 'success');
+            
+        } else {
+            throw new Error(result.error || 'Failed to save notes');
+        }
+        
+    } catch (error) {
+        console.error('Error saving notes:', error);
+        
+        // Restore button state
+        saveButton.innerHTML = originalSaveText;
+        saveButton.disabled = false;
+        
+        // Check if it's an auth error
+        if (error.message.includes('Unauthorized')) {
+            showNotification('Session expired. Please log in again.', 'warning');
+            logout();
+        } else {
+            showNotification('Failed to save notes. Please try again.', 'error');
+        }
+        
+        lucide.createIcons();
+    }
+}
+
     
     // Update the coffee data
     filteredCoffees[coffeeIndex].notes = newNotes;
@@ -1422,6 +1700,15 @@ function renderNotesSection(coffeeIndex, notes) {
             if (scrollTop > 300) {
                backToTopButton.classList.add('visible');
             }
+	});
+
+	// Initialize authentication state
+	updateUIForUnauthorizedUser();
+	   
+	// Show initial welcome message
+	setTimeout(() => {
+	    showNotification('Welcome! Click "Login to Edit" to modify coffee notes.', 'info');
+	    }, 1000);
 	});
     </script>
 </body>
