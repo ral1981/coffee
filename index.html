@@ -722,991 +722,440 @@
     </button>
 
     <script>
+    // Authentication variables
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyz0HLhGuyCyFCGjuiZ2MjHk-pJ-bTKFhIsgzEIoXmwDG7XuFnrFEYGi0DGAJtmW_DkeA/exec'; // Replace with your actual URL
+    let currentUser = null;
+    let isAuthorized = false;
 
-	
-// Authentication variables - ADD THESE AT THE TOP
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyz0HLhGuyCyFCGjuiZ2MjHk-pJ-bTKFhIsgzEIoXmwDG7XuFnrFEYGi0DGAJtmW_DkeA/exec'; // Replace with your actual URL
-let currentUser = null;
-let isAuthorized = false;
+    // Global variables
+    let allCoffees = [];
+    let filteredCoffees = [];
 
-// Authentication functions - ADD THESE
-async function promptForEmail() {
-    const email = prompt('Please enter your email address to access editing features:');
-    if (email && email.trim()) {
-        await checkAuthorization(email.trim().toLowerCase());
+    // --- Authentication Functions ---
+    async function promptForEmail() {
+        const email = prompt('Please enter your email address to access editing features:');
+        if (email && email.trim()) {
+            await checkAuthorization(email.trim().toLowerCase());
+        }
     }
-}
 
-async function checkAuthorization(email) {
-    try {
-        showNotification('Checking authorization...', 'info');
-        
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                action: 'checkAuth',
-                userEmail: email
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success && result.authorized) {
-            currentUser = email;
-            isAuthorized = true;
-            showNotification('Authentication successful! You can now edit notes.', 'success');
-            updateUIForAuthorizedUser();
-        } else {
-            showNotification('You are not authorized to edit notes.', 'error');
+    async function checkAuthorization(email) {
+        try {
+            showNotification('Checking authorization...', 'info');
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'checkAuth', userEmail: email })
+            });
+            const result = await response.json();
+            if (result.success && result.authorized) {
+                currentUser = email;
+                isAuthorized = true;
+                showNotification('Authentication successful! You can now edit notes.', 'success');
+                updateUIForAuthorizedUser();
+            } else {
+                showNotification('You are not authorized to edit notes.', 'error');
+                updateUIForUnauthorizedUser();
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            showNotification('Authentication failed. Please try again.', 'error');
             updateUIForUnauthorizedUser();
         }
-    } catch (error) {
-        console.error('Auth check failed:', error);
-        showNotification('Authentication failed. Please try again.', 'error');
-        updateUIForUnauthorizedUser();
     }
-}
 
-function updateUIForAuthorizedUser() {
-    // Show all edit buttons
-    document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => {
-        btn.style.display = 'inline-flex';
-    });
-    
-    // Enable all inputs
-    document.querySelectorAll('.notes-input').forEach(input => {
-        input.disabled = false;
-    });
-    
-    addLogoutButton();
-}
-
-function updateUIForUnauthorizedUser() {
-    // Hide all edit buttons
-    document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => {
-        btn.style.display = 'none';
-    });
-    
-    // Disable all inputs
-    document.querySelectorAll('.notes-input').forEach(input => {
-        input.disabled = true;
-    });
-    
-    addLoginButton();
-}
-
-function addLoginButton() {
-    const existingBtn = document.getElementById('auth-btn');
-    if (existingBtn) existingBtn.remove();
-    
-    const loginBtn = document.createElement('button');
-    loginBtn.id = 'auth-btn';
-    loginBtn.innerHTML = '<i data-lucide="lock"></i> Login to Edit';
-    loginBtn.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 16px;
-        background: #3b82f6;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 500;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transition: background 0.2s;
-    `;
-    
-    loginBtn.addEventListener('mouseover', () => {
-        loginBtn.style.background = '#2563eb';
-    });
-    
-    loginBtn.addEventListener('mouseout', () => {
-        loginBtn.style.background = '#3b82f6';
-    });
-    
-    loginBtn.addEventListener('click', promptForEmail);
-    document.body.appendChild(loginBtn);
-    lucide.createIcons();
-}
-
-function addLogoutButton() {
-    const existingBtn = document.getElementById('auth-btn');
-    if (existingBtn) existingBtn.remove();
-    
-    const logoutBtn = document.createElement('button');
-    logoutBtn.id = 'auth-btn';
-    logoutBtn.innerHTML = `<i data-lucide="log-out"></i> Logout (${currentUser})`;
-    logoutBtn.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 16px;
-        background: #6b7280;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 500;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transition: background 0.2s;
-    `;
-    
-    logoutBtn.addEventListener('mouseover', () => {
-        logoutBtn.style.background = '#4b5563';
-    });
-    
-    logoutBtn.addEventListener('mouseout', () => {
-        logoutBtn.style.background = '#6b7280';
-    });
-    
-    logoutBtn.addEventListener('click', logout);
-    document.body.appendChild(logoutBtn);
-    lucide.createIcons();
-}
-
-function logout() {
-    currentUser = null;
-    isAuthorized = false;
-    updateUIForUnauthorizedUser();
-    showNotification('Logged out successfully.', 'info');
-}
-
-// Enhanced notification system
-function showNotification(message, type = 'info') {
-    // Remove existing notifications
-    document.querySelectorAll('.notification').forEach(n => n.remove());
-    
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    
-    const colors = {
-        success: '#10b981',
-        error: '#ef4444',
-        info: '#3b82f6',
-        warning: '#f59e0b'
-    };
-    
-    notification.style.cssText = `
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 500;
-        z-index: 9999;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-        max-width: 300px;
-        background: ${colors[type] || colors.info};
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Animate in
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 100);
-    
-    // Remove after 4 seconds
-    setTimeout(() => {
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 4000);
-}
-	    
-        // Global variables
-        let allCoffees = [];
-        let filteredCoffees = [];
-
-	// Function to toggle filter section
-	function toggleFilters() {
-            const filtersContent = document.getElementById('filters-content');
-            const toggleButton = document.querySelector('.filters-toggle');
-            const isCollapsed = filtersContent.classList.contains('collapsed');
-    
-            if (isCollapsed) {
-                filtersContent.classList.remove('collapsed');
-                toggleButton.setAttribute('aria-expanded', 'true');
-            } else {
-                filtersContent.classList.add('collapsed');
-                toggleButton.setAttribute('aria-expanded', 'false');
-            }
-        }
-
-        // Function to extract domain from URL
-        function getDomainFromUrl(url) {
-            try {
-                return new URL(url).hostname.replace('www.', '');
-            } catch {
-                return null;
-            }
-        }
-
-        // Function to get favicon URL
-        function getFaviconUrl(shopUrl) {
-            const domain = getDomainFromUrl(shopUrl);
-            if (domain) {
-                return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-            }
-            return null;
-        }
-
-        // Function to create shop logo element
-        function createShopLogoElement(shopLogo, shopUrl, shopName) {
-            const logoContainer = document.createElement('div');
-            
-            if (shopLogo && shopLogo !== 'N/A' && shopLogo.trim() !== '') {
-                // Try to use provided logo URL
-                const img = document.createElement('img');
-                img.src = shopLogo;
-                img.alt = `${shopName} logo`;
-                img.className = 'shop-logo';
-                
-                // Fallback to favicon if provided logo fails
-                img.onerror = function() {
-                    const faviconUrl = getFaviconUrl(shopUrl);
-                    if (faviconUrl) {
-                        this.src = faviconUrl;
-                        this.onerror = function() {
-                            // If favicon also fails, hide the image
-                            this.className = 'shop-logo hidden';
-                            // Show generic icon instead
-                            const icon = document.createElement('div');
-                            icon.className = 'shop-icon';
-                            icon.textContent = '🏪';
-                            this.parentNode.insertBefore(icon, this);
-                        };
-                    } else {
-                        this.className = 'shop-logo hidden';
-                        const icon = document.createElement('div');
-                        icon.className = 'shop-icon';
-                        icon.textContent = '🏪';
-                        this.parentNode.insertBefore(icon, this);
-                    }
-                };
-                
-                logoContainer.appendChild(img);
-            } else {
-                // Try favicon first if no logo provided
-                const faviconUrl = getFaviconUrl(shopUrl);
-                if (faviconUrl) {
-                    const img = document.createElement('img');
-                    img.src = faviconUrl;
-                    img.alt = `${shopName} favicon`;
-                    img.className = 'shop-logo';
-                    
-                    img.onerror = function() {
-                        this.className = 'shop-logo hidden';
-                        const icon = document.createElement('div');
-                        icon.className = 'shop-icon';
-                        icon.textContent = '🏪';
-                        this.parentNode.insertBefore(icon, this);
-                    };
-                    
-                    logoContainer.appendChild(img);
-                } else {
-                    // Default to generic icon
-                    const icon = document.createElement('div');
-                    icon.className = 'shop-icon';
-                    icon.textContent = '🏪';
-                    logoContainer.appendChild(icon);
-                }
-            }
-            
-            return logoContainer;
-        }
-
-        // Function to populate filter dropdowns
-        function populateFilters(coffees) {
-            // Get unique shops and origins
-            const shops = [...new Set(coffees.map(coffee => coffee.shop_name || 'N/A'))].filter(shop => shop !== 'N/A').sort();
-            const origins = [...new Set(coffees.map(coffee => coffee.origin || 'N/A'))].filter(origin => origin !== 'N/A').sort();
-            
-            // Populate shop filter
-            const shopFilter = document.getElementById('shop-filter');
-            shopFilter.innerHTML = '<option value="">All Shops</option>';
-            shops.forEach(shop => {
-                const option = document.createElement('option');
-                option.value = shop;
-                option.textContent = shop;
-                shopFilter.appendChild(option);
-            });
-            
-            // Populate origin filter
-            const originFilter = document.getElementById('origin-filter');
-            originFilter.innerHTML = '<option value="">All Origins</option>';
-            origins.forEach(origin => {
-                const option = document.createElement('option');
-                option.value = origin;
-                option.textContent = origin;
-                originFilter.appendChild(option);
-            });
-        }
-
-        // Function to get URL parameters
-        function getUrlParameters() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                container: params.get('container'),
-                shop: params.get('shop'),
-                origin: params.get('origin')
-            };
-        }
-
-        // Function to normalize strings for comparison (remove spaces, lowercase, etc.)
-        function normalizeForComparison(str) {
-            return str.toLowerCase().replace(/\s+/g, '').replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
-        }
-
-	// Function to update URL parameters
-        function updateUrlParameters() {
-            const containerFilter = document.getElementById('container-filter').value;
-            const shopFilter = document.getElementById('shop-filter').value;
-            const originFilter = document.getElementById('origin-filter').value;
-
-            const params = new URLSearchParams();
-
-            if (containerFilter) {
-                params.set('container', containerFilter);
-            }
-            if (shopFilter) {
-                params.set('shop', shopFilter);
-            }
-            if (originFilter) {
-                params.set('origin', originFilter);
-            }
-
-            // Update the URL without reloading the page
-            const newUrl = params.toString() ? 
-                `${window.location.pathname}?${params.toString()}` : 
-                window.location.pathname;
-
-            window.history.replaceState({}, '', newUrl);
-        }
-
-        // Function to clear URL parameters
-        function clearUrlParameters() {
-            window.history.replaceState({}, '', window.location.pathname);
-        }
-		
-	// Function to apply URL parameters to filters
-        function applyUrlParameters() {
-            const params = getUrlParameters();
-            let hasParams = false;
-            
-            console.log('URL Parameters:', params);
-            
-            if (params.container) {
-                const containerFilter = document.getElementById('container-filter');
-                if (containerFilter) {
-                    containerFilter.value = params.container;
-                    hasParams = true;
-                    console.log('Set container filter to:', params.container);
-                }
-            }
-            if (params.shop) {
-                const shopFilter = document.getElementById('shop-filter');
-                console.log('Available shop options:', Array.from(shopFilter.options).map(o => o.value));
-                console.log('Looking for shop:', params.shop);
-                // Flexible search for shop (case-insensitive, no spaces)
-                const shopOption = Array.from(shopFilter.options).find(option => 
-                    normalizeForComparison(option.value) === normalizeForComparison(params.shop)
-                );
-                if (shopOption) {
-                    shopFilter.value = shopOption.value;
-                    hasParams = true;
-                    console.log('Set shop filter to:', shopOption.value);
-                } else {
-                    console.log('Shop not found in options:', params.shop);
-                }
-            }
-            if (params.origin) {
-                const originFilter = document.getElementById('origin-filter');
-                console.log('Available origin options:', Array.from(originFilter.options).map(o => o.value));
-                console.log('Looking for origin:', params.origin);
-                // Flexible search for origin (case-insensitive, no spaces, accent-insensitive)
-                const originOption = Array.from(originFilter.options).find(option => 
-                    normalizeForComparison(option.value) === normalizeForComparison(params.origin)
-                );
-                if (originOption) {
-                    originFilter.value = originOption.value;
-                    hasParams = true;
-                    console.log('Set origin filter to:', originOption.value);
-                } else {
-                    console.log('Origin not found in options:', params.origin);
-                }
-                        
-            // Apply filters after setting values
-            applyFilters();
-            
-            // If URL parameters were present, scroll to results after a brief delay
-            if (hasParams) {
-                setTimeout(() => {
-                    const resultsSection = document.getElementById('results-count');
-                    if (resultsSection && resultsSection.style.display !== 'none') {
-                        resultsSection.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'start' 
-                        });
-                    }
-                }, 300);
-            }
-        }
-
-            // Apply filters after setting values
-            applyFilters();
-            
-            // If URL parameters were present, scroll to results after a brief delay
-            if (hasParams) {
-                setTimeout(() => {
-                    const resultsSection = document.getElementById('results-count');
-                    if (resultsSection && resultsSection.style.display !== 'none') {
-                        resultsSection.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'start' 
-                        });
-                    }
-                }, 300);
-            }
-        }
-     
-        // Function to apply filters
-        function applyFilters() {
-	    const containerFilter = document.getElementById('container-filter').value;
-	    const shopFilter = document.getElementById('shop-filter').value;
-            const originFilter = document.getElementById('origin-filter').value;
-    
-            filteredCoffees = allCoffees.filter(coffee => {
-                // Container filter
-                if (containerFilter) {
-                    const containerValue = (coffee.container || '').toLowerCase();
-                    if (containerFilter === 'green' && !(containerValue.includes('green') || containerValue.includes('container_01'))) {
-                        return false;
-                    }
-                    if (containerFilter === 'grey' && !(containerValue.includes('grey') || containerValue.includes('gray') || containerValue.includes('container_02'))) {
-                        return false;
-                    }
-                    if (containerFilter === 'none' && containerValue && containerValue.trim() !== '') {
-                        return false;
-                    }
-                }
-        
-                // Shop filter
-                if (shopFilter && (coffee.shop_name || 'N/A') !== shopFilter) {
-                    return false;
-                }
-        
-                // Origin filter
-                if (originFilter && (coffee.origin || 'N/A') !== originFilter) {
-                    return false;
-                }
-        
-                return true;
-            });
-    
-            renderCoffeeCards(filteredCoffees);
-            updateResultsCount(filteredCoffees.length, allCoffees.length);
-            updateUrlParameters();
-            updateFilterStates();
-        }
-
-        // Function to clear all filters
-        function clearAllFilters() {
-            document.getElementById('container-filter').value = '';
-            document.getElementById('shop-filter').value = '';
-            document.getElementById('origin-filter').value = '';
-            filteredCoffees = [...allCoffees];
-            renderCoffeeCards(filteredCoffees);
-            updateResultsCount(filteredCoffees.length, allCoffees.length);
-            clearUrlParameters();
-            updateFilterStates();
-        }
-
-	// Function to check if any filters are active
-	function hasActiveFilters() {
-	    const containerFilter = document.getElementById('container-filter').value;
-	    const shopFilter = document.getElementById('shop-filter').value;
-            const originFilter = document.getElementById('origin-filter').value;
-    
-            return containerFilter !== '' || shopFilter !== '' || originFilter !== '';
-        }
-
-        // Function to update filter visual states
-        function updateFilterStates() {
-            const containerFilter = document.getElementById('container-filter');
-            const shopFilter = document.getElementById('shop-filter');
-            const originFilter = document.getElementById('origin-filter');
-            const clearButton = document.getElementById('clear-filters-btn');
-            const filtersToggle = document.querySelector('.filters-toggle');
-    
-            // Update individual filter group states
-            const containerGroup = containerFilter.closest('.filter-group');
-            const shopGroup = shopFilter.closest('.filter-group');
-            const originGroup = originFilter.closest('.filter-group');
-    
-            // Toggle active class based on filter values
-            containerGroup.classList.toggle('active', containerFilter.value !== '');
-            shopGroup.classList.toggle('active', shopFilter.value !== '');
-            originGroup.classList.toggle('active', originFilter.value !== '');
-    
-            // Update clear button state
-            const hasFilters = hasActiveFilters();
-            clearButton.disabled = !hasFilters;
-    
-            // Update toggle button state
-            filtersToggle.classList.toggle('has-active-filters', hasFilters);
-        }
-
-        // Function to update results count
-        function updateResultsCount(filtered, total) {
-            const resultsElement = document.getElementById('results-count');
-            const noResultsElement = document.getElementById('no-results');
-            const gridElement = document.getElementById('coffee-grid');
-            
-            if (filtered === 0) {
-                resultsElement.style.display = 'none';
-                noResultsElement.style.display = 'block';
-                gridElement.style.display = 'none';
-            } else {
-                resultsElement.style.display = 'block';
-                noResultsElement.style.display = 'none';
-                gridElement.style.display = 'grid';
-                
-                if (filtered === total) {
-                    resultsElement.textContent = `Showing all ${total} coffees`;
-                } else {
-                    resultsElement.textContent = `Showing ${filtered} of ${total} coffees`;
-                }
-            }
-        }
-
-        // Function to load data from Google Sheets CSV using Papa Parse
-        async function loadCoffeeData() {
-            try {
-                const response = await fetch('https://docs.google.com/spreadsheets/d/1T0jd2altQ4A6Le0X2XnAGvxN8VmRHF25KdGCHx9d2E8/export?format=csv');
-                const csvText = await response.text();
-                
-                // Parse CSV using Papa Parse with robust options
-                const parsed = Papa.parse(csvText, {
-                    header: true,
-                    skipEmptyLines: true,
-                    dynamicTyping: false,
-                    transformHeader: header => header.trim().toLowerCase().replace(/\s+/g, '_').replace(/[()]/g, ''),
-                    transform: value => value ? value.trim() : ''
-                });
-                
-                if (parsed.errors.length > 0) {
-                    console.warn('CSV parsing warnings:', parsed.errors);
-                }
-                
-                return parsed.data.filter(row => row.name && row.name.trim());
-            } catch (error) {
-                console.log('Using sample data due to fetch error:', error);
-                return [];
-            }
-        }
-
-        function renderCoffeeCards(coffees) {
-    const grid = document.getElementById('coffee-grid');
-    grid.innerHTML = '';
-
-    coffees.forEach((coffee, index) => {
-        const containerValue = coffee.container || '';
-        const isInContainer = containerValue && containerValue !== '';
-        
-        // Determine container type and styling
-        let containerClass = '';
-        let containerBadge = '';
-        if (isInContainer) {
-            const containerLower = containerValue.toLowerCase();
-            if (containerLower.includes('green') || containerLower.includes('container_01')) {
-                containerClass = 'in-container-green';
-                containerBadge = `<div class="container-badge green">Green Container</div>`;
-            } else if (containerLower.includes('grey') || containerLower.includes('gray') || containerLower.includes('container_02')) {
-                containerClass = 'in-container-grey';
-                containerBadge = `<div class="container-badge grey">Grey Container</div>`;
-            }
-        }
-
-        // Get values using the exact column names from your Google Sheet
-        const origin = coffee.origin || 'N/A';
-        const region = coffee.region || 'N/A';
-        const height = coffee.height_m || 'N/A';
-        const variety = coffee.botanic_variety || 'N/A';
-        const farm = coffee['farm_/_producer'] || 'N/A';
-        const processing = coffee.processing_method || 'N/A';
-        const sca = coffee.sca || 'N/A';
-        const flavor = coffee.flavor || 'N/A';
-        const shop = coffee.shop_name || 'N/A';
-        const shopUrl = coffee.shop_url || '#';
-        const shopLogo = coffee.shop_logo || '';
-        const notes = coffee.notes || '';
-
-        // Recipe values using exact column names
-        const ratio = coffee['recipe:_ratio'] || '1:2';
-        const inGr = coffee['recipe:_in_gr'] || '18';
-        const outGr = coffee['recipe:_out_gr'] || '36';
-        const timeS = coffee['recipe:_time_s'] || '28';
-        const tempC = coffee['recipe:_temperature_°c'] || '93';
-
-        const card = document.createElement('div');
-        card.className = `coffee-card ${containerClass}`;
-        card.dataset.coffeeIndex = index;
-        
-        // Create the shop link with improved logo handling
-        const shopLinkDiv = document.createElement('div');
-        shopLinkDiv.className = 'coffee-shop';
-        
-        const shopLink = document.createElement('a');
-        shopLink.href = shopUrl !== 'N/A' && shopUrl !== '#' ? shopUrl : '#';
-        shopLink.target = '_blank';
-        shopLink.className = 'shop-link';
-        
-        // Add logo/icon
-        const logoContainer = createShopLogoElement(shopLogo, shopUrl, shop);
-        shopLink.appendChild(logoContainer.firstChild);
-        
-        // Add shop name
-        const shopNameSpan = document.createElement('span');
-        shopNameSpan.className = 'shop-name';
-        shopNameSpan.textContent = shop;
-        shopLink.appendChild(shopNameSpan);
-        
-        shopLinkDiv.appendChild(shopLink);
-
-        card.innerHTML = `
-            ${containerBadge}
-            <div class="coffee-header">
-                <div class="coffee-name">${coffee.name}</div>
-            </div>
-            
-            <div class="coffee-details">
-                <div class="detail-item">
-                    <div class="detail-label">Origin</div>
-                    <div class="detail-value">${origin}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Region</div>
-                    <div class="detail-value">${region}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Height (m)</div>
-                    <div class="detail-value">${height}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Variety</div>
-                    <div class="detail-value">${variety}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Farm/Producer</div>
-                    <div class="detail-value">${farm}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">Processing</div>
-                    <div class="detail-value">${processing}</div>
-                </div>
-                <div class="detail-item">
-                    <div class="detail-label">SCA Score</div>
-                    <div class="detail-value">${sca}</div>
-                </div>
-            </div>
-
-            <div class="flavor-notes">
-                <h4>Flavor Profile</h4>
-                <p>${flavor}</p>
-            </div>
-
-            <div class="notes-section" id="notes-${index}">
-                <h4>
-                    <i data-lucide="sticky-note"></i>
-                    Notes
-                </h4>
-                <div class="notes-content ${notes ? '' : 'empty'}" id="notes-content-${index}">
-                    ${notes || 'No notes yet. Click edit to add grinder settings or tasting notes.'}
-                </div>
-                <div class="notes-actions">
-                    <button class="notes-btn notes-btn-edit" onclick="editNotes(${index})">
-                        <i data-lucide="edit-3"></i>
-                        Edit
-                    </button>
-                </div>
-            </div>
-
-            <div class="recipe">
-                <h4>Espresso Recipe</h4>
-                <div class="recipe-grid">
-                    <div class="recipe-item">
-                        <div class="recipe-label">Ratio</div>
-                        <div class="recipe-value">${ratio}</div>
-                    </div>
-                    <div class="recipe-item">
-                        <div class="recipe-label">In (g)</div>
-                        <div class="recipe-value">${inGr}</div>
-                    </div>
-                    <div class="recipe-item">
-                        <div class="recipe-label">Out (g)</div>
-                        <div class="recipe-value">${outGr}</div>
-                    </div>
-                    <div class="recipe-item">
-                        <div class="recipe-label">Time (s)</div>
-                        <div class="recipe-value">${timeS}</div>
-                    </div>
-                    <div class="recipe-item">
-                        <div class="recipe-label">Temp (°C)</div>
-                        <div class="recipe-value">${tempC}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Insert the shop link after the coffee name
-        card.querySelector('.coffee-header').appendChild(shopLinkDiv);
-        
-        grid.appendChild(card);
-    });
-    
-    // Re-initialize Lucide icons for the new content
-    lucide.createIcons();
-}
-
-// Notes functionality
-function editNotes(coffeeIndex) {
-    const notesSection = document.getElementById(`notes-${coffeeIndex}`);
-    const notesContent = document.getElementById(`notes-content-${coffeeIndex}`);
-    const currentNotes = filteredCoffees[coffeeIndex].notes || '';
-    
-    notesSection.classList.add('notes-editing');
-    
-    notesSection.innerHTML = `
-        <h4>
-            <i data-lucide="sticky-note"></i>
-            Edit Notes
-        </h4>
-        <textarea class="notes-input" id="notes-input-${coffeeIndex}" placeholder="Add grinder settings, tasting notes, or any other observations...">${currentNotes}</textarea>
-        <div class="notes-actions">
-            <button class="notes-btn notes-btn-save" onclick="saveNotes(${coffeeIndex})">
-                <i data-lucide="check"></i>
-                Save
-            </button>
-            <button class="notes-btn notes-btn-cancel" onclick="cancelEditNotes(${coffeeIndex})">
-                <i data-lucide="x"></i>
-                Cancel
-            </button>
-        </div>
-    `;
-    
-    // Re-initialize Lucide icons and focus on textarea
-    lucide.createIcons();
-    document.getElementById(`notes-input-${coffeeIndex}`).focus();
-}
-
-// Updated saveNotes function with authentication
-async function saveNotes(coffeeIndex) {
-    if (!isAuthorized) {
-        showNotification('Please log in to save notes.', 'error');
-        promptForEmail();
-        return;
+    function updateUIForAuthorizedUser() {
+        document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'inline-flex');
+        document.querySelectorAll('.notes-input').forEach(input => input.disabled = false);
+        addLogoutButton();
     }
-    
-    const notesInput = document.getElementById(`notes-input-${coffeeIndex}`);
-    const newNotes = notesInput.value.trim();
-    const coffeeName = filteredCoffees[coffeeIndex].name;
-    
-    // Show loading state
-    const saveButton = notesInput.parentNode.querySelector('.notes-btn-save');
-    const originalSaveText = saveButton.innerHTML;
-    saveButton.innerHTML = '<i data-lucide="loader-2"></i> Saving...';
-    saveButton.disabled = true;
-    
-    try {
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                coffeeName: coffeeName,
-                notes: newNotes,
-                userEmail: currentUser
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Update local data
-            filteredCoffees[coffeeIndex].notes = newNotes;
-            
-            const coffeeInAll = allCoffees.find(coffee => coffee.name === coffeeName);
-            if (coffeeInAll) {
-                coffeeInAll.notes = newNotes;
-            }
-            
-            // Re-render the notes section
-            renderNotesSection(coffeeIndex, newNotes);
-            
-            showNotification('Notes saved successfully!', 'success');
-            
-        } else {
-            throw new Error(result.error || 'Failed to save notes');
-        }
-        
-    } catch (error) {
-        console.error('Error saving notes:', error);
-        
-        // Restore button state
-        saveButton.innerHTML = originalSaveText;
-        saveButton.disabled = false;
-        
-        // Check if it's an auth error
-        if (error.message.includes('Unauthorized')) {
-            showNotification('Session expired. Please log in again.', 'warning');
-            logout();
-        } else {
-            showNotification('Failed to save notes. Please try again.', 'error');
-        }
-        
+
+    function updateUIForUnauthorizedUser() {
+        document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'none');
+        document.querySelectorAll('.notes-input').forEach(input => input.disabled = true);
+        addLoginButton();
+    }
+
+    function addLoginButton() {
+        const existingBtn = document.getElementById('auth-btn');
+        if (existingBtn) existingBtn.remove();
+        const loginBtn = document.createElement('button');
+        loginBtn.id = 'auth-btn';
+        loginBtn.innerHTML = '<i data-lucide="lock"></i> Login to Edit';
+        loginBtn.style.cssText = `position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: background 0.2s;`;
+        loginBtn.onmouseover = () => loginBtn.style.background = '#2563eb';
+        loginBtn.onmouseout = () => loginBtn.style.background = '#3b82f6';
+        loginBtn.onclick = promptForEmail;
+        document.body.appendChild(loginBtn);
         lucide.createIcons();
     }
-}
 
-    
-    // Update the coffee data
-    filteredCoffees[coffeeIndex].notes = newNotes;
-    
-    // Also update in allCoffees array
-    const coffeeName = filteredCoffees[coffeeIndex].name;
-    const coffeeInAll = allCoffees.find(coffee => coffee.name === coffeeName);
-    if (coffeeInAll) {
-        coffeeInAll.notes = newNotes;
+    function addLogoutButton() {
+        const existingBtn = document.getElementById('auth-btn');
+        if (existingBtn) existingBtn.remove();
+        const logoutBtn = document.createElement('button');
+        logoutBtn.id = 'auth-btn';
+        logoutBtn.innerHTML = `<i data-lucide="log-out"></i> Logout (${currentUser})`;
+        logoutBtn.style.cssText = `position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: #6b7280; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: background 0.2s;`;
+        logoutBtn.onmouseover = () => logoutBtn.style.background = '#4b5563';
+        logoutBtn.onmouseout = () => logoutBtn.style.background = '#6b7280';
+        logoutBtn.onclick = logout;
+        document.body.appendChild(logoutBtn);
+        lucide.createIcons();
     }
-    
-    // Re-render the notes section
-    renderNotesSection(coffeeIndex, newNotes);
-    
-    // Here you would typically save to your backend/Google Sheets
-    console.log(`Notes saved for ${filteredCoffees[coffeeIndex].name}:`, newNotes);
-}
 
-function cancelEditNotes(coffeeIndex) {
-    const currentNotes = filteredCoffees[coffeeIndex].notes || '';
-    renderNotesSection(coffeeIndex, currentNotes);
-}
+    function logout() {
+        currentUser = null;
+        isAuthorized = false;
+        updateUIForUnauthorizedUser();
+        showNotification('Logged out successfully.', 'info');
+    }
 
-function renderNotesSection(coffeeIndex, notes) {
-    const notesSection = document.getElementById(`notes-${coffeeIndex}`);
-    notesSection.classList.remove('notes-editing');
-    
-    notesSection.innerHTML = `
-        <h4>
-            <i data-lucide="sticky-note"></i>
-            Notes
-        </h4>
-        <div class="notes-content ${notes ? '' : 'empty'}" id="notes-content-${coffeeIndex}">
-            ${notes || 'No notes yet. Click edit to add grinder settings or tasting notes.'}
-        </div>
-        <div class="notes-actions">
-            <button class="notes-btn notes-btn-edit" onclick="editNotes(${coffeeIndex})">
-                <i data-lucide="edit-3"></i>
-                Edit
-            </button>
-        </div>
-    `;
-    
-    // Re-initialize Lucide icons
-    lucide.createIcons();
-}	    
-	    
-        // Load and render coffee data
+    function showNotification(message, type = 'info') {
+        document.querySelectorAll('.notification').forEach(n => n.remove());
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        const colors = { success: '#10b981', error: '#ef4444', info: '#3b82f6', warning: '#f59e0b' };
+        notification.style.cssText = `position: fixed; top: 80px; right: 20px; padding: 12px 20px; border-radius: 8px; color: white; font-weight: 500; z-index: 9999; transform: translateX(100%); transition: transform 0.3s ease; max-width: 300px; background: ${colors[type] || colors.info}; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.style.transform = 'translateX(0)', 100);
+        setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => { if (notification.parentNode) notification.parentNode.removeChild(notification); }, 300);
+        }, 4000);
+    }
+
+    // --- Core Application Functions ---
+    function toggleFilters() {
+        const filtersContent = document.getElementById('filters-content');
+        const toggleButton = document.querySelector('.filters-toggle');
+        const isCollapsed = filtersContent.classList.contains('collapsed');
+        if (isCollapsed) {
+            filtersContent.classList.remove('collapsed');
+            toggleButton.setAttribute('aria-expanded', 'true');
+        } else {
+            filtersContent.classList.add('collapsed');
+            toggleButton.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    function getDomainFromUrl(url) {
+        try { return new URL(url).hostname.replace('www.', ''); } catch { return null; }
+    }
+
+    function getFaviconUrl(shopUrl) {
+        const domain = getDomainFromUrl(shopUrl);
+        return domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : null;
+    }
+
+    function createShopLogoElement(shopLogo, shopUrl, shopName) {
+        const logoContainer = document.createElement('div');
+        if (shopLogo && shopLogo !== 'N/A' && shopLogo.trim() !== '') {
+            const img = document.createElement('img');
+            img.src = shopLogo;
+            img.alt = `${shopName} logo`;
+            img.className = 'shop-logo';
+            img.onerror = function() {
+                const faviconUrl = getFaviconUrl(shopUrl);
+                if (faviconUrl) {
+                    this.src = faviconUrl;
+                    this.onerror = function() { this.className = 'shop-logo hidden'; const icon = document.createElement('div'); icon.className = 'shop-icon'; icon.textContent = '🏪'; this.parentNode.insertBefore(icon, this); };
+                } else {
+                    this.className = 'shop-logo hidden'; const icon = document.createElement('div'); icon.className = 'shop-icon'; icon.textContent = '🏪'; this.parentNode.insertBefore(icon, this);
+                }
+            };
+            logoContainer.appendChild(img);
+        } else {
+            const faviconUrl = getFaviconUrl(shopUrl);
+            if (faviconUrl) {
+                const img = document.createElement('img');
+                img.src = faviconUrl;
+                img.alt = `${shopName} favicon`;
+                img.className = 'shop-logo';
+                img.onerror = function() { this.className = 'shop-logo hidden'; const icon = document.createElement('div'); icon.className = 'shop-icon'; icon.textContent = '🏪'; this.parentNode.insertBefore(icon, this); };
+                logoContainer.appendChild(img);
+            } else {
+                const icon = document.createElement('div'); icon.className = 'shop-icon'; icon.textContent = '🏪'; logoContainer.appendChild(icon);
+            }
+        }
+        return logoContainer;
+    }
+
+    function populateFilters(coffees) {
+        const shops = [...new Set(coffees.map(coffee => coffee.shop_name || 'N/A'))].filter(shop => shop !== 'N/A').sort();
+        const origins = [...new Set(coffees.map(coffee => coffee.origin || 'N/A'))].filter(origin => origin !== 'N/A').sort();
+        const shopFilter = document.getElementById('shop-filter');
+        shopFilter.innerHTML = '<option value="">All Shops</option>';
+        shops.forEach(shop => { const option = document.createElement('option'); option.value = shop; option.textContent = shop; shopFilter.appendChild(option); });
+        const originFilter = document.getElementById('origin-filter');
+        originFilter.innerHTML = '<option value="">All Origins</option>';
+        origins.forEach(origin => { const option = document.createElement('option'); option.value = origin; option.textContent = origin; originFilter.appendChild(option); });
+    }
+
+    function getUrlParameters() {
+        const params = new URLSearchParams(window.location.search);
+        return { container: params.get('container'), shop: params.get('shop'), origin: params.get('origin') };
+    }
+
+    function normalizeForComparison(str) {
+        return str.toLowerCase().replace(/\s+/g, '').replace(/[áàäâ]/g, 'a').replace(/[éèëê]/g, 'e').replace(/[íìïî]/g, 'i').replace(/[óòöô]/g, 'o').replace(/[úùüû]/g, 'u');
+    }
+
+    function updateUrlParameters() {
+        const containerFilter = document.getElementById('container-filter').value;
+        const shopFilter = document.getElementById('shop-filter').value;
+        const originFilter = document.getElementById('origin-filter').value;
+        const params = new URLSearchParams();
+        if (containerFilter) params.set('container', containerFilter);
+        if (shopFilter) params.set('shop', shopFilter);
+        if (originFilter) params.set('origin', originFilter);
+        const newUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+    }
+
+    function clearUrlParameters() {
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    function applyUrlParameters() {
+        const params = getUrlParameters();
+        let hasParams = false;
+        if (params.container) { const containerFilter = document.getElementById('container-filter'); if (containerFilter) { containerFilter.value = params.container; hasParams = true; } }
+        if (params.shop) { const shopFilter = document.getElementById('shop-filter'); const shopOption = Array.from(shopFilter.options).find(option => normalizeForComparison(option.value) === normalizeForComparison(params.shop)); if (shopOption) { shopFilter.value = shopOption.value; hasParams = true; } }
+        if (params.origin) { const originFilter = document.getElementById('origin-filter'); const originOption = Array.from(originFilter.options).find(option => normalizeForComparison(option.value) === normalizeForComparison(params.origin)); if (originOption) { originFilter.value = originOption.value; hasParams = true; } }
+        applyFilters();
+        if (hasParams) {
+            setTimeout(() => {
+                const resultsSection = document.getElementById('results-count');
+                if (resultsSection && resultsSection.style.display !== 'none') {
+                    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 300);
+        }
+    }
+
+    function applyFilters() {
+        const containerFilter = document.getElementById('container-filter').value;
+        const shopFilter = document.getElementById('shop-filter').value;
+        const originFilter = document.getElementById('origin-filter').value;
+        filteredCoffees = allCoffees.filter(coffee => {
+            if (containerFilter) {
+                const containerValue = (coffee.container || '').toLowerCase();
+                if (containerFilter === 'green' && !(containerValue.includes('green') || containerValue.includes('container_01'))) return false;
+                if (containerFilter === 'grey' && !(containerValue.includes('grey') || containerValue.includes('gray') || containerValue.includes('container_02'))) return false;
+                if (containerFilter === 'none' && containerValue && containerValue.trim() !== '') return false;
+            }
+            if (shopFilter && (coffee.shop_name || 'N/A') !== shopFilter) return false;
+            if (originFilter && (coffee.origin || 'N/A') !== originFilter) return false;
+            return true;
+        });
+        renderCoffeeCards(filteredCoffees);
+        updateResultsCount(filteredCoffees.length, allCoffees.length);
+        updateUrlParameters();
+        updateFilterStates();
+    }
+
+    function clearAllFilters() {
+        document.getElementById('container-filter').value = '';
+        document.getElementById('shop-filter').value = '';
+        document.getElementById('origin-filter').value = '';
+        filteredCoffees = [...allCoffees];
+        renderCoffeeCards(filteredCoffees);
+        updateResultsCount(filteredCoffees.length, allCoffees.length);
+        clearUrlParameters();
+        updateFilterStates();
+    }
+
+    function hasActiveFilters() {
+        return document.getElementById('container-filter').value !== '' || document.getElementById('shop-filter').value !== '' || document.getElementById('origin-filter').value !== '';
+    }
+
+    function updateFilterStates() {
+        const containerFilter = document.getElementById('container-filter');
+        const shopFilter = document.getElementById('shop-filter');
+        const originFilter = document.getElementById('origin-filter');
+        const clearButton = document.getElementById('clear-filters-btn');
+        const filtersToggle = document.querySelector('.filters-toggle');
+        containerFilter.closest('.filter-group').classList.toggle('active', containerFilter.value !== '');
+        shopFilter.closest('.filter-group').classList.toggle('active', shopFilter.value !== '');
+        originFilter.closest('.filter-group').classList.toggle('active', originFilter.value !== '');
+        const hasFilters = hasActiveFilters();
+        clearButton.disabled = !hasFilters;
+        filtersToggle.classList.toggle('has-active-filters', hasFilters);
+    }
+
+    function updateResultsCount(filtered, total) {
+        const resultsElement = document.getElementById('results-count');
+        const noResultsElement = document.getElementById('no-results');
+        const gridElement = document.getElementById('coffee-grid');
+        if (filtered === 0) {
+            resultsElement.style.display = 'none';
+            noResultsElement.style.display = 'block';
+            gridElement.style.display = 'none';
+        } else {
+            resultsElement.style.display = 'block';
+            noResultsElement.style.display = 'none';
+            gridElement.style.display = 'grid';
+            if (filtered === total) {
+                resultsElement.textContent = `Showing all ${total} coffees`;
+            } else {
+                resultsElement.textContent = `Showing ${filtered} of ${total} coffees`;
+            }
+        }
+    }
+
+    async function loadCoffeeData() {
+        try {
+            const response = await fetch('https://docs.google.com/spreadsheets/d/1T0jd2altQ4A6Le0X2XnAGvxN8VmRHF25KdGCHx9d2E8/export?format=csv');
+            const csvText = await response.text();
+            const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true, dynamicTyping: false, transformHeader: header => header.trim().toLowerCase().replace(/\s+/g, '_').replace(/[()]/g, ''), transform: value => value ? value.trim() : '' });
+            if (parsed.errors.length > 0) console.warn('CSV parsing warnings:', parsed.errors);
+            return parsed.data.filter(row => row.name && row.name.trim());
+        } catch (error) {
+            console.log('Using sample data due to fetch error:', error);
+            return [];
+        }
+    }
+
+    function renderCoffeeCards(coffees) {
+        const grid = document.getElementById('coffee-grid');
+        grid.innerHTML = '';
+        coffees.forEach((coffee, index) => {
+            const containerValue = coffee.container || '';
+            const isInContainer = containerValue && containerValue !== '';
+            let containerClass = '', containerBadge = '';
+            if (isInContainer) {
+                const containerLower = containerValue.toLowerCase();
+                if (containerLower.includes('green') || containerLower.includes('container_01')) { containerClass = 'in-container-green'; containerBadge = `<div class="container-badge green">Green Container</div>`; }
+                else if (containerLower.includes('grey') || containerLower.includes('gray') || containerLower.includes('container_02')) { containerClass = 'in-container-grey'; containerBadge = `<div class="container-badge grey">Grey Container</div>`; }
+            }
+            const card = document.createElement('div');
+            card.className = `coffee-card ${containerClass}`;
+            card.dataset.coffeeIndex = index;
+            const shopLinkDiv = document.createElement('div');
+            shopLinkDiv.className = 'coffee-shop';
+            const shopLink = document.createElement('a');
+            shopLink.href = coffee.shop_url && coffee.shop_url !== 'N/A' && coffee.shop_url !== '#' ? coffee.shop_url : '#';
+            shopLink.target = '_blank';
+            shopLink.className = 'shop-link';
+            const logoContainer = createShopLogoElement(coffee.shop_logo || '', coffee.shop_url || '#', coffee.shop_name || 'N/A');
+            shopLink.appendChild(logoContainer.firstChild);
+            const shopNameSpan = document.createElement('span');
+            shopNameSpan.className = 'shop-name';
+            shopNameSpan.textContent = coffee.shop_name || 'N/A';
+            shopLink.appendChild(shopNameSpan);
+            shopLinkDiv.appendChild(shopLink);
+            card.innerHTML = `${containerBadge}<div class="coffee-header"><div class="coffee-name">${coffee.name}</div></div><div class="coffee-details"><div class="detail-item"><div class="detail-label">Origin</div><div class="detail-value">${coffee.origin || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Region</div><div class="detail-value">${coffee.region || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Height (m)</div><div class="detail-value">${coffee.height_m || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Variety</div><div class="detail-value">${coffee.botanic_variety || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Farm/Producer</div><div class="detail-value">${coffee['farm_/_producer'] || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Processing</div><div class="detail-value">${coffee.processing_method || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">SCA Score</div><div class="detail-value">${coffee.sca || 'N/A'}</div></div></div><div class="flavor-notes"><h4>Flavor Profile</h4><p>${coffee.flavor || 'N/A'}</p></div><div class="notes-section" id="notes-${index}"><h4><i data-lucide="sticky-note"></i>Notes</h4><div class="notes-content ${coffee.notes ? '' : 'empty'}" id="notes-content-${index}">${coffee.notes || 'No notes yet. Click edit to add grinder settings or tasting notes.'}</div><div class="notes-actions"><button class="notes-btn notes-btn-edit" onclick="editNotes(${index})"><i data-lucide="edit-3"></i>Edit</button></div></div><div class="recipe"><h4>Espresso Recipe</h4><div class="recipe-grid"><div class="recipe-item"><div class="recipe-label">Ratio</div><div class="recipe-value">${coffee['recipe:_ratio'] || '1:2'}</div></div><div class="recipe-item"><div class="recipe-label">In (g)</div><div class="recipe-value">${coffee['recipe:_in_gr'] || '18'}</div></div><div class="recipe-item"><div class="recipe-label">Out (g)</div><div class="recipe-value">${coffee['recipe:_out_gr'] || '36'}</div></div><div class="recipe-item"><div class="recipe-label">Time (s)</div><div class="recipe-value">${coffee['recipe:_time_s'] || '28'}</div></div><div class="recipe-item"><div class="recipe-label">Temp (°C)</div><div class="recipe-value">${coffee['recipe:_temperature_°c'] || '93'}</div></div></div></div>`;
+            card.querySelector('.coffee-header').appendChild(shopLinkDiv);
+            grid.appendChild(card);
+        });
+        lucide.createIcons();
+    }
+
+    function editNotes(coffeeIndex) {
+        const notesSection = document.getElementById(`notes-${coffeeIndex}`);
+        const currentNotes = filteredCoffees[coffeeIndex].notes || '';
+        notesSection.classList.add('notes-editing');
+        notesSection.innerHTML = `<h4><i data-lucide="sticky-note"></i>Edit Notes</h4><textarea class="notes-input" id="notes-input-${coffeeIndex}" placeholder="Add grinder settings, tasting notes, or any other observations...">${currentNotes}</textarea><div class="notes-actions"><button class="notes-btn notes-btn-save" onclick="saveNotes(${coffeeIndex})"><i data-lucide="check"></i>Save</button><button class="notes-btn notes-btn-cancel" onclick="cancelEditNotes(${coffeeIndex})"><i data-lucide="x"></i>Cancel</button></div>`;
+        lucide.createIcons();
+        document.getElementById(`notes-input-${coffeeIndex}`).focus();
+    }
+
+    async function saveNotes(coffeeIndex) {
+        if (!isAuthorized) {
+            showNotification('Please log in to save notes.', 'error');
+            promptForEmail();
+            return;
+        }
+        const notesInput = document.getElementById(`notes-input-${coffeeIndex}`);
+        const newNotes = notesInput.value.trim();
+        const coffeeName = filteredCoffees[coffeeIndex].name;
+        const saveButton = notesInput.parentNode.querySelector('.notes-btn-save');
+        const originalSaveText = saveButton.innerHTML;
+        saveButton.innerHTML = '<i data-lucide="loader-2"></i> Saving...';
+        saveButton.disabled = true;
+        try {
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'updateNotes', coffeeName: coffeeName, notes: newNotes, userEmail: currentUser }) // Ensure action is 'updateNotes' or matches your script
+            });
+            const result = await response.json();
+            if (result.success) {
+                filteredCoffees[coffeeIndex].notes = newNotes;
+                const coffeeInAll = allCoffees.find(coffee => coffee.name === coffeeName);
+                if (coffeeInAll) coffeeInAll.notes = newNotes;
+                renderNotesSection(coffeeIndex, newNotes);
+                showNotification('Notes saved successfully!', 'success');
+            } else {
+                throw new Error(result.error || 'Failed to save notes');
+            }
+        } catch (error) {
+            console.error('Error saving notes:', error);
+            saveButton.innerHTML = originalSaveText;
+            saveButton.disabled = false;
+            if (error.message.includes('Unauthorized')) {
+                showNotification('Session expired. Please log in again.', 'warning');
+                logout();
+            } else {
+                showNotification('Failed to save notes. Please try again.', 'error');
+            }
+            lucide.createIcons();
+        }
+    }
+
+    function cancelEditNotes(coffeeIndex) {
+        renderNotesSection(coffeeIndex, filteredCoffees[coffeeIndex].notes || '');
+    }
+
+    function renderNotesSection(coffeeIndex, notes) {
+        const notesSection = document.getElementById(`notes-${coffeeIndex}`);
+        notesSection.classList.remove('notes-editing');
+        notesSection.innerHTML = `<h4><i data-lucide="sticky-note"></i>Notes</h4><div class="notes-content ${notes ? '' : 'empty'}" id="notes-content-${coffeeIndex}">${notes || 'No notes yet. Click edit to add grinder settings or tasting notes.'}</div><div class="notes-actions"><button class="notes-btn notes-btn-edit" onclick="editNotes(${coffeeIndex})"><i data-lucide="edit-3"></i>Edit</button></div>`;
+        lucide.createIcons();
+    }
+
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- Event Listeners and Initialization ---
+    window.addEventListener('scroll', function() {
+        const backToTopButton = document.getElementById('back-to-top');
+        if (window.pageYOffset > 300) {
+            backToTopButton.classList.add('visible');
+        } else {
+            backToTopButton.classList.remove('visible');
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
         loadCoffeeData().then(coffees => {
             allCoffees = coffees;
             filteredCoffees = [...coffees];
             populateFilters(coffees);
-            
-            // Apply URL parameters if they exist
             applyUrlParameters();
-            
-            // If no URL parameters were applied, show all coffees
             if (!getUrlParameters().container && !getUrlParameters().shop && !getUrlParameters().origin) {
                 renderCoffeeCards(filteredCoffees);
                 updateResultsCount(filteredCoffees.length, allCoffees.length);
             }
-
-	    // Initialize filter states
             updateFilterStates();
         });
-        
-        // Back to top button functionality
-        function scrollToTop() {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
+
+        const backToTopButton = document.getElementById('back-to-top');
+        if (window.pageYOffset > 300) {
+            backToTopButton.classList.add('visible');
         }
 
-        // Show/hide back to top button based on scroll position
-        window.addEventListener('scroll', function() {
-            const backToTopButton = document.getElementById('back-to-top');
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
-            if (scrollTop > 300) { // Show button after scrolling 300px
-                backToTopButton.classList.add('visible');
-            } else {
-                backToTopButton.classList.remove('visible');
-            }
-        });
-
-        // Initialize back to top button state on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const backToTopButton = document.getElementById('back-to-top');
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
-            if (scrollTop > 300) {
-               backToTopButton.classList.add('visible');
-            }
-        });
-
-	// Initialize Lucide icons
-	document.addEventListener('DOMContentLoaded', function() {
-	    lucide.createIcons();
-
-	    // Initialize back to top button state
-            const backToTopButton = document.getElementById('back-to-top');
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    
-            if (scrollTop > 300) {
-               backToTopButton.classList.add('visible');
-            }
-	});
-
-	// Initialize authentication state
-	updateUIForUnauthorizedUser();
-	   
-	// Show initial welcome message
-	setTimeout(() => {
-	    showNotification('Welcome! Click "Login to Edit" to modify coffee notes.', 'info');
-	    }, 1000);
-	});
-    </script>
+        updateUIForUnauthorizedUser();
+        setTimeout(() => {
+            showNotification('Welcome! Click "Login to Edit" to modify coffee notes.', 'info');
+        }, 1000);
+        
+        lucide.createIcons();
+    });
+</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script>
