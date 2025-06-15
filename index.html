@@ -1524,39 +1524,75 @@ function updateUIForUnauthorizedUser() {
     }
 
     function renderCoffeeCards(coffees) {
-        const grid = document.getElementById('coffee-grid');
-        grid.innerHTML = '';
-        coffees.forEach((coffee, index) => {
-            const containerValue = coffee.container || '';
-            const isInContainer = containerValue && containerValue !== '';
-            let containerClass = '', containerBadge = '';
-            if (isInContainer) {
-                const containerLower = containerValue.toLowerCase();
-                if (containerLower.includes('green') || containerLower.includes('container_01')) { containerClass = 'in-container-green'; containerBadge = `<div class="container-badge green">Green Container</div>`; }
-                else if (containerLower.includes('grey') || containerLower.includes('gray') || containerLower.includes('container_02')) { containerClass = 'in-container-grey'; containerBadge = `<div class="container-badge grey">Grey Container</div>`; }
-            }
-            const card = document.createElement('div');
-            card.className = `coffee-card ${containerClass}`;
-            card.dataset.coffeeIndex = index;
-            const shopLinkDiv = document.createElement('div');
-            shopLinkDiv.className = 'coffee-shop';
-            const shopLink = document.createElement('a');
-            shopLink.href = coffee.shop_url && coffee.shop_url !== 'N/A' && coffee.shop_url !== '#' ? coffee.shop_url : '#';
-            shopLink.target = '_blank';
-            shopLink.className = 'shop-link';
-            const logoContainer = createShopLogoElement(coffee.shop_logo || '', coffee.shop_url || '#', coffee.shop_name || 'N/A');
-            shopLink.appendChild(logoContainer.firstChild);
-            const shopNameSpan = document.createElement('span');
-            shopNameSpan.className = 'shop-name';
-            shopNameSpan.textContent = coffee.shop_name || 'N/A';
-            shopLink.appendChild(shopNameSpan);
-            shopLinkDiv.appendChild(shopLink);
-            card.innerHTML = `${containerBadge}<div class="coffee-header"><div class="coffee-name">${coffee.name}</div></div><div class="coffee-details"><div class="detail-item"><div class="detail-label">Origin</div><div class="detail-value">${coffee.origin || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Region</div><div class="detail-value">${coffee.region || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Height (m)</div><div class="detail-value">${coffee.height_m || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Variety</div><div class="detail-value">${coffee.botanic_variety || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Farm/Producer</div><div class="detail-value">${coffee['farm_/_producer'] || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Processing</div><div class="detail-value">${coffee.processing_method || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">SCA Score</div><div class="detail-value">${coffee.sca || 'N/A'}</div></div></div><div class="flavor-notes"><h4>Flavor Profile</h4><p>${coffee.flavor || 'N/A'}</p></div><div class="notes-section" id="notes-${index}"><h4><i data-lucide="sticky-note"></i>Notes</h4><div class="notes-content ${coffee.notes ? '' : 'empty'}" id="notes-content-${index}">${coffee.notes || 'No notes yet.'}</div><div class="notes-actions"><button class="notes-btn notes-btn-edit" onclick="editNotes(${index})"><i data-lucide="square-pen"></i>Edit</button></div></div><div class="recipe"><h4>Espresso Recipe</h4><div class="recipe-grid"><div class="recipe-item"><div class="recipe-label">Ratio</div><div class="recipe-value">${coffee['recipe:_ratio'] || '1:2'}</div></div><div class="recipe-item"><div class="recipe-label">In (g)</div><div class="recipe-value">${coffee['recipe:_in_gr'] || '18'}</div></div><div class="recipe-item"><div class="recipe-label">Out (g)</div><div class="recipe-value">${coffee['recipe:_out_gr'] || '36'}</div></div><div class="recipe-item"><div class="recipe-label">Time (s)</div><div class="recipe-value">${coffee['recipe:_time_s'] || '28'}</div></div><div class="recipe-item"><div class="recipe-label">Temp (°C)</div><div class="recipe-value">${coffee['recipe:_temperature_°c'] || '93'}</div></div></div></div>`;
-            card.querySelector('.coffee-header').appendChild(shopLinkDiv);
-            grid.appendChild(card);
-        });
-        lucide.createIcons();
-    }
+	const grid = document.getElementById('coffee-grid');
+	grid.innerHTML = '';
+	coffees.forEach((coffee, index) => {
+	    const containerValue = coffee.container || '';
+	    const isInContainer = containerValue && containerValue !== '';
+	    let containerClass = '', containerBadge = '';
+	    if (isInContainer) {
+	        const containerLower = containerValue.toLowerCase();
+	        if (containerLower.includes('green') || containerLower.includes('container_01')) { containerClass = 'in-container-green'; containerBadge = `<div class="container-badge green">Green Container</div>`; }
+	        else if (containerLower.includes('grey') || containerLower.includes('gray') || containerLower.includes('container_02')) { containerClass = 'in-container-grey'; containerBadge = `<div class="container-badge grey">Grey Container</div>`; }
+	    }
+	    const card = document.createElement('div');
+	    card.className = `coffee-card ${containerClass}`;
+	    card.dataset.coffeeIndex = index;
+	    const shopLinkDiv = document.createElement('div');
+	    shopLinkDiv.className = 'coffee-shop';
+	    const shopLink = document.createElement('a');
+	    shopLink.href = coffee.shop_url && coffee.shop_url !== 'N/A' && coffee.shop_url !== '#' ? coffee.shop_url : '#';
+	    shopLink.target = '_blank';
+	    shopLink.className = 'shop-link';
+	    const logoContainer = createShopLogoElement(coffee.shop_logo || '', coffee.shop_url || '#', coffee.shop_name || 'N/A');
+	    shopLink.appendChild(logoContainer.firstChild);
+	    const shopNameSpan = document.createElement('span');
+	    shopNameSpan.className = 'shop-name';
+	    shopNameSpan.textContent = coffee.shop_name || 'N/A';
+	    shopLink.appendChild(shopNameSpan);
+	    shopLinkDiv.appendChild(shopLink);
+	      
+	    card.innerHTML = `
+	        ${containerBadge}
+	        <div class="coffee-header">
+	            <div class="coffee-name">${coffee.name}</div>
+	        </div>
+	        <div class="coffee-details">
+	            <div class="detail-item"><div class="detail-label">Origin</div><div class="detail-value">${coffee.origin || 'N/A'}</div></div>
+	            <div class="detail-item"><div class="detail-label">Region</div><div class="detail-value">${coffee.region || 'N/A'}</div></div>
+	            <div class="detail-item"><div class="detail-label">Height (m)</div><div class="detail-value">${coffee.height_m || 'N/A'}</div></div>
+	            <div class="detail-item"><div class="detail-label">Variety</div><div class="detail-value">${coffee.botanic_variety || 'N/A'}</div></div>
+	            <div class="detail-item"><div class="detail-label">Farm/Producer</div><div class="detail-value">${coffee['farm_/_producer'] || 'N/A'}</div></div>
+	            <div class="detail-item"><div class="detail-label">Processing</div><div class="detail-value">${coffee.processing_method || 'N/A'}</div></div>
+	            <div class="detail-item"><div class="detail-label">SCA Score</div><div class="detail-value">${coffee.sca || 'N/A'}</div></div>
+	        </div>
+	        <div class="flavor-notes">
+	            <h4>Flavor Profile</h4>
+	            <p>${coffee.flavor || 'N/A'}</p>
+	        </div>
+	        ${renderContainerButtons(index)} 
+	        <div class="notes-section" id="notes-${index}">
+	            <h4><i data-lucide="sticky-note"></i>Notes</h4>
+	            <div class="notes-content ${coffee.notes ? '' : 'empty'}" id="notes-content-${index}">${coffee.notes || 'No notes yet.'}</div>
+	                <div class="notes-actions"><button class="notes-btn notes-btn-edit" onclick="editNotes(${index})"><i data-lucide="square-pen"></i>Edit</button></div>
+	            </div>
+	            <div class="recipe">
+	                <h4>Espresso Recipe</h4>
+	                <div class="recipe-grid">
+	                    <div class="recipe-item"><div class="recipe-label">Ratio</div><div class="recipe-value">${coffee['recipe:_ratio'] || '1:2'}</div></div>
+	                    <div class="recipe-item"><div class="recipe-label">In (g)</div><div class="recipe-value">${coffee['recipe:_in_gr'] || '18'}</div></div>
+	                    <div class="recipe-item"><div class="recipe-label">Out (g)</div><div class="recipe-value">${coffee['recipe:_out_gr'] || '36'}</div></div>
+	                    <div class="recipe-item"><div class="recipe-label">Time (s)</div><div class="recipe-value">${coffee['recipe:_time_s'] || '28'}</div></div>
+	                    <div class="recipe-item"><div class="recipe-label">Temp (°C)</div><div class="recipe-value">${coffee['recipe:_temperature_°c'] || '93'}</div></div>
+	                </div>
+	            </div>
+	        `; //
+	
+	        card.querySelector('.coffee-header').appendChild(shopLinkDiv);
+	        grid.appendChild(card);
+	    });
+	    lucide.createIcons();
+	}
 
     function editNotes(coffeeIndex) {
         const notesSection = document.getElementById(`notes-${coffeeIndex}`);
