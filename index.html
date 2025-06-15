@@ -781,7 +781,7 @@
     <div class="add-coffee-container">
         <button class="add-coffee-toggle" onclick="toggleAddCoffee()" aria-expanded="false" id="add-coffee-toggle" disabled>
             <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
-            <span>Add New Coffee</span>
+            <span>Add Coffee</span>
             <i data-lucide="chevron-down" class="toggle-icon" style="width: 18px; height: 18px;"></i>
         </button>
         <div class="add-coffee-content collapsed" id="add-coffee-content">
@@ -1006,7 +1006,7 @@ function updateUIForUnauthorizedUser() {
 	const content = document.getElementById('add-coffee-content');
 	    
 	if (!isAuthorized) {
-	    showNotification('Please log in to add new coffee entries.', 'warning');
+	    showNotification('Please log in to add coffee entries.', 'warning');
 	    return;
 	}
 	   
