@@ -1,3 +1,7 @@
+const styleSheet = document.createElement('style');
+styleSheet.textContent = containerStyles;
+document.head.appendChild(styleSheet);
+
 * {
     margin: 0;
     padding: 0;
@@ -383,6 +387,62 @@ background: none;
     background: #a8a29e;
     color: white;
 }
+
+const containerStyles = `
+.container-icons {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    padding: 16px 0;
+    margin-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.container-icon-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.container-icon {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.container-icon:hover:not(:disabled) {
+    border-color: #3b82f6;
+    background: #f8fafc;
+}
+
+.container-icon:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.container-icon.active {
+    border-color: currentColor;
+    background: #f8fafc;
+}
+
+.container-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.container-icon-wrapper:has(.container-icon.active) .container-label {
+    color: #374151;
+}
+`;
 
 .coffee-header {
     border-bottom: 1px solid #e5e7eb;
