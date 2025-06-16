@@ -493,31 +493,29 @@ function updateUIForUnauthorizedUser() {
 	        shopLinkDiv.appendChild(shopLink);
 	        
 	        // Container icons HTML
-	        const containerIconsHtml = `
-	            <div class="container-icons">
+		<div class="coffee-card ${containerClass}">
+		const containerIconsHtml = `	        
+	            <div class="container-icons-top">
 	                <div class="container-icon-wrapper">
 	                    <button class="container-icon ${currentContainerType === 'green' ? 'active' : ''}" 
 	                            onclick="toggleContainer(${index}, 'green')" 
 	                            title="Green Container"
 	                            ${!isAuthorized ? 'disabled' : ''}>
-	                        <i data-lucide="archive" style="color: ${currentContainerType === 'green' ? '#10b981' : '#9ca3af'}"></i>
-	                    </button>
-	                    <span class="container-label">Green</span>
+	                        <i data-lucide="archive"></i>
+	                    </button>	                    
 	                </div>
 	                <div class="container-icon-wrapper">
 	                    <button class="container-icon ${currentContainerType === 'grey' ? 'active' : ''}" 
 	                            onclick="toggleContainer(${index}, 'grey')" 
 	                            title="Grey Container"
 	                            ${!isAuthorized ? 'disabled' : ''}>
-	                        <i data-lucide="archive" style="color: ${currentContainerType === 'grey' ? '#6b7280' : '#9ca3af'}"></i>
+	                        <i data-lucide="archive"></i>
 	                    </button>
-	                    <span class="container-label">Grey</span>
 	                </div>
 	            </div>
 	        `;
 	        
 	        card.innerHTML = `
-	            ${containerBadge}
 	            <div class="coffee-header">
 	                <div class="coffee-name">${coffee.name}</div>
 	            </div>
@@ -590,9 +588,9 @@ function updateUIForUnauthorizedUser() {
 	                        <div class="recipe-value">${coffee['recipe:_temperature_°c'] || '93'}</div>
 	                    </div>
 	                </div>
-	            </div>
-	            ${containerIconsHtml}
+	            </div>	            
 	        `;
+		</div>
 	        
 	        card.querySelector('.coffee-header').appendChild(shopLinkDiv);
 	        grid.appendChild(card);
