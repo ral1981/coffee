@@ -451,40 +451,152 @@ function updateUIForUnauthorizedUser() {
         }
     }
 
-    function renderCoffeeCards(coffees) {
-        const grid = document.getElementById('coffee-grid');
-        grid.innerHTML = '';
-        coffees.forEach((coffee, index) => {
-            const containerValue = coffee.container || '';
-            const isInContainer = containerValue && containerValue !== '';
-            let containerClass = '', containerBadge = '';
-            if (isInContainer) {
-                const containerLower = containerValue.toLowerCase();
-                if (containerLower.includes('green') || containerLower.includes('container_01')) { containerClass = 'in-container-green'; containerBadge = `<div class="container-badge green">Green Container</div>`; }
-                else if (containerLower.includes('grey') || containerLower.includes('gray') || containerLower.includes('container_02')) { containerClass = 'in-container-grey'; containerBadge = `<div class="container-badge grey">Grey Container</div>`; }
-            }
-            const card = document.createElement('div');
-            card.className = `coffee-card ${containerClass}`;
-            card.dataset.coffeeIndex = index;
-            const shopLinkDiv = document.createElement('div');
-            shopLinkDiv.className = 'coffee-shop';
-            const shopLink = document.createElement('a');
-            shopLink.href = coffee.shop_url && coffee.shop_url !== 'N/A' && coffee.shop_url !== '#' ? coffee.shop_url : '#';
-            shopLink.target = '_blank';
-            shopLink.className = 'shop-link';
-            const logoContainer = createShopLogoElement(coffee.shop_logo || '', coffee.shop_url || '#', coffee.shop_name || 'N/A');
-            shopLink.appendChild(logoContainer.firstChild);
-            const shopNameSpan = document.createElement('span');
-            shopNameSpan.className = 'shop-name';
-            shopNameSpan.textContent = coffee.shop_name || 'N/A';
-            shopLink.appendChild(shopNameSpan);
-            shopLinkDiv.appendChild(shopLink);
-            card.innerHTML = `${containerBadge}<div class="coffee-header"><div class="coffee-name">${coffee.name}</div></div><div class="coffee-details"><div class="detail-item"><div class="detail-label">Origin</div><div class="detail-value">${coffee.origin || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Region</div><div class="detail-value">${coffee.region || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Height (m)</div><div class="detail-value">${coffee.height_m || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Variety</div><div class="detail-value">${coffee.botanic_variety || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Farm/Producer</div><div class="detail-value">${coffee['farm_/_producer'] || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">Processing</div><div class="detail-value">${coffee.processing_method || 'N/A'}</div></div><div class="detail-item"><div class="detail-label">SCA Score</div><div class="detail-value">${coffee.sca || 'N/A'}</div></div></div><div class="flavor-notes"><h4>Flavor Profile</h4><p>${coffee.flavor || 'N/A'}</p></div><div class="notes-section" id="notes-${index}"><h4><i data-lucide="sticky-note"></i>Notes</h4><div class="notes-content ${coffee.notes ? '' : 'empty'}" id="notes-content-${index}">${coffee.notes || 'No notes yet.'}</div><div class="notes-actions"><button class="notes-btn notes-btn-edit" onclick="editNotes(${index})"><i data-lucide="square-pen"></i>Edit</button></div></div><div class="recipe"><h4>Espresso Recipe</h4><div class="recipe-grid"><div class="recipe-item"><div class="recipe-label">Ratio</div><div class="recipe-value">${coffee['recipe:_ratio'] || '1:2'}</div></div><div class="recipe-item"><div class="recipe-label">In (g)</div><div class="recipe-value">${coffee['recipe:_in_gr'] || '18'}</div></div><div class="recipe-item"><div class="recipe-label">Out (g)</div><div class="recipe-value">${coffee['recipe:_out_gr'] || '36'}</div></div><div class="recipe-item"><div class="recipe-label">Time (s)</div><div class="recipe-value">${coffee['recipe:_time_s'] || '28'}</div></div><div class="recipe-item"><div class="recipe-label">Temp (°C)</div><div class="recipe-value">${coffee['recipe:_temperature_°c'] || '93'}</div></div></div></div>`;
-            card.querySelector('.coffee-header').appendChild(shopLinkDiv);
-            grid.appendChild(card);
-        });
-        lucide.createIcons();
-    }
+	function renderCoffeeCards(coffees) {
+	    const grid = document.getElementById('coffee-grid');
+	    grid.innerHTML = '';
+	    coffees.forEach((coffee, index) => {
+	        const containerValue = coffee.container || '';
+	        const currentContainerType = getContainerType(containerValue);
+	        const isInContainer = containerValue && containerValue !== '';
+	        let containerClass = '', containerBadge = '';
+	        
+	        if (isInContainer) {
+	            const containerLower = containerValue.toLowerCase();
+	            if (containerLower.includes('green') || containerLower.includes('container_01')) { 
+	                containerClass = 'in-container-green'; 
+	                containerBadge = `<div class="container-badge green">Green Container</div>`; 
+	            }
+	            else if (containerLower.includes('grey') || containerLower.includes('gray') || containerLower.includes('container_02')) { 
+	                containerClass = 'in-container-grey'; 
+	                containerBadge = `<div class="container-badge grey">Grey Container</div>`; 
+	            }
+	        }
+	        
+	        const card = document.createElement('div');
+	        card.className = `coffee-card ${containerClass}`;
+	        card.dataset.coffeeIndex = index;
+	        
+	        const shopLinkDiv = document.createElement('div');
+	        shopLinkDiv.className = 'coffee-shop';
+	        const shopLink = document.createElement('a');
+	        shopLink.href = coffee.shop_url && coffee.shop_url !== 'N/A' && coffee.shop_url !== '#' ? coffee.shop_url : '#';
+	        shopLink.target = '_blank';
+	        shopLink.className = 'shop-link';
+	        const logoContainer = createShopLogoElement(coffee.shop_logo || '', coffee.shop_url || '#', coffee.shop_name || 'N/A');
+	        shopLink.appendChild(logoContainer.firstChild);
+	        const shopNameSpan = document.createElement('span');
+	        shopNameSpan.className = 'shop-name';
+	        shopNameSpan.textContent = coffee.shop_name || 'N/A';
+	        shopLink.appendChild(shopNameSpan);
+	        shopLinkDiv.appendChild(shopLink);
+	        
+	        // Container icons HTML
+	        const containerIconsHtml = `
+	            <div class="container-icons">
+	                <div class="container-icon-wrapper">
+	                    <button class="container-icon ${currentContainerType === 'green' ? 'active' : ''}" 
+	                            onclick="toggleContainer(${index}, 'green')" 
+	                            title="Green Container"
+	                            ${!isAuthorized ? 'disabled' : ''}>
+	                        <i data-lucide="archive" style="color: ${currentContainerType === 'green' ? '#10b981' : '#9ca3af'}"></i>
+	                    </button>
+	                    <span class="container-label">Green</span>
+	                </div>
+	                <div class="container-icon-wrapper">
+	                    <button class="container-icon ${currentContainerType === 'grey' ? 'active' : ''}" 
+	                            onclick="toggleContainer(${index}, 'grey')" 
+	                            title="Grey Container"
+	                            ${!isAuthorized ? 'disabled' : ''}>
+	                        <i data-lucide="archive" style="color: ${currentContainerType === 'grey' ? '#6b7280' : '#9ca3af'}"></i>
+	                    </button>
+	                    <span class="container-label">Grey</span>
+	                </div>
+	            </div>
+	        `;
+	        
+	        card.innerHTML = `
+	            ${containerBadge}
+	            <div class="coffee-header">
+	                <div class="coffee-name">${coffee.name}</div>
+	            </div>
+	            <div class="coffee-details">
+	                <div class="detail-item">
+	                    <div class="detail-label">Origin</div>
+	                    <div class="detail-value">${coffee.origin || 'N/A'}</div>
+	                </div>
+	                <div class="detail-item">
+	                    <div class="detail-label">Region</div>
+	                    <div class="detail-value">${coffee.region || 'N/A'}</div>
+	                </div>
+	                <div class="detail-item">
+	                    <div class="detail-label">Height (m)</div>
+	                    <div class="detail-value">${coffee.height_m || 'N/A'}</div>
+	                </div>
+	                <div class="detail-item">
+	                    <div class="detail-label">Variety</div>
+	                    <div class="detail-value">${coffee.botanic_variety || 'N/A'}</div>
+	                </div>
+	                <div class="detail-item">
+	                    <div class="detail-label">Farm/Producer</div>
+	                    <div class="detail-value">${coffee['farm_/_producer'] || 'N/A'}</div>
+	                </div>
+	                <div class="detail-item">
+	                    <div class="detail-label">Processing</div>
+	                    <div class="detail-value">${coffee.processing_method || 'N/A'}</div>
+	                </div>
+	                <div class="detail-item">
+	                    <div class="detail-label">SCA Score</div>
+	                    <div class="detail-value">${coffee.sca || 'N/A'}</div>
+	                </div>
+	            </div>
+	            <div class="flavor-notes">
+	                <h4>Flavor Profile</h4>
+	                <p>${coffee.flavor || 'N/A'}</p>
+	            </div>
+	            <div class="notes-section" id="notes-${index}">
+	                <h4><i data-lucide="sticky-note"></i>Notes</h4>
+	                <div class="notes-content ${coffee.notes ? '' : 'empty'}" id="notes-content-${index}">
+	                    ${coffee.notes || 'No notes yet.'}
+	                </div>
+	                <div class="notes-actions">
+	                    <button class="notes-btn notes-btn-edit" onclick="editNotes(${index})">
+	                        <i data-lucide="square-pen"></i>Edit
+	                    </button>
+	                </div>
+	            </div>
+	            <div class="recipe">
+	                <h4>Espresso Recipe</h4>
+	                <div class="recipe-grid">
+	                    <div class="recipe-item">
+	                        <div class="recipe-label">Ratio</div>
+	                        <div class="recipe-value">${coffee['recipe:_ratio'] || '1:2'}</div>
+	                    </div>
+	                    <div class="recipe-item">
+	                        <div class="recipe-label">In (g)</div>
+	                        <div class="recipe-value">${coffee['recipe:_in_gr'] || '18'}</div>
+	                    </div>
+	                    <div class="recipe-item">
+	                        <div class="recipe-label">Out (g)</div>
+	                        <div class="recipe-value">${coffee['recipe:_out_gr'] || '36'}</div>
+	                    </div>
+	                    <div class="recipe-item">
+	                        <div class="recipe-label">Time (s)</div>
+	                        <div class="recipe-value">${coffee['recipe:_time_s'] || '28'}</div>
+	                    </div>
+	                    <div class="recipe-item">
+	                        <div class="recipe-label">Temp (°C)</div>
+	                        <div class="recipe-value">${coffee['recipe:_temperature_°c'] || '93'}</div>
+	                    </div>
+	                </div>
+	            </div>
+	            ${containerIconsHtml}
+	        `;
+	        
+	        card.querySelector('.coffee-header').appendChild(shopLinkDiv);
+	        grid.appendChild(card);
+	    });
+	    lucide.createIcons();
+	}
 
     function editNotes(coffeeIndex) {
         const notesSection = document.getElementById(`notes-${coffeeIndex}`);
@@ -564,6 +676,207 @@ function updateUIForUnauthorizedUser() {
         lucide.createIcons();
     }
 
+    async function toggleContainer(coffeeIndex, containerType) {
+	if (!isAuthorized) {
+	    showNotification('Please log in to manage containers.', 'error');
+	    promptForEmail();
+	    return;
+	}
+	
+	const coffee = filteredCoffees[coffeeIndex];
+	const currentContainer = getContainerType(coffee.container);
+	
+	if (currentContainer === containerType) {
+	    // Coffee is already in this container - confirm removal
+	    showContainerModal(
+	        `Remove ${coffee.name} from ${containerType} container?`,
+	        () => updateContainer(coffeeIndex, ''),
+	        () => {}
+	    );
+	} else {
+	    // Check if another coffee is in this container
+	    const coffeeInContainer = allCoffees.find(c => getContainerType(c.container) === containerType);
+	        
+	    if (coffeeInContainer) {
+	        showContainerModal(
+	            `Move ${coffee.name} to ${containerType} container? This will remove ${coffeeInContainer.name} from the container.`,
+	            () => updateContainer(coffeeIndex, containerType),
+	            () => {}
+	        );
+	    } else {
+	        showContainerModal(
+	            `Move ${coffee.name} to ${containerType} container?`,
+	            () => updateContainer(coffeeIndex, containerType),
+	            () => {}
+	        );
+	    }
+	}
+    }
+
+    function getContainerType(containerValue) {
+	if (!containerValue) return null;
+	const containerLower = containerValue.toLowerCase();
+	if (containerLower.includes('green') || containerLower.includes('container_01')) return 'green';
+	if (containerLower.includes('grey') || containerLower.includes('gray') || containerLower.includes('container_02')) return 'grey';
+	return null;
+    }
+
+    function showContainerModal(message, onConfirm, onCancel) {
+	// Remove existing modal if any
+	const existingModal = document.getElementById('container-modal');
+	if (existingModal) {
+	    existingModal.remove();
+	}
+	
+	const modal = document.createElement('div');
+	modal.id = 'container-modal';
+	modal.innerHTML = `
+	    <div class="modal-backdrop">
+	        <div class="modal-content">
+	            <h3>Confirm Container Change</h3>
+	            <p>${message}</p>
+	            <div class="modal-actions">
+	                <button class="modal-btn modal-btn-cancel" onclick="closeContainerModal()">Cancel</button>
+	                <button class="modal-btn modal-btn-confirm" onclick="confirmContainerAction()">Confirm</button>
+	            </div>
+	        </div>
+	    </div>
+	`;
+
+	// Add modal styles
+	const style = document.createElement('style');
+	style.textContent = `
+	    #container-modal .modal-backdrop {
+	        position: fixed;
+	        top: 0;
+	        left: 0;
+	        width: 100%;
+	        height: 100%;
+	        background: rgba(0, 0, 0, 0.5);
+	        display: flex;
+	        align-items: center;
+	        justify-content: center;
+	        z-index: 10000;
+	    }
+	    #container-modal .modal-content {
+	        background: white;
+	        padding: 24px;
+	        border-radius: 12px;
+	        max-width: 400px;
+	        width: 90%;
+	        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+	    }
+	    #container-modal .modal-content h3 {
+	        margin: 0 0 16px 0;
+	        color: #1f2937;
+	        font-size: 18px;
+	        font-weight: 600;
+	    }
+	    #container-modal .modal-content p {
+	        margin: 0 0 24px 0;
+	        color: #6b7280;
+	        line-height: 1.5;
+	    }
+	    #container-modal .modal-actions {
+	        display: flex;
+	        gap: 12px;
+	        justify-content: flex-end;
+	    }
+	    #container-modal .modal-btn {
+	        padding: 8px 16px;
+	        border: none;
+	        border-radius: 6px;
+	        font-weight: 500;
+	        cursor: pointer;
+	        transition: all 0.2s;
+	    }
+	    #container-modal .modal-btn-cancel {
+	        background: #f3f4f6;
+	        color: #374151;
+	    }
+	    #container-modal .modal-btn-cancel:hover {
+	        background: #e5e7eb;
+	    }
+	    #container-modal .modal-btn-confirm {
+	        background: #3b82f6;
+	        color: white;
+	    }
+	    #container-modal .modal-btn-confirm:hover {
+	        background: #2563eb;
+	    }
+	`;
+	document.head.appendChild(style);
+	    
+	document.body.appendChild(modal);
+	    
+	// Store callbacks for the modal buttons
+	window.containerModalOnConfirm = onConfirm;
+	window.containerModalOnCancel = onCancel;
+    }
+
+    function closeContainerModal() {
+	const modal = document.getElementById('container-modal');
+	if (modal) {
+	    modal.remove();
+	}
+	if (window.containerModalOnCancel) {
+	    window.containerModalOnCancel();
+	}
+    }
+	
+    function confirmContainerAction() {
+	if (window.containerModalOnConfirm) {
+	    window.containerModalOnConfirm();
+	}
+	closeContainerModal();
+    }
+	
+    async function updateContainer(coffeeIndex, newContainerType) {
+	const coffee = filteredCoffees[coffeeIndex];
+	const containerValue = newContainerType ? 
+	    (newContainerType === 'green' ? 'Green Container' : 'Grey Container') : '';
+	   
+	try {
+	    showNotification('Updating container...', 'info');
+	       
+	    // First, remove any other coffee from this container if setting a new container
+	    if (newContainerType) {
+	        const otherCoffeeIndex = allCoffees.findIndex(c => 
+	            c.name !== coffee.name && getContainerType(c.container) === newContainerType
+	        );
+	        if (otherCoffeeIndex !== -1) {
+	            allCoffees[otherCoffeeIndex].container = '';
+	            // Update in filtered coffees too if it exists there
+	            const filteredOtherIndex = filteredCoffees.findIndex(c => c.name === allCoffees[otherCoffeeIndex].name);
+	            if (filteredOtherIndex !== -1) {
+	                filteredCoffees[filteredOtherIndex].container = '';
+	            }
+	        }
+	    }
+	       
+	    // Update the current coffee
+	    coffee.container = containerValue;
+	    const coffeeInAll = allCoffees.find(c => c.name === coffee.name);
+	    if (coffeeInAll) {
+	        coffeeInAll.container = containerValue;
+	    }
+	        
+	    // Re-render all cards to update container states
+	    renderCoffeeCards(filteredCoffees);
+	       
+	    showNotification(
+	        newContainerType ? 
+	        `${coffee.name} moved to ${newContainerType} container!` : 
+	        `${coffee.name} removed from container!`, 
+	        'success'
+	    );
+	        
+	} catch (error) {
+	    console.error('Error updating container:', error);
+	    showNotification('Failed to update container. Please try again.', 'error');
+	}
+    }
+	    
     function scrollToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
