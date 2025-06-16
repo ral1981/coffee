@@ -113,7 +113,7 @@
     let filteredCoffees = [];	    
 	    
     // Authentication variables
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxpUqFGxa3fW03WU-qbsJ2HvQaY3CQaWb0BFAFfd1KtAxPRKCPOkPGxwhBqV0jmbxPOKA/exec'; // Replace with your actual URL
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpSJ-8XVaMysM1_Fgf6SuzgxhLQufXUgVjYzSx6XwMx7SMWL_eJwbjnXKhvwPaTDiwvQ/exec'; // Replace with your actual URL
 let currentUser = null;
 let isAuthorized = false;
 
@@ -831,50 +831,77 @@ function updateUIForUnauthorizedUser() {
     }
 	
     async function updateContainer(coffeeIndex, newContainerType) {
-	const coffee = filteredCoffees[coffeeIndex];
-	const containerValue = newContainerType ? 
-	    (newContainerType === 'green' ? 'Green Container' : 'Grey Container') : '';
-	   
-	try {
-	    showNotification('Updating container...', 'info');
+	    const coffee = filteredCoffees[coffeeIndex];
+	    const containerValue = newContainerType ? 
+	        (newContainerType === 'green' ? 'Green Container' : 'Grey Container') : '';
 	       
-	    // First, remove any other coffee from this container if setting a new container
-	    if (newContainerType) {
-	        const otherCoffeeIndex = allCoffees.findIndex(c => 
-	            c.name !== coffee.name && getContainerType(c.container) === newContainerType
-	        );
-	        if (otherCoffeeIndex !== -1) {
-	            allCoffees[otherCoffeeIndex].container = '';
-	            // Update in filtered coffees too if it exists there
-	            const filteredOtherIndex = filteredCoffees.findIndex(c => c.name === allCoffees[otherCoffeeIndex].name);
-	            if (filteredOtherIndex !== -1) {
-	                filteredCoffees[filteredOtherIndex].container = '';
+	    try {
+	        showNotification('Updating container...', 'info');
+	        
+	        // Build URL with parameters for GET request
+	        const params = new URLSearchParams({
+	            action: 'updateContainer',
+	            coffeeName: coffee.name,
+	            containerType: newContainerType || '', // Send empty string for removal
+	            userEmail: currentUser
+	        });
+	        
+	        const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
+	        const response = await fetch(url);
+	        
+	        if (!response.ok) {
+	            throw new Error(`HTTP error! status: ${response.status}`);
+	        }
+	        
+	        const result = await response.json();
+	        
+	        if (result.success) {
+	            // First, remove any other coffee from this container if setting a new container
+	            if (newContainerType) {
+	                const otherCoffeeIndex = allCoffees.findIndex(c => 
+	                    c.name !== coffee.name && getContainerType(c.container) === newContainerType
+	                );
+	                if (otherCoffeeIndex !== -1) {
+	                    allCoffees[otherCoffeeIndex].container = '';
+	                    // Update in filtered coffees too if it exists there
+	                    const filteredOtherIndex = filteredCoffees.findIndex(c => c.name === allCoffees[otherCoffeeIndex].name);
+	                    if (filteredOtherIndex !== -1) {
+	                        filteredCoffees[filteredOtherIndex].container = '';
+	                    }
+	                }
 	            }
+	               
+	            // Update the current coffee
+	            coffee.container = containerValue;
+	            const coffeeInAll = allCoffees.find(c => c.name === coffee.name);
+	            if (coffeeInAll) {
+	                coffeeInAll.container = containerValue;
+	            }
+	            
+	            // Re-render all cards to update container states
+	            renderCoffeeCards(filteredCoffees);
+	               
+	            showNotification(
+	                newContainerType ? 
+	                `${coffee.name} moved to ${newContainerType} container!` : 
+	                `${coffee.name} removed from container!`, 
+	                'success'
+	            );
+	        } else {
+	            throw new Error(result.error || 'Failed to update container');
+	        }
+	        
+	    } catch (error) {
+	        console.error('Error updating container:', error);
+	        
+	        if (error.message.includes('Unauthorized')) {
+	            showNotification('Session expired. Please log in again.', 'warning');
+	            logout();
+	        } else {
+	            showNotification('Failed to update container. Please try again.', 'error');
 	        }
 	    }
-	       
-	    // Update the current coffee
-	    coffee.container = containerValue;
-	    const coffeeInAll = allCoffees.find(c => c.name === coffee.name);
-	    if (coffeeInAll) {
-	        coffeeInAll.container = containerValue;
-	    }
-	        
-	    // Re-render all cards to update container states
-	    renderCoffeeCards(filteredCoffees);
-	       
-	    showNotification(
-	        newContainerType ? 
-	        `${coffee.name} moved to ${newContainerType} container!` : 
-	        `${coffee.name} removed from container!`, 
-	        'success'
-	    );
-	        
-	} catch (error) {
-	    console.error('Error updating container:', error);
-	    showNotification('Failed to update container. Please try again.', 'error');
 	}
-    }
 	    
     function scrollToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
