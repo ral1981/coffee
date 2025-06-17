@@ -119,7 +119,7 @@ let isAuthorized = false;
 
 // --- Authentication Functions ---
 async function promptForEmail() {
-    const email = prompt('Please enter your email address to access editing features:');
+    const email = prompt('Please enter your login details to access editing features:');
     if (email && email.trim()) {
         await checkAuthorization(email.trim().toLowerCase());
     }
@@ -689,7 +689,7 @@ function updateUIForUnauthorizedUser() {
 
     async function toggleContainer(coffeeIndex, containerType) {
 	    if (!isAuthorized) {
-	        showNotification('Welcome! Login required to add or edit content.', 'info');
+	        showNotification('Login required to add or edit content.', 'info');
 	        return;
 	    }
 	    
