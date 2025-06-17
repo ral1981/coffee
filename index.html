@@ -156,7 +156,11 @@ async function checkAuthorization(email) {
 }
 
 function updateUIForAuthorizedUser() {
-    document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'inline-flex');
+    document.querySelectorAll('.notes-btn-edit').forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('disabled');
+    });
+    document.querySelectorAll('.notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'inline-flex');
     document.querySelectorAll('.notes-input').forEach(input => input.disabled = false);
 
     const addCoffeeToggle = document.getElementById('add-coffee-toggle');
@@ -169,7 +173,11 @@ function updateUIForAuthorizedUser() {
 }
 
 function updateUIForUnauthorizedUser() {
-    document.querySelectorAll('.notes-btn-edit, .notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'none');
+    document.querySelectorAll('.notes-btn-edit').forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('disabled');
+    });
+    document.querySelectorAll('.notes-btn-save, .notes-btn-cancel').forEach(btn => btn.style.display = 'none');
     document.querySelectorAll('.notes-input').forEach(input => input.disabled = true);
 
     const addCoffeeToggle = document.getElementById('add-coffee-toggle');
@@ -552,7 +560,9 @@ function updateUIForUnauthorizedUser() {
 	                    ${coffee.notes || 'No notes yet.'}
 	                </div>
 	                <div class="notes-actions">
-	                    <button class="notes-btn notes-btn-edit" onclick="editNotes(${index})">
+	                    <button class="notes-btn notes-btn-edit ${!isAuthorized ? 'disabled' : ''}" 
+		     			onclick="editNotes(${index})" 
+            				${!isAuthorized ? 'disabled' : ''}>
 	                        <i data-lucide="square-pen"></i>Edit
 	                    </button>
 	                </div>
@@ -664,7 +674,16 @@ function updateUIForUnauthorizedUser() {
     function renderNotesSection(coffeeIndex, notes) {
         const notesSection = document.getElementById(`notes-${coffeeIndex}`);
         notesSection.classList.remove('notes-editing');
-        notesSection.innerHTML = `<h4><i data-lucide="sticky-note"></i>Notes</h4><div class="notes-content ${notes ? '' : 'empty'}" id="notes-content-${coffeeIndex}">${notes || 'No notes yet.'}</div><div class="notes-actions"><button class="notes-btn notes-btn-edit" onclick="editNotes(${coffeeIndex})"><i data-lucide="square-pen"></i>Edit</button></div>`;
+        notesSection.innerHTML = 
+		`<h4><i data-lucide="sticky-note"></i>Notes</h4>
+  			<div class="notes-content ${notes ? '' : 'empty'}" id="notes-content-${coffeeIndex}">${notes || 'No notes yet.'}</div>
+     			<div class="notes-actions">
+				<button class="notes-btn notes-btn-edit ${!isAuthorized ? 'disabled' : ''}" 
+            				onclick="editNotes(${coffeeIndex})" 
+            				${!isAuthorized ? 'disabled' : ''}>
+					<i data-lucide="square-pen"></i>Edit
+ 				</button>
+ 			</div>`;
         lucide.createIcons();
     }
 
