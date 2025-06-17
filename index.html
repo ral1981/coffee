@@ -536,7 +536,7 @@ function updateUIForUnauthorizedUser() {
 	        }
 	        
 	        // Validate required fields
-	        const requiredFields = ['container', 'name', 'shop_name', 'shop_url', 'origin'];
+	        const requiredFields = ['name', 'shop_name', 'shop_url', 'origin'];
 	        const missingFields = requiredFields.filter(field => !formData.get(field) || !formData.get(field).trim());
 	        
 	        if (missingFields.length > 0) {
