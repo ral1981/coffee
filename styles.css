@@ -813,6 +813,18 @@ const containerStyles = `
     color: #4b5563;
 }
 
+.notes-btn.disabled {
+    opacity: 0.5;
+    color: #9ca3af;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.notes-btn.disabled:hover {
+    background: inherit;
+    transform: none;
+}
+
 .notes-btn svg {
     width: 14px;
     height: 14px;
