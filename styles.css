@@ -115,8 +115,9 @@ h1 {
 }
 
 .add-coffee-content.expanded {
-    max-height: 500px;
+    max-height: none;
     padding: 1.5rem;
+    overflow: visible;
 }
 
 .add-coffee-grid {
@@ -1021,6 +1022,8 @@ const containerStyles = `
     }
     
     .add-coffee-content.expanded {
+        max-height: none;
+        overflow: visible;
         padding: 1rem;
     }
 
