@@ -427,13 +427,25 @@ background: none;
     color: #10b981;
 }
 
-.container-icons-top .container-icon.green:hover:not(:disabled) {
-    background-color: rgba(16, 185, 129, 0.1);
+.container-icons-top .container-icon.green:not(.active) {
+    opacity: 0.3; /* Entire icon semi-transparent */
+    background: transparent;
+}
+
+.container-icons-top .container-icon.green:not(.active):hover:not(:disabled) {
+    opacity: 0.5; /* Slightly more visible on hover */
 }
 
 .container-icons-top .container-icon.green.active {
-    background-color: #10b981;
-    color: white;
+    opacity: 1;
+    background-color: #10b981; /* Filled background */
+    color: white; /* White icon on green background */
+    border-color: #10b981;
+}
+
+.container-icons-top .container-icon.green.active:hover:not(:disabled) {
+    background-color: #059669; /* Darker green on hover */
+    border-color: #059669;
 }
 
 .container-icons-top .container-icon.grey {
@@ -441,13 +453,44 @@ background: none;
     color: #6b7280;
 }
 
-.container-icons-top .container-icon.grey:hover:not(:disabled) {
-    background-color: rgba(107, 114, 128, 0.1);
+/* Grey container - NOT active (toggled OFF) - Alternative 1: Opacity */
+.container-icons-top .container-icon.grey:not(.active) {
+    opacity: 0.3; /* Entire icon semi-transparent */
+    background: transparent;
+}
+
+.container-icons-top .container-icon.grey:not(.active):hover:not(:disabled) {
+    opacity: 0.5; /* Slightly more visible on hover */
 }
 
 .container-icons-top .container-icon.grey.active {
-    background-color: #6b7280;
-    color: white;
+    opacity: 1;
+    background-color: #6b7280; /* Filled background */
+    color: white; /* White icon on grey background */
+    border-color: #6b7280;
+}
+
+.container-icons-top .container-icon.grey.active:hover:not(:disabled) {
+    background-color: #4b5563; /* Darker grey on hover */
+    border-color: #4b5563;
+}
+
+/* Additional visual enhancement: subtle animation on state change */
+.container-icons-top .container-icon svg {
+    transition: all 0.2s ease;
+    transform-origin: center;
+}
+
+.container-icons-top .container-icon.active svg {
+    transform: scale(1.05);
+}
+
+.container-icons-top .container-icon.green.active {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.container-icons-top .container-icon.grey.active {
+    box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
 }
 
 const containerStyles = `
