@@ -21,19 +21,200 @@
             <span>Add Coffee</span>
             <i data-lucide="chevron-down" class="toggle-icon" style="width: 18px; height: 18px;"></i>
         </button>
-        <div class="add-coffee-content collapsed" id="add-coffee-content">
-            <div class="add-coffee-grid">
-                <div class="add-coffee-info">
-                    <i data-lucide="info" style="width: 16px; height: 16px; margin-right: 8px;"></i>
-                    <span>Add input fields for new coffee entry here</span>
-                </div>
-                
-                <!-- Placeholder for future input fields -->
-                <div class="input-fields-placeholder">
-                    <!-- Input fields will be added here later -->
-                </div>
-            </div>
-        </div>
+	<div class="add-coffee-content collapsed" id="add-coffee-content">
+	    <div class="add-coffee-grid">
+	        <form id="add-coffee-form" onsubmit="submitNewCoffee(event)">
+	            <div class="form-sections">
+	                <!-- Basic Information Section -->
+	                <div class="form-section">
+	                    <h3>Basic Information</h3>
+	                    <div class="form-row">
+	                        <div class="form-group">
+	                            <label for="add-container">
+	                                <i data-lucide="archive"></i>
+	                                Container <span class="required">*</span>
+	                            </label>
+	                            <select id="add-container" name="container" required>
+	                                <option value="">Select Container</option>
+	                                <option value="green">Green Container</option>
+	                                <option value="grey">Grey Container</option>
+	                            </select>
+	                        </div>
+	                        <div class="form-group">
+	                            <label for="add-name">
+	                                <i data-lucide="coffee"></i>
+	                                Coffee Name <span class="required">*</span>
+	                            </label>
+	                            <input type="text" id="add-name" name="name" required placeholder="Enter coffee name">
+	                        </div>
+	                    </div>
+	                </div>
+	
+	                <!-- Shop Information Section -->
+	                <div class="form-section">
+	                    <h3>Shop Information</h3>
+	                    <div class="form-row">
+	                        <div class="form-group">
+	                            <label for="add-shop-name">
+	                                <i data-lucide="store"></i>
+	                                Shop Name <span class="required">*</span>
+	                            </label>
+	                            <input type="text" id="add-shop-name" name="shop_name" required placeholder="Enter shop name">
+	                        </div>
+	                        <div class="form-group">
+	                            <label for="add-shop-url">
+	                                <i data-lucide="link"></i>
+	                                Shop URL <span class="required">*</span>
+	                            </label>
+	                            <input type="url" id="add-shop-url" name="shop_url" required placeholder="https://example.com">
+	                        </div>
+	                    </div>
+	                    <div class="form-row">
+	                        <div class="form-group">
+	                            <label for="add-shop-logo">
+	                                <i data-lucide="image"></i>
+	                                Shop Logo URL
+	                            </label>
+	                            <input type="url" id="add-shop-logo" name="shop_logo" placeholder="https://example.com/logo.png">
+	                        </div>
+	                    </div>
+	                </div>
+	
+	                <!-- Origin Information Section -->
+	                <div class="form-section">
+	                    <h3>Origin Information</h3>
+	                    <div class="form-row">
+	                        <div class="form-group">
+	                            <label for="add-origin">
+	                                <i data-lucide="map-pin"></i>
+	                                Origin <span class="required">*</span>
+	                            </label>
+	                            <input type="text" id="add-origin" name="origin" required placeholder="e.g., Ethiopia">
+	                        </div>
+	                        <div class="form-group">
+	                            <label for="add-region">
+	                                <i data-lucide="mountain"></i>
+	                                Region
+	                            </label>
+	                            <input type="text" id="add-region" name="region" placeholder="e.g., Yirgacheffe">
+	                        </div>
+	                    </div>
+	                    <div class="form-row">
+	                        <div class="form-group">
+	                            <label for="add-height">
+	                                <i data-lucide="trending-up"></i>
+	                                Height (m)
+	                            </label>
+	                            <input type="number" id="add-height" name="height_m" placeholder="e.g., 1800">
+	                        </div>
+	                        <div class="form-group">
+	                            <label for="add-variety">
+	                                <i data-lucide="leaf"></i>
+	                                Botanic Variety
+	                            </label>
+	                            <input type="text" id="add-variety" name="botanic_variety" placeholder="e.g., Heirloom">
+	                        </div>
+	                    </div>
+	                </div>
+	
+	                <!-- Production Information Section -->
+	                <div class="form-section">
+	                    <h3>Production Information</h3>
+	                    <div class="form-row">
+	                        <div class="form-group">
+	                            <label for="add-farm">
+	                                <i data-lucide="tractor"></i>
+	                                Farm / Producer
+	                            </label>
+	                            <input type="text" id="add-farm" name="farm_producer" placeholder="Enter farm or producer name">
+	                        </div>
+	                        <div class="form-group">
+	                            <label for="add-processing">
+	                                <i data-lucide="settings"></i>
+	                                Processing Method
+	                            </label>
+	                            <input type="text" id="add-processing" name="processing_method" placeholder="e.g., Washed, Natural">
+	                        </div>
+	                    </div>
+	                    <div class="form-row">
+	                        <div class="form-group">
+	                            <label for="add-sca">
+	                                <i data-lucide="star"></i>
+	                                SCA Score
+	                            </label>
+	                            <input type="number" id="add-sca" name="sca" min="0" max="100" step="0.1" placeholder="e.g., 85.5">
+	                        </div>
+	                        <div class="form-group">
+	                            <label for="add-flavor">
+	                                <i data-lucide="heart"></i>
+	                                Flavor Profile
+	                            </label>
+	                            <textarea id="add-flavor" name="flavor" rows="2" placeholder="Describe the flavor notes"></textarea>
+	                        </div>
+	                    </div>
+	                </div>
+	
+	                <!-- Recipe Information Section -->
+	                <div class="form-section">
+	                    <h3>Espresso Recipe</h3>
+	                    <div class="form-row">
+	                        <div class="form-group">
+	                            <label for="add-recipe-in">
+	                                <i data-lucide="arrow-down"></i>
+	                                In (gr)
+	                            </label>
+	                            <input type="number" id="add-recipe-in" name="recipe_in_gr" step="0.1" placeholder="18" onchange="calculateRatio()">
+	                        </div>
+	                        <div class="form-group">
+	                            <label for="add-recipe-out">
+	                                <i data-lucide="arrow-up"></i>
+	                                Out (gr)
+	                            </label>
+	                            <input type="number" id="add-recipe-out" name="recipe_out_gr" step="0.1" placeholder="36" onchange="calculateRatio()">
+	                        </div>
+	                    </div>
+	                    <div class="form-row">
+	                        <div class="form-group">
+	                            <label for="add-recipe-ratio">
+	                                <i data-lucide="calculator"></i>
+	                                Ratio (auto-calculated)
+	                            </label>
+	                            <input type="text" id="add-recipe-ratio" name="recipe_ratio" readonly placeholder="1:2">
+	                        </div>
+	                        <div class="form-group">
+	                            <label for="add-recipe-time">
+	                                <i data-lucide="timer"></i>
+	                                Time (s)
+	                            </label>
+	                            <input type="number" id="add-recipe-time" name="recipe_time_s" placeholder="28">
+	                        </div>
+	                    </div>
+	                    <div class="form-row">
+	                        <div class="form-group">
+	                            <label for="add-recipe-temp">
+	                                <i data-lucide="thermometer"></i>
+	                                Temperature (°C)
+	                            </label>
+	                            <input type="number" id="add-recipe-temp" name="recipe_temperature_c" placeholder="93">
+	                        </div>
+	                    </div>
+	                </div>
+	
+	                <!-- Form Actions -->
+	                <div class="form-actions">
+	                    <button type="button" class="btn-cancel" onclick="resetAddCoffeeForm()">
+	                        <i data-lucide="x"></i>
+	                        Cancel
+	                    </button>
+	                    <button type="submit" class="btn-submit">
+	                        <i data-lucide="plus"></i>
+	                        Add Coffee
+	                    </button>
+	                </div>
+	            </div>
+	        </form>
+	    </div>
+	</div>
     </div>
 </div>	
 	
@@ -269,6 +450,170 @@ function updateUIForUnauthorizedUser() {
 	    content.classList.add('expanded');
 	}
     }
+
+	// Add Coffee Form Functions
+	
+	function calculateRatio() {
+	    const inGr = parseFloat(document.getElementById('add-recipe-in').value);
+	    const outGr = parseFloat(document.getElementById('add-recipe-out').value);
+	    const ratioField = document.getElementById('add-recipe-ratio');
+	    
+	    if (inGr && outGr && inGr > 0) {
+	        const ratio = (outGr / inGr).toFixed(1);
+	        ratioField.value = `1:${ratio}`;
+	    } else {
+	        ratioField.value = '';
+	    }
+	}
+	
+	function resetAddCoffeeForm() {
+	    document.getElementById('add-coffee-form').reset();
+	    document.getElementById('add-recipe-ratio').value = '';
+	    
+	    // Collapse the add coffee section
+	    const toggle = document.getElementById('add-coffee-toggle');
+	    const content = document.getElementById('add-coffee-content');
+	    toggle.setAttribute('aria-expanded', 'false');
+	    content.classList.remove('expanded');
+	    content.classList.add('collapsed');
+	}
+	
+	async function submitNewCoffee(event) {
+	    event.preventDefault();
+	    
+	    if (!isAuthorized) {
+	        showNotification('Please log in to add coffee entries.', 'error');
+	        return;
+	    }
+	    
+	    const form = document.getElementById('add-coffee-form');
+	    const submitBtn = form.querySelector('.btn-submit');
+	    const originalText = submitBtn.innerHTML;
+	    
+	    // Disable form and show loading state
+	    submitBtn.innerHTML = '<i data-lucide="loader-2"></i> Adding Coffee...';
+	    submitBtn.disabled = true;
+	    
+	    try {
+	        // Collect form data
+	        const formData = new FormData(form);
+	        const coffeeData = {};
+	        
+	        // Map form fields to spreadsheet columns
+	        const fieldMapping = {
+	            'container': 'container',
+	            'name': 'name',
+	            'shop_name': 'shop_name',
+	            'shop_url': 'shop_url',
+	            'shop_logo': 'shop_logo',
+	            'origin': 'origin',
+	            'region': 'region',
+	            'height_m': 'height_m',
+	            'botanic_variety': 'botanic_variety',
+	            'farm_producer': 'farm_/_producer',
+	            'processing_method': 'processing_method',
+	            'sca': 'sca',
+	            'flavor': 'flavor',
+	            'recipe_ratio': 'recipe:_ratio',
+	            'recipe_in_gr': 'recipe:_in_gr',
+	            'recipe_out_gr': 'recipe:_out_gr',
+	            'recipe_time_s': 'recipe:_time_s',
+	            'recipe_temperature_c': 'recipe:_temperature_°c'
+	        };
+	        
+	        // Build coffee data object
+	        for (const [formField, spreadsheetField] of Object.entries(fieldMapping)) {
+	            const value = formData.get(formField);
+	            if (value && value.trim()) {
+	                if (formField === 'container') {
+	                    // Convert container value to display format
+	                    coffeeData[spreadsheetField] = value === 'green' ? 'Green Container' : 
+	                                                   value === 'grey' ? 'Grey Container' : '';
+	                } else {
+	                    coffeeData[spreadsheetField] = value.trim();
+	                }
+	            }
+	        }
+	        
+	        // Validate required fields
+	        const requiredFields = ['container', 'name', 'shop_name', 'shop_url', 'origin'];
+	        const missingFields = requiredFields.filter(field => !formData.get(field) || !formData.get(field).trim());
+	        
+	        if (missingFields.length > 0) {
+	            throw new Error('Please fill in all required fields');
+	        }
+	        
+	        // Check if coffee with same name already exists
+	        const existingCoffee = allCoffees.find(coffee => 
+	            coffee.name.toLowerCase() === coffeeData.name.toLowerCase()
+	        );
+	        
+	        if (existingCoffee) {
+	            throw new Error('A coffee with this name already exists');
+	        }
+	        
+	        // Send to Google Apps Script
+	        const params = new URLSearchParams({
+	            action: 'addCoffee',
+	            coffeeData: JSON.stringify(coffeeData),
+	            userEmail: currentUser
+	        });
+	        
+	        const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
+	        const response = await fetch(url);
+	        
+	        if (!response.ok) {
+	            throw new Error(`HTTP error! status: ${response.status}`);
+	        }
+	        
+	        const result = await response.json();
+	        
+	        if (result.success) {
+	            // Add new coffee to local arrays
+	            const newCoffee = { ...coffeeData, notes: '' };
+	            allCoffees.push(newCoffee);
+	            
+	            // Refresh filters and display
+	            populateFilters(allCoffees);
+	            applyFilters();
+	            
+	            // Reset form and close section
+	            resetAddCoffeeForm();
+	            
+	            showNotification('Coffee added successfully!', 'success');
+	            
+	            // Scroll to the new coffee card if it's visible in current filter
+	            setTimeout(() => {
+	                const coffeeCards = document.querySelectorAll('.coffee-card');
+	                const newCard = Array.from(coffeeCards).find(card => 
+	                    card.querySelector('.coffee-name').textContent === newCoffee.name
+	                );
+	                if (newCard) {
+	                    newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	                    newCard.style.animation = 'highlight 2s ease-in-out';
+	                }
+	            }, 300);
+	            
+	        } else {
+	            throw new Error(result.error || 'Failed to add coffee');
+	        }
+	        
+	    } catch (error) {
+	        console.error('Error adding coffee:', error);
+	        
+	        if (error.message.includes('Unauthorized')) {
+	            showNotification('Session expired. Please log in again.', 'warning');
+	            logout();
+	        } else {
+	            showNotification(error.message || 'Failed to add coffee. Please try again.', 'error');
+	        }
+	    } finally {
+	        // Re-enable form
+	        submitBtn.innerHTML = originalText;
+	        submitBtn.disabled = false;
+	        lucide.createIcons();
+	    }
+	}
 	    
     function toggleFilters() {
         const filtersContent = document.getElementById('filters-content');
