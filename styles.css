@@ -982,8 +982,14 @@ const containerStyles = `
 }
 
 .toggle-icon {
-  width: 100%;
+  transition: opacity 0.3s ease-in-out;
+  display: block;
+  width: 40px;
   height: auto;
+  opacity: 1;
+}
+.toggle-icon.fade-out {
+  opacity: 0;
 }
 
 .toggle:hover {
