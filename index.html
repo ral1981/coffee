@@ -1122,8 +1122,8 @@ function updateUIForUnauthorizedUser() {
 	            <div class="recipe">
 	                <h4>Espresso Recipe</h4>
 	                <div class="recipe-grid" data-state="2">
-		 	    <div class="toggle" onclick="toggleShot(this)>
-	                        <img src=2shot.svg" alt="Toggle shot" class="toggle-icon">
+		 	    <div class="toggle" onclick="toggleShot(this)">
+	                        <img src="2shot.svg" alt="Toggle shot" class="toggle-icon">
 	                    </div>
 	                    <div class="recipe-item">
 	                        <div class="recipe-label">Ratio</div>
@@ -1131,11 +1131,11 @@ function updateUIForUnauthorizedUser() {
 	                    </div>
 	                    <div class="recipe-item">
 	                        <div class="recipe-label">In (g)</div>
-	                        <div class="recipe-value">${coffee['recipe:_in_gr'] || '18'}</div>
+	                        <div class="recipe-value in-val">${coffee['recipe:_in_gr'] || '18'}</div>
 	                    </div>
 	                    <div class="recipe-item">
 	                        <div class="recipe-label">Out (g)</div>
-	                        <div class="recipe-value">${coffee['recipe:_out_gr'] || '36'}</div>
+	                        <div class="recipe-value out-val">${coffee['recipe:_out_gr'] || '36'}</div>
 	                    </div>
 	                    <div class="recipe-item">
 	                        <div class="recipe-label">Time (s)</div>
@@ -1160,8 +1160,8 @@ function updateUIForUnauthorizedUser() {
 	  const isTwoShot = card.dataset.state === '2';
 	  const factor = isTwoShot ? 0.5 : 2;
 	
-	  const inVal = card.querySelector('.recipe:_in_gr');
-	  const outVal = card.querySelector('.recipe:_out_gr');
+	  const inVal = card.querySelector('.in-val');
+	  const outVal = card.querySelector('.out-val');
 	
 	  inVal.textContent = (parseFloat(inVal.textContent) * factor).toFixed(1);
 	  outVal.textContent = (parseFloat(outVal.textContent) * factor).toFixed(1);
