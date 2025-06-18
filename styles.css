@@ -982,15 +982,14 @@ const containerStyles = `
 }
 
 .toggle-icon {
-  transition: transform 0.4s ease;
+  transition: opacity 0.3s ease-in-out;
+  display: block;
+  width: 40px;
+  height: auto;
+  opacity: 1;
 }
-.toggle.rotate {
-  animation: rotateIcon 0.4s ease;
-}
-
-@keyframes rotateIcon {
-  0% { transform: rotateY(0deg); }
-  100% { transform: rotateY(180deg); }
+.toggle-icon.fade-out {
+  opacity: 0;
 }
 
 .toggle:hover {
