@@ -66,16 +66,22 @@
 	                                <i data-lucide="link"></i>
 	                                Shop URL <span class="required">*</span>
 	                            </label>
-	                            <input type="url" id="add-shop-url" name="shop_url" required placeholder="https://example.com">
+	                            <input type="url" id="add-shop-url" name="shop_url" required placeholder="https://example.com" oninput="updateFavicon()">
 	                        </div>
 	                    </div>
 	                    <div class="form-row">
 	                        <div class="form-group">
 	                            <label for="add-shop-logo">
 	                                <i data-lucide="image"></i>
-	                                Shop Logo URL
+	                                Shop Logo URL (Favicon)
 	                            </label>
-	                            <input type="url" id="add-shop-logo" name="shop_logo" placeholder="https://example.com/logo.png">
+	                            <div class="favicon-input-container">
+	                                <input type="url" id="add-shop-logo" name="shop_logo" placeholder="Auto-populated from Shop URL" readonly>
+	                                <div class="favicon-preview" id="favicon-preview">
+	                                    <img id="favicon-img" src="" alt="Favicon" style="display: none;" onerror="this.style.display='none'">
+	                                    <i data-lucide="image" id="favicon-placeholder" style="width: 16px; height: 16px; color: #9ca3af;"></i>
+	                                </div>
+	                            </div>
 	                        </div>
 	                    </div>
 	                </div>
@@ -451,8 +457,127 @@ function updateUIForUnauthorizedUser() {
 	}
     }
 
-	// Add Coffee Form Functions
+    // Add Coffee Form Functions
+
+	// Function to extract domain from URL
+	function extractDomain(url) {
+	    try {
+	        // Handle URLs without protocol
+	        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+	            url = 'https://' + url;
+	        }
+	        
+	        const urlObj = new URL(url);
+	        return urlObj.hostname;
+	    } catch (error) {
+	        console.warn('Invalid URL:', url);
+	        return null;
+	    }
+	}
 	
+	// Function to generate favicon URL
+	function generateFaviconUrl(domain) {
+	    if (!domain) return '';
+	    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+	}
+	
+	// Function to update favicon based on shop URL
+	function updateFavicon() {
+	    const shopUrlInput = document.getElementById('add-shop-url');
+	    const faviconInput = document.getElementById('add-shop-logo');
+	    const faviconImg = document.getElementById('favicon-img');
+	    const faviconPlaceholder = document.getElementById('favicon-placeholder');
+	    
+	    if (!shopUrlInput || !faviconInput || !faviconImg || !faviconPlaceholder) {
+	        console.warn('Required elements not found');
+	        return;
+	    }
+	    
+	    const shopUrl = shopUrlInput.value.trim();
+	    
+	    if (!shopUrl) {
+	        // Clear favicon if no URL
+	        faviconInput.value = '';
+	        faviconImg.style.display = 'none';
+	        faviconPlaceholder.style.display = 'block';
+	        return;
+	    }
+	    
+	    const domain = extractDomain(shopUrl);
+	    
+	    if (domain) {
+	        const faviconUrl = generateFaviconUrl(domain);
+	        faviconInput.value = faviconUrl;
+	        
+	        // Show loading state
+	        faviconImg.classList.add('loading');
+	        faviconPlaceholder.style.display = 'none';
+	        
+	        // Load and display favicon
+	        faviconImg.onload = function() {
+	            this.classList.remove('loading');
+	            this.style.display = 'block';
+	        };
+	        
+	        faviconImg.onerror = function() {
+	            this.classList.remove('loading');
+	            this.style.display = 'none';
+	            faviconPlaceholder.style.display = 'block';
+	        };
+	        
+	        faviconImg.src = faviconUrl;
+	    } else {
+	        // Invalid domain
+	        faviconInput.value = '';
+	        faviconImg.style.display = 'none';
+	        faviconPlaceholder.style.display = 'block';
+	    }
+	}
+	
+	// Debounced version of updateFavicon to avoid too many calls
+	let faviconUpdateTimeout;
+	function debouncedUpdateFavicon() {
+	    clearTimeout(faviconUpdateTimeout);
+	    faviconUpdateTimeout = setTimeout(updateFavicon, 300);
+	}
+	
+	// Enhanced resetAddCoffeeForm function to also reset favicon
+	function resetAddCoffeeForm() {
+	    const form = document.getElementById('add-coffee-form');
+	    if (form) {
+	        form.reset();
+	    }
+	    
+	    // Reset favicon display
+	    const faviconImg = document.getElementById('favicon-img');
+	    const faviconPlaceholder = document.getElementById('favicon-placeholder');
+	    
+	    if (faviconImg) {
+	        faviconImg.style.display = 'none';
+	        faviconImg.classList.remove('loading');
+	    }
+	    
+	    if (faviconPlaceholder) {
+	        faviconPlaceholder.style.display = 'block';
+	    }
+	}
+	
+	// Initialize favicon functionality when the page loads
+	document.addEventListener('DOMContentLoaded', function() {
+	    const shopUrlInput = document.getElementById('add-shop-url');
+	    if (shopUrlInput) {
+	        // Replace the existing oninput with the debounced version
+	        shopUrlInput.removeAttribute('oninput');
+	        shopUrlInput.addEventListener('input', debouncedUpdateFavicon);
+	        
+	        // Also update on paste events
+	        shopUrlInput.addEventListener('paste', function() {
+	            setTimeout(debouncedUpdateFavicon, 10);
+	        });
+	    }
+	});
+
+	// Function to calculate recipe ratio		    
 	function calculateRatio() {
 	    const inGr = parseFloat(document.getElementById('add-recipe-in').value);
 	    const outGr = parseFloat(document.getElementById('add-recipe-out').value);
