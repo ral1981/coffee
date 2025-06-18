@@ -975,6 +975,7 @@ const containerStyles = `
 }
 
 .toggle-label {
+  text-align: center;
   font-size: 0.75rem;
   font-weight: 500;
   color: #555;
