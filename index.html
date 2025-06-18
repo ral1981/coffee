@@ -1121,7 +1121,10 @@ function updateUIForUnauthorizedUser() {
 	            </div>
 	            <div class="recipe">
 	                <h4>Espresso Recipe</h4>
-	                <div class="recipe-grid">
+	                <div class="recipe-grid" data-state="2">
+		 	    <div class="toggle" onclick="toggleShot(this)>
+	                        <img src=2shot.svg" alt="Toggle shot" class="toggle-icon">
+	                    </div>
 	                    <div class="recipe-item">
 	                        <div class="recipe-label">Ratio</div>
 	                        <div class="recipe-value">${coffee['recipe:_ratio'] || '1:2'}</div>
@@ -1150,6 +1153,25 @@ function updateUIForUnauthorizedUser() {
 	        grid.appendChild(card);
 	    });
 	    lucide.createIcons();
+	}
+
+	function toggleShot(toggleEl) {
+	  const card = toggleEl.closest('.recipe-grid');
+	  const isTwoShot = card.dataset.state === '2';
+	  const factor = isTwoShot ? 0.5 : 2;
+	
+	  const inVal = card.querySelector('.recipe:_in_gr');
+	  const outVal = card.querySelector('.recipe:_out_gr');
+	
+	  inVal.textContent = (parseFloat(inVal.textContent) * factor).toFixed(1);
+	  outVal.textContent = (parseFloat(outVal.textContent) * factor).toFixed(1);
+	
+	  // Update dataset to track state
+	  card.dataset.state = isTwoShot ? '1' : '2';
+	
+	  // Swap icon
+	  const icon = toggleEl.querySelector('.toggle-icon');
+	  icon.src = isTwoShot ? '1shot.svg' : '2shot.svg';
 	}
 
     function editNotes(coffeeIndex) {
