@@ -960,35 +960,40 @@ const containerStyles = `
 .recipe-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 8px;
 }
 
 .shot-toggle {
   grid-column: span 3;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #fed7aa;
 }
 
 .shot-icon {
-  width: 40px;
+  width: 32px;
   transition: opacity 0.3s ease;
 }
 
 .slide-switch {
   position: relative;
-  width: 120px;
-  height: 36px;
+  width: 100px;
+  height: 30px;
   background-color: #ddd;
-  border-radius: 18px;
+  border-radius: 15px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 10px;
   cursor: pointer;
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #555;
 }
 
@@ -1003,7 +1008,7 @@ const containerStyles = `
   width: 50%;
   height: 100%;
   background-color: #fff;
-  border-radius: 18px;
+  border-radius: 15px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   transition: left 0.3s ease;
   left: 50%; /* Default: Double shot on the right */
@@ -1022,18 +1027,20 @@ const containerStyles = `
 }
 
 .recipe-label {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     color: #6b7280;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    line-height: 1.2;
 }
 
 .recipe-value {
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: #c2410c;
+    line-height: 1;
 }
 
 .notes-section {
