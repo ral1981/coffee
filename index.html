@@ -66,7 +66,7 @@
 	                                <i data-lucide="link"></i>
 	                                Shop URL <span class="required">*</span>
 	                            </label>
-	                            <input type="url" id="add-shop-url" name="shop_url" required placeholder="https://example.com" oninput="updateFavicon()">
+	                            <input type="url" id="add-shop-url" name="shop_url" required placeholder="https://example.com" oninput="updateFavicon()" onblur="ensureHttps()">
 	                        </div>
 	                    </div>
 	                    <div class="form-row">
@@ -459,6 +459,17 @@ function updateUIForUnauthorizedUser() {
 
     // Add Coffee Form Functions
 
+	// Function to ensure url starts with HTTPS://
+	function ensureHttps() {
+	  const shopUrlInput = document.getElementById('add-shop-url');
+	  let url = input.value.trim();
+	
+	  if (url && !/^https?:\/\//i.test(url)) {
+	    url = 'https://' + url;
+	    input.value = url;
+	  }
+	}
+	    
 	// Function to extract domain from URL
 	function extractDomain(url) {
 	    try {
