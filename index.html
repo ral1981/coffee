@@ -1050,7 +1050,7 @@ function updateUIForUnauthorizedUser() {
 	        shopLink.appendChild(shopNameSpan);
 	        shopLinkDiv.appendChild(shopLink);
 
-		const hasRecipe = coffee['recipe:_in_gr'] && coffee['recipe:_out_gr'];
+			const hasRecipe = coffee['recipe:_in_gr'] && coffee['recipe:_out_gr'];
 	        card.innerHTML = `
 	            <div class="container-icons-top">
 	                <div class="container-icon-wrapper">
@@ -1124,10 +1124,14 @@ function updateUIForUnauthorizedUser() {
 	                <h4>Espresso Recipe</h4>
 	                <div class="recipe-grid" data-state="2">
    	 		  		${hasRecipe ? `
-  			    		<button type="button" class="toggle" onclick="toggleShot(this)" aria-label="Toggle shot type">
+  			    		<div class="shot-toggle">
     						<img src="2shot.svg" alt="Toggle shot" class="toggle-icon">
-    				    	<div class ="toggle-label">Double Shot</div>
-  						</button>
+    				    	<div class="slide-switch" onclick="toggleSlide(this)" data-state="double">
+			 					<span class="label single">Single</span>
+								<span class="label double">Double</span>
+	   							<div class="thumb">
+		   					</div>
+  						</div>
 					` : ''}
 	                    <div class="recipe-item">
 	                        <div class="recipe-label">Ratio</div>
@@ -1159,35 +1163,26 @@ function updateUIForUnauthorizedUser() {
 	    lucide.createIcons();
 	}
 
-    function toggleShot(toggleEl) {
-	  const card = toggleEl.closest('.recipe-grid');
-	  const isTwoShot = card.dataset.state === '2';
-	  const factor = isTwoShot ? 0.5 : 2;
-	
-	  const inVal = card.querySelector('.in-val');
-	  const outVal = card.querySelector('.out-val');
-	
-	  inVal.textContent = (parseFloat(inVal.textContent) * factor).toFixed(1);
-	  outVal.textContent = (parseFloat(outVal.textContent) * factor).toFixed(1);
-	
-	  // Update dataset to track state
-	  card.dataset.state = isTwoShot ? '1' : '2';
-	
-	  // Swap icon
-	  const icon = toggleEl.querySelector('.toggle-icon');
-	
-	  // Trigger fade out
-		icon.classList.add('fade-out');
+    function toggleSlide(switchEl) {
+		  const isDouble = switchEl.dataset.state === "double";
+		  const shotIcon = switchEl.parentElement.querySelector('.shot-icon');
 		
-		// Wait for transition to complete, then swap image + fade back in
-		setTimeout(() => {
-		  icon.src = isTwoShot ? '1shot.svg' : '2shot.svg';
-		  icon.classList.remove('fade-out');
-		}, 300); // match the CSS transition duration
-	    
-	  const label = toggleEl.querySelector('.toggle-label');
-          label.textContent = isTwoShot ? 'Single Shot' : 'Double Shot';
-    }
+		  // Switch state
+		  switchEl.dataset.state = isDouble ? "single" : "double";
+		
+		  // Update icon
+		  shotIcon.src = isDouble ? "1shot.svg" : "2shot.svg";
+		
+		  // Optional: do something with recipe values
+		  const card = switchEl.closest('.recipe-grid');
+		  const factor = isDouble ? 0.5 : 2;
+		  const inVal = card.querySelector('.in-val');
+		  const outVal = card.querySelector('.out-val');
+		
+		  inVal.textContent = (parseFloat(inVal.textContent) * factor).toFixed(1);
+		  outVal.textContent = (parseFloat(outVal.textContent) * factor).toFixed(1);
+		}
+
 
     function editNotes(coffeeIndex) {
         const notesSection = document.getElementById(`notes-${coffeeIndex}`);
