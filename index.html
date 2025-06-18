@@ -1049,7 +1049,8 @@ function updateUIForUnauthorizedUser() {
 	        shopNameSpan.textContent = coffee.shop_name || 'N/A';
 	        shopLink.appendChild(shopNameSpan);
 	        shopLinkDiv.appendChild(shopLink);
-	        
+
+		const hasRecipe = coffee['recipe:_in_gr'] && coffee['recipe:_out_gr'];
 	        card.innerHTML = `
 	            <div class="container-icons-top">
 	                <div class="container-icon-wrapper">
@@ -1123,10 +1124,10 @@ function updateUIForUnauthorizedUser() {
 	                <h4>Espresso Recipe</h4>
 	                <div class="recipe-grid" data-state="2">
    	 		  ${hasRecipe ? `
-  			    <div class="toggle" onclick="toggleShot(this)">
-    				<img src="2shot.svg" alt="Toggle shot" class="toggle-icon">
-  			    </div>
-			  ` : ''}
+  <div class="toggle" onclick="toggleShot(this)">
+    <img src="2shot.svg" alt="Toggle shot" class="toggle-icon">
+  </div>
+` : ''}
 	                    <div class="recipe-item">
 	                        <div class="recipe-label">Ratio</div>
 	                        <div class="recipe-value">${coffee['recipe:_ratio'] || '1:2'}</div>
@@ -1158,7 +1159,6 @@ function updateUIForUnauthorizedUser() {
 	}
 
     function toggleShot(toggleEl) {
-	  const hasRecipe = coffee['recipe:_in_gr'] && coffee['recipe:_out_gr'];
 	  const card = toggleEl.closest('.recipe-grid');
 	  const isTwoShot = card.dataset.state === '2';
 	  const factor = isTwoShot ? 0.5 : 2;
