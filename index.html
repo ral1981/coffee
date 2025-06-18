@@ -1123,12 +1123,12 @@ function updateUIForUnauthorizedUser() {
 	            <div class="recipe">
 	                <h4>Espresso Recipe</h4>
 	                <div class="recipe-grid" data-state="2">
-   	 		  ${hasRecipe ? `
-  <div class="toggle" onclick="toggleShot(this)">
-    <img src="2shot.svg" alt="Toggle shot" class="toggle-icon">
-    <div class ="toggle-label">Double Shot</div>
-  </div>
-` : ''}
+   	 		  		${hasRecipe ? `
+  			    		<button type="button" class="toggle" onclick="toggleShot(this)" aria-label="Toggle shot type">
+    						<img src="2shot.svg" alt="Toggle shot" class="toggle-icon">
+    				    	<div class ="toggle-label">Double Shot</div>
+  						</button>
+					` : ''}
 	                    <div class="recipe-item">
 	                        <div class="recipe-label">Ratio</div>
 	                        <div class="recipe-value">${coffee['recipe:_ratio'] || '1:2'}</div>
