@@ -1126,6 +1126,7 @@ function updateUIForUnauthorizedUser() {
    	 		  ${hasRecipe ? `
   <div class="toggle" onclick="toggleShot(this)">
     <img src="2shot.svg" alt="Toggle shot" class="toggle-icon">
+    <div class ="toggle-label">Double Shot</div>
   </div>
 ` : ''}
 	                    <div class="recipe-item">
@@ -1175,7 +1176,10 @@ function updateUIForUnauthorizedUser() {
 	  // Swap icon
 	  const icon = toggleEl.querySelector('.toggle-icon');
 	  icon.src = isTwoShot ? '1shot.svg' : '2shot.svg';
-	}
+
+	  const label = toggleEl.querySelector('.toggle-label');
+          label.textContent = isTwoShot ? 'Single Shot' : 'Double Shot';
+    }
 
     function editNotes(coffeeIndex) {
         const notesSection = document.getElementById(`notes-${coffeeIndex}`);
