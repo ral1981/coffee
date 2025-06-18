@@ -1175,16 +1175,15 @@ function updateUIForUnauthorizedUser() {
 	
 	  // Swap icon
 	  const icon = toggleEl.querySelector('.toggle-icon');
-	  ///icon.src = isTwoShot ? '1shot.svg' : '2shot.svg';
 	
 	  // Trigger fade out
-	  icon.classList.add('rotate');
-	
-	  // Wait for transition to complete, then swap image + fade back in
-	  setTimeout(() => {
-	    icon.src = isTwoShot ? '1shot.svg' : '2shot.svg';
-	    icon.classList.remove('rotate');
-	  }, 200);
+		icon.classList.add('fade-out');
+		
+		// Wait for transition to complete, then swap image + fade back in
+		setTimeout(() => {
+		  icon.src = isTwoShot ? '1shot.svg' : '2shot.svg';
+		  icon.classList.remove('fade-out');
+		}, 300); // match the CSS transition duration
 	    
 	  const label = toggleEl.querySelector('.toggle-label');
           label.textContent = isTwoShot ? 'Single Shot' : 'Double Shot';
