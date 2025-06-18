@@ -964,14 +964,30 @@ const containerStyles = `
 }
 
 .toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  width: 24px;
-  height: 24px;
+  gap: 4px;
+  width: 60px;
+  margin: 0 auto;
+}
+
+.toggle-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #555;
 }
 
 .toggle-icon {
   width: 100%;
   height: auto;
+}
+
+.toggle:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
 }
 
 .recipe-item {
