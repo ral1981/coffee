@@ -300,7 +300,7 @@
     let filteredCoffees = [];	    
 	    
     // Authentication variables
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpSJ-8XVaMysM1_Fgf6SuzgxhLQufXUgVjYzSx6XwMx7SMWL_eJwbjnXKhvwPaTDiwvQ/exec'; // Replace with your actual URL
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcDEZi6BPtWSH9f9k-0fSnPo5sKNlqS_0qhQdnakR3rAIMtaRc83vNR2NbkmFDj9BF/exec'; // Replace with your actual URL
 let currentUser = null;
 let isAuthorized = false;
 
@@ -603,7 +603,7 @@ function updateUIForUnauthorizedUser() {
 	    content.classList.add('collapsed');
 	}
 	
-	async function submitNewCoffee(event) {
+	async function submitNewCoffee(event, confirmContainerReplacement = false) {
 	    event.preventDefault();
 	    
 	    if (!isAuthorized) {
@@ -658,6 +658,11 @@ function updateUIForUnauthorizedUser() {
 	                    coffeeData[spreadsheetField] = value.trim();
 	                }
 	            }
+	        }
+	        
+	        // Add confirmation flag if this is a retry after confirmation
+	        if (confirmContainerReplacement) {
+	            coffeeData.confirmContainerReplacement = true;
 	        }
 	        
 	        // Validate required fields
@@ -719,6 +724,10 @@ function updateUIForUnauthorizedUser() {
 	                }
 	            }, 300);
 	            
+	        } else if (result.requiresConfirmation) {
+	            // Handle container replacement confirmation
+	            showContainerReplacementDialog(result, event);
+	            
 	        } else {
 	            throw new Error(result.error || 'Failed to add coffee');
 	        }
@@ -738,6 +747,68 @@ function updateUIForUnauthorizedUser() {
 	        submitBtn.disabled = false;
 	        lucide.createIcons();
 	    }
+	}
+
+	// Function to show container replacement confirmation dialog
+	function showContainerReplacementDialog(result, originalEvent) {
+	    const dialog = document.createElement('div');
+	    dialog.className = 'confirmation-dialog-overlay';
+	    dialog.innerHTML = `
+	        <div class="confirmation-dialog">
+	            <div class="confirmation-header">
+	                <i data-lucide="alert-triangle" style="color: #f59e0b; width: 24px; height: 24px;"></i>
+	                <h3>Container Conflict</h3>
+	            </div>
+	            <div class="confirmation-message">
+	                <p>${result.message}</p>
+	            </div>
+	            <div class="confirmation-actions">
+	                <button class="btn-cancel" onclick="closeContainerReplacementDialog()">
+	                    <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+	                    Cancel
+	                </button>
+	                <button class="btn-confirm" onclick="confirmContainerReplacement(event)">
+	                    <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+	                    Continue
+	                </button>
+	            </div>
+	        </div>
+	    `;
+	    
+	    // Store the original event for later use
+	    dialog.originalEvent = originalEvent;
+	    
+	    document.body.appendChild(dialog);
+	    lucide.createIcons();
+	    
+	    // Focus on the dialog for accessibility
+	    dialog.querySelector('.btn-confirm').focus();
+	    
+	    // Handle escape key
+	    const handleEscape = (e) => {
+	        if (e.key === 'Escape') {
+	            closeContainerReplacementDialog();
+	            document.removeEventListener('keydown', handleEscape);
+	        }
+	    };
+	    document.addEventListener('keydown', handleEscape);
+	}
+	
+	function closeContainerReplacementDialog() {
+	    const dialog = document.querySelector('.confirmation-dialog-overlay');
+	    if (dialog) {
+	        dialog.remove();
+	    }
+	}
+	
+	function confirmContainerReplacement(event) {
+	    const dialog = document.querySelector('.confirmation-dialog-overlay');
+	    const originalEvent = dialog ? dialog.originalEvent : event;
+	    
+	    closeContainerReplacementDialog();
+	    
+	    // Retry the submission with confirmation flag
+	    submitNewCoffee(originalEvent, true);
 	}
 	    
     function toggleFilters() {
