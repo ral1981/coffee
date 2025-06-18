@@ -963,6 +963,17 @@ const containerStyles = `
     gap: 12px;
 }
 
+.toggle {
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+}
+
+.toggle-icon {
+  width: 100%;
+  height: auto;
+}
+
 .recipe-item {
     text-align: center;
     background: white;
