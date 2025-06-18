@@ -1035,7 +1035,6 @@ const containerStyles = `
     min-height: 70px;
 }
 
-/*
 .recipe-grid .recipe-item {
     text-align: center !important;
     background: white;
@@ -1067,7 +1066,6 @@ const containerStyles = `
     color: #c2410c;
     line-height: 1.2;
 }
-*/
 
 .notes-section {
     background: #f8fafc;
