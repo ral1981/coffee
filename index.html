@@ -1125,13 +1125,12 @@ function updateUIForUnauthorizedUser() {
 	                <div class="recipe-grid" data-state="2">
    	 		  		${hasRecipe ? `
   			    		<div class="shot-toggle">
-    						<img src="2shot.svg" alt="Toggle shot" class="toggle-icon">
-    				    	<div class="slide-switch" onclick="toggleSlide(this)" data-state="double">
-			 					<span class="label single">Single</span>
-								<span class="label double">Double</span>
-	   							<div class="thumb">
-		   					</div>
-  						</div>
+    						<img src="2shot.svg" alt="Shot icon" class="shot-icon" />
+    				    		<div class="slide-switch" onclick="toggleSlide(this)" data-state="double">
+			 				<span class="label single">Single</span>
+							<span class="label double">Double</span>
+	   					<div class="thumb"></div>
+  					</div>
 					` : ''}
 	                    <div class="recipe-item">
 	                        <div class="recipe-label">Ratio</div>
@@ -1175,6 +1174,7 @@ function updateUIForUnauthorizedUser() {
 		
 		  // Optional: do something with recipe values
 		  const card = switchEl.closest('.recipe-grid');
+	    	  if (!card) return;
 		  const factor = isDouble ? 0.5 : 2;
 		  const inVal = card.querySelector('.in-val');
 		  const outVal = card.querySelector('.out-val');
