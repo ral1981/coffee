@@ -1122,17 +1122,17 @@ function updateUIForUnauthorizedUser() {
 	            </div>
 	            <div class="recipe">
 	                <h4>Espresso Recipe</h4>
+	                <div class="recipe-grid" data-state="2">
 		 	${hasRecipe ? `
-				<div class="shot-toggle">
-					<img src="2shot.svg" alt="Shot icon" class="shot-icon" />
+			    <div class="shot-toggle">
+				<img src="2shot.svg" alt="Shot icon" class="shot-icon" />
 					<div class="slide-switch" onclick="toggleSlide(this)" data-state="double">
 						<span class="label single">Single</span>
 						<span class="label double">Double</span>
 						<div class="thumb"></div>
 					</div>
-				</div>
+			    </div>
 			` : ''}
-	                <div class="recipe-grid" data-state="2">
 	                    <div class="recipe-item">
 	                        <div class="recipe-label">Ratio</div>
 	                        <div class="recipe-value">${coffee['recipe:_ratio'] || '1:2'}</div>
