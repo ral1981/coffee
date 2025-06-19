@@ -957,6 +957,12 @@ const containerStyles = `
     font-weight: 700;
 }
 
+.recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+
 .shot-toggle {
     display: flex;
     align-items: center;
@@ -1022,12 +1028,6 @@ const containerStyles = `
 .slide-switch[data-state="double"] .label:last-child {
     color: #c2410c;
     font-weight: 600;
-}
-
-.recipe-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
 }
 
 .recipe-item {
