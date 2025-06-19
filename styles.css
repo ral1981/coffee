@@ -941,21 +941,6 @@ const containerStyles = `
     font-size: 0.95rem;
 }
 
-.recipe {
-    background: #fff7ed;
-    padding: 20px;
-    border-radius: 12px;
-    border-left: 3px solid #ea580c;
-}
-
-.recipe h4 {
-    color: #c2410c;
-    margin-bottom: 16px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 0.8rem;
-    font-weight: 700;
-}
 
 .recipe-content {
     display: flex;
