@@ -972,8 +972,6 @@ const containerStyles = `
     background: white;
     border-radius: 8px;
     border: 1px solid #fed7aa;
-    grid-column: 1 / -1;
-    order: -1;
 }
 
 .shot-icon {
@@ -1083,6 +1081,17 @@ const containerStyles = `
     
     .recipe-value {
         font-size: 1rem;
+    }
+}
+
+@media (max-width: 768px) and (min-width: 481px) {
+    .recipe-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    
+    .shot-toggle {
+        grid-column: 1 / -1;
     }
 }
 
