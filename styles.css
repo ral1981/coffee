@@ -957,12 +957,6 @@ const containerStyles = `
     font-weight: 700;
 }
 
-.recipe-content {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
 .shot-toggle {
     display: flex;
     align-items: center;
@@ -972,6 +966,7 @@ const containerStyles = `
     background: white;
     border-radius: 8px;
     border: 1px solid #fed7aa;
+    grid-column: 1 / -1;
     order: -1;
 }
 
@@ -1080,6 +1075,10 @@ const containerStyles = `
     .recipe-item {
         min-height: 70px;
         padding: 12px 8px;
+    }
+
+    .shot-toggle {
+        grid-column: 1 / -1;
     }
     
     .recipe-value {
