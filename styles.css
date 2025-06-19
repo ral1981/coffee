@@ -941,30 +941,26 @@ const containerStyles = `
     font-size: 0.95rem;
 }
 
+.recipe {
+    background: #fff7ed;
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 3px solid #ea580c;
+}
+
+.recipe h4 {
+    color: #c2410c;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
 
 .recipe-content {
     display: flex;
     flex-direction: column;
     gap: 16px;
-}
-
-.recipe-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-}
-
-.recipe-item {
-    background: white;
-    padding: 16px 12px;
-    border-radius: 8px;
-    border: 1px solid #fed7aa;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    min-height: 80px;
 }
 
 .shot-toggle {
@@ -981,6 +977,7 @@ const containerStyles = `
 
 .shot-icon {
   width: 32px;
+  height: 32px;
   transition: opacity 0.3s ease;
 }
 
@@ -1004,6 +1001,7 @@ const containerStyles = `
   z-index: 1;
   width: 50%;
   text-align: center;
+  transition: color 0.3 ease;
 }
 
 .thumb {
@@ -1021,7 +1019,73 @@ const containerStyles = `
   left: 0;
 }
 
-   
+.slide-switch[data-state="single"] .label:first-child {
+    color: #c2410c;
+    font-weight: 600;
+}
+
+.slide-switch[data-state="double"] .label:last-child {
+    color: #c2410c;
+    font-weight: 600;
+}
+
+.recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.recipe-item {
+    background: white;
+    padding: 16px 12px;
+    border-radius: 8px;
+    border: 1px solid #fed7aa;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 80px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.recipe-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.recipe-label {
+    font-size: 0.7rem;
+    color: #6b7280;
+    margin-bottom: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+}
+
+.recipe-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #c2410c;
+    line-height: 1.2;
+}
+
+@media (max-width: 480px) {
+    .recipe-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .recipe-item {
+        min-height: 70px;
+        padding: 12px 8px;
+    }
+    
+    .recipe-value {
+        font-size: 1rem;
+    }
+}
 
 .notes-section {
     background: #f8fafc;
