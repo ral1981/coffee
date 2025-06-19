@@ -972,6 +972,8 @@ const containerStyles = `
     background: white;
     border-radius: 8px;
     border: 1px solid #fed7aa;
+    grid-column: 1 / -1;
+    order: -1;
 }
 
 .shot-icon {
