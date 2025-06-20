@@ -1307,6 +1307,8 @@ function updateUIForUnauthorizedUser() {
 	        }
 	        
 	        const result = await response.json();
+                console.log('Server response:', result);
+
 	        
 	        if (result.success) {
 	            // Update local data
