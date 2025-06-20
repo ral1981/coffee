@@ -1,44 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Coffee Notes</title>
 </head>
 <body>
 
-  <!-- Notes input for demo -->
+  <!-- Demo note field -->
   <textarea id="notes-input-0" placeholder="Write your coffee notes..."></textarea>
   <button onclick="saveNotes(0)">Save Notes</button>
 
-  <!-- Login -->
+  <!-- Login section -->
   <input type="email" id="email-input" placeholder="Enter your email" />
   <button onclick="signIn()">Send Login Link</button>
 
-  <!-- Load Supabase JS -->
+  <!-- Load Supabase library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <script>
-    // ✅ Initialize Supabase
+    // ✅ Initialize Supabase client
     const supabase = supabase.createClient(
-      'https://vrasvqmlpdqogghtkqfu.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYXN2cW1scGRxb2dnaHRrcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNTQ5ODgsImV4cCI6MjA2NTkzMDk4OH0.K5wuITvCrQdCvfsRRpWZnFtZ3cvHLAdXhudBxiP9hAc'
+      'https://vrasvqmlpdqogghtkqfu.supabase.co', // replace with your project URL
+      'your-anon-key' // replace with your public anon key
     );
 
-    // ✅ Magic link login
+    // ✅ Demo data
+    const filteredCoffees = [
+      { id: 'YOUR-BEAN-ID-HERE' } // Replace with real UUID from your DB
+    ];
+    const allCoffees = [...filteredCoffees];
+
+    // ✅ Auth: Sign in with magic link
     async function signIn() {
       const email = document.getElementById('email-input').value;
       const { error } = await supabase.auth.signInWithOtp({ email });
       if (error) {
         alert('Error: ' + error.message);
       } else {
-        alert('Check your email for the login link!');
+        alert('Magic link sent! Check your inbox.');
       }
     }
 
-    // ✅ Notes save function with token
-    const filteredCoffees = [{ id: 'your-test-id' }]; // just for demo
-    const allCoffees = [...filteredCoffees]; // clone for demo
-
+    // ✅ Save notes securely with access token
     async function saveNotes(coffeeIndex) {
       const notesInput = document.getElementById(`notes-input-${coffeeIndex}`);
       const newNotes = notesInput.value.trim();
@@ -46,7 +49,7 @@
 
       const { data: { session }, error } = await supabase.auth.getSession();
       if (!session) {
-        alert('Please log in before saving notes.');
+        alert('Please log in to save notes.');
         return;
       }
 
@@ -65,11 +68,13 @@
       console.log('Server response:', result);
 
       if (result.success) {
-        alert('Notes saved!');
+        alert('Notes saved successfully!');
       } else {
-        alert('Failed to save notes: ' + result.error);
+        alert('Error saving notes: ' + result.error);
       }
     }
   </script>
+
 </body>
 </html>
+
