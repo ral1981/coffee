@@ -635,7 +635,7 @@ function updateUIForUnauthorizedUser() {
 	        const formData = new FormData(form);
 	        const coffeeData = {};
 	        
-	        // FIXED: Updated field mapping to match Google Sheet headers exactly
+	        // Updated field mapping to match your Supabase table columns
 	        const fieldMapping = {
 	            'container': 'container',
 	            'name': 'name',
@@ -644,48 +644,47 @@ function updateUIForUnauthorizedUser() {
 	            'shop_logo': 'shop_logo',
 	            'origin': 'origin',
 	            'region': 'region',
-	            'height_m': 'height_m',
+	            'height_m': 'height_meters',  // Updated to match DB column
 	            'botanic_variety': 'botanic_variety',
-	            'farm_producer': 'farm_/_producer',  // Fixed: underscore spacing
+	            'farm_producer': 'farm_producer',  // Simplified field name
 	            'processing_method': 'processing_method',
 	            'sca': 'sca',
 	            'flavor': 'flavor',
-	            'recipe_ratio': 'recipe:_ratio',
-	            'recipe_in_gr': 'recipe:_in_gr',
-	            'recipe_out_gr': 'recipe:_out_gr',
-	            'recipe_time_s': 'recipe:_time_s',
-	            'recipe_temperature_c': 'recipe:_temperature_°c'
+	            'recipe_ratio': 'recipe_ratio',  // Simplified field names
+	            'recipe_in_gr': 'recipe_in_grams',
+	            'recipe_out_gr': 'recipe_out_grams',
+	            'recipe_time_s': 'recipe_time_seconds',
+	            'recipe_temperature_c': 'recipe_temperature_c'
 	        };
 	        
-	        // data collection with type conversion
-	        for (const [formField, spreadsheetField] of Object.entries(fieldMapping)) {
+	        // Data collection with type conversion
+	        for (const [formField, dbField] of Object.entries(fieldMapping)) {
 	            const value = formData.get(formField);
 	            if (value !== null && value !== undefined) {
 	                const trimmedValue = value.toString().trim();
 	                if (trimmedValue) {
 	                    if (formField === 'container') {
 	                        // Convert container value to display format
-	                        coffeeData[spreadsheetField] = value === 'green' ? 'Green Container' : 
-	                                                       value === 'grey' ? 'Grey Container' : '';
+	                        coffeeData[dbField] = value === 'green' ? 'Green Container' : 
+	                                             value === 'grey' ? 'Grey Container' : '';
 	                    } else if (formField.includes('height_m') || formField.includes('sca') || 
-	                               formField.includes('recipe_')) {
+	                               formField.includes('recipe_in_gr') || formField.includes('recipe_out_gr') ||
+	                               formField.includes('recipe_temperature_c')) {
 	                        // Convert numeric fields
 	                        const numValue = parseFloat(trimmedValue);
-	                        coffeeData[spreadsheetField] = isNaN(numValue) ? trimmedValue : numValue;
+	                        coffeeData[dbField] = isNaN(numValue) ? null : numValue;
 	                    } else {
-	                        coffeeData[spreadsheetField] = trimmedValue;
+	                        coffeeData[dbField] = trimmedValue;
 	                    }
 	                }
 	            }
 	        }
 	        
+	        // Add notes field (empty by default)
+	        coffeeData.notes = formData.get('notes') ? formData.get('notes').toString().trim() : '';
+	        
 	        // Debug logging to see what's being sent
 	        console.log('Coffee data being sent:', coffeeData);
-	        
-	        // Add confirmation flag if this is a retry after confirmation
-	        if (confirmContainerReplacement) {
-	            coffeeData.confirmContainerReplacement = true;
-	        }
 	        
 	        // Validate required fields
 	        const requiredFields = ['name', 'shop_name', 'shop_url', 'origin'];
@@ -707,17 +706,13 @@ function updateUIForUnauthorizedUser() {
 	            throw new Error('A coffee with this name already exists');
 	        }
 	        
-	        // FIXED: Use POST request instead of GET for better data handling
-	        const response = await fetch(APPS_SCRIPT_URL, {
+	        // Call your new Node.js API
+	        const response = await fetch('http://localhost:3000/api/coffee-beans', {
 	            method: 'POST',
 	            headers: {
 	                'Content-Type': 'application/json',
 	            },
-	            body: JSON.stringify({
-	                action: 'addCoffee',
-	                coffeeData: coffeeData,
-	                userEmail: currentUser
-	            })
+	            body: JSON.stringify(coffeeData)
 	        });
 	        
 	        if (!response.ok) {
@@ -727,8 +722,8 @@ function updateUIForUnauthorizedUser() {
 	        const result = await response.json();
 	        
 	        if (result.success) {
-	            // Add new coffee to local arrays
-	            const newCoffee = { ...coffeeData, notes: '' };
+	            // Add new coffee to local arrays (using the returned data from DB)
+	            const newCoffee = result.data;
 	            allCoffees.push(newCoffee);
 	            
 	            // Refresh filters and display
@@ -751,10 +746,6 @@ function updateUIForUnauthorizedUser() {
 	                    newCard.style.animation = 'highlight 2s ease-in-out';
 	                }
 	            }, 300);
-	            
-	        } else if (result.requiresConfirmation) {
-	            // Handle container replacement confirmation
-	            showContainerReplacementDialog(result, event);
 	            
 	        } else {
 	            throw new Error(result.error || 'Failed to add coffee');
