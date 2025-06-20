@@ -1291,16 +1291,20 @@ function updateUIForUnauthorizedUser() {
 	    
 	    try {
 	        // Call your new Node.js API to update notes
-	        const response = await fetch('http://localhost:3000/api/coffee-beans/notes', {
-	            method: 'PATCH',
-	            headers: {
-	                'Content-Type': 'application/json',
-	            },
-	            body: JSON.stringify({
-	                id: coffeeId,
-	                notes: newNotes
-	            })
-	        });
+	        const { data: { session }, error } = await supabase.auth.getSession();
+		const accessToken = session?.access_token;
+		
+		const response = await fetch('http://localhost:3000/api/coffee-beans/notes', {
+		  method: 'PATCH',
+		  headers: {
+		    'Content-Type': 'application/json',
+		    'Authorization': `Bearer ${accessToken}` // ← crucial addition
+		  },
+		  body: JSON.stringify({
+		    id: coffeeId,
+		    notes: newNotes
+		  })
+		});
 	        
 	        if (!response.ok) {
 	            throw new Error(`HTTP error! status: ${response.status}`);
@@ -1630,12 +1634,29 @@ function updateUIForUnauthorizedUser() {
         lucide.createIcons();
     });
 </script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <script>
+	<input type="email" id="email-input" placeholder="Enter your email" />
+	<button onclick="signIn()">Send Login Link</button>
 	
-	// Initialize Lucide icons
-	lucide.createIcons();
-	    
-    </script>    
+	<script>
+	  async function signIn() {
+	    const email = document.getElementById('email-input').value;
+	    const { error } = await supabase.auth.signInWithOtp({ email });
+	    if (error) {
+	      alert('Error: ' + error.message);
+	    } else {
+	      alert('Check your email for the login link!');
+	    }
+	  }
+	</script>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script>lucide.createIcons();</script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script>
+       const supabase = supabase.createClient(
+       'https://vrasvqmlpdqogghtkqfu.supabase.co',
+       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYXN2cW1scGRxb2dnaHRrcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNTQ5ODgsImV4cCI6MjA2NTkzMDk4OH0.K5wuITvCrQdCvfsRRpWZnFtZ3cvHLAdXhudBxiP9hAc'
+       );
+    </script>
 </body>
 </html>
