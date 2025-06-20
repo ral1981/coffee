@@ -1637,17 +1637,7 @@ function updateUIForUnauthorizedUser() {
 	<input type="email" id="email-input" placeholder="Enter your email" />
 	<button onclick="signIn()">Send Login Link</button>
 	
-	<script>
-	  async function signIn() {
-	    const email = document.getElementById('email-input').value;
-	    const { error } = await supabase.auth.signInWithOtp({ email });
-	    if (error) {
-	      alert('Error: ' + error.message);
-	    } else {
-	      alert('Check your email for the login link!');
-	    }
-	  }
-	</script>
+
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script>lucide.createIcons();</script>
@@ -1657,6 +1647,17 @@ function updateUIForUnauthorizedUser() {
        'https://vrasvqmlpdqogghtkqfu.supabase.co',
        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYXN2cW1scGRxb2dnaHRrcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNTQ5ODgsImV4cCI6MjA2NTkzMDk4OH0.K5wuITvCrQdCvfsRRpWZnFtZ3cvHLAdXhudBxiP9hAc'
        );
+    </script>
+    <script>
+	async function signIn() {
+	const email = document.getElementById('email-input').value;
+	const { error } = await supabase.auth.signInWithOtp({ email });
+	if (error) {
+	   alert('Error: ' + error.message);
+	 } else {
+	   alert('Check your email for the login link!');
+	 }
+	}
     </script>
 </body>
 </html>
