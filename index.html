@@ -1274,62 +1274,66 @@ function updateUIForUnauthorizedUser() {
     }
 
     async function saveNotes(coffeeIndex) {
-    if (!isAuthorized) {
-        showNotification('Please log in to save notes.', 'error');
-        promptForEmail();
-        return;
-    }
-    
-    const notesInput = document.getElementById(`notes-input-${coffeeIndex}`);
-    const newNotes = notesInput.value.trim();
-    const coffeeName = filteredCoffees[coffeeIndex].name;
-    const saveButton = notesInput.parentNode.querySelector('.notes-btn-save');
-    const originalSaveText = saveButton.innerHTML;
-    
-    saveButton.innerHTML = '<i data-lucide="loader-2"></i> Saving...';
-    saveButton.disabled = true;
-    
-    try {
-        // Build URL with parameters for GET request
-        const params = new URLSearchParams({
-            action: 'updateNotes',
-            coffeeName: coffeeName,
-            notes: newNotes,
-            userEmail: currentUser
-        });
-        
-        const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            filteredCoffees[coffeeIndex].notes = newNotes;
-            const coffeeInAll = allCoffees.find(coffee => coffee.name === coffeeName);
-            if (coffeeInAll) coffeeInAll.notes = newNotes;
-            renderNotesSection(coffeeIndex, newNotes);
-            showNotification('Notes saved successfully!', 'success');
-        } else {
-            throw new Error(result.error || 'Failed to save notes');
-        }
-    } catch (error) {
-        console.error('Error saving notes:', error);
-        saveButton.innerHTML = originalSaveText;
-        saveButton.disabled = false;
-        
-        if (error.message.includes('Unauthorized')) {
-            showNotification('Session expired. Please log in again.', 'warning');
-            logout();
-        } else {
-            showNotification('Failed to save notes. Please try again.', 'error');
-        }
-        lucide.createIcons();
-        }
-    }
+	    if (!isAuthorized) {
+	        showNotification('Please log in to save notes.', 'error');
+	        promptForEmail();
+	        return;
+	    }
+	    
+	    const notesInput = document.getElementById(`notes-input-${coffeeIndex}`);
+	    const newNotes = notesInput.value.trim();
+	    const coffeeName = filteredCoffees[coffeeIndex].name;
+	    const saveButton = notesInput.parentNode.querySelector('.notes-btn-save');
+	    const originalSaveText = saveButton.innerHTML;
+	    
+	    saveButton.innerHTML = '<i data-lucide="loader-2"></i> Saving...';
+	    saveButton.disabled = true;
+	    
+	    try {
+	        // Call your new Node.js API to update notes
+	        const response = await fetch('http://localhost:3000/api/coffee-beans/notes', {
+	            method: 'PATCH',
+	            headers: {
+	                'Content-Type': 'application/json',
+	            },
+	            body: JSON.stringify({
+	                coffeeName: coffeeName,
+	                notes: newNotes
+	            })
+	        });
+	        
+	        if (!response.ok) {
+	            throw new Error(`HTTP error! status: ${response.status}`);
+	        }
+	        
+	        const result = await response.json();
+	        
+	        if (result.success) {
+	            // Update local data
+	            filteredCoffees[coffeeIndex].notes = newNotes;
+	            const coffeeInAll = allCoffees.find(coffee => coffee.name === coffeeName);
+	            if (coffeeInAll) coffeeInAll.notes = newNotes;
+	            
+	            // Re-render the notes section
+	            renderNotesSection(coffeeIndex, newNotes);
+	            showNotification('Notes saved successfully!', 'success');
+	        } else {
+	            throw new Error(result.error || 'Failed to save notes');
+	        }
+	    } catch (error) {
+	        console.error('Error saving notes:', error);
+	        saveButton.innerHTML = originalSaveText;
+	        saveButton.disabled = false;
+	        
+	        if (error.message.includes('Unauthorized')) {
+	            showNotification('Session expired. Please log in again.', 'warning');
+	            logout();
+	        } else {
+	            showNotification('Failed to save notes. Please try again.', 'error');
+	        }
+	        lucide.createIcons();
+	    }
+	}
 
     function cancelEditNotes(coffeeIndex) {
         renderNotesSection(coffeeIndex, filteredCoffees[coffeeIndex].notes || '');
