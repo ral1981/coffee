@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Coffee Notes</title>
+</head>
+<body>
+
+  <!-- Notes input for demo -->
+  <textarea id="notes-input-0" placeholder="Write your coffee notes..."></textarea>
+  <button onclick="saveNotes(0)">Save Notes</button>
+
+  <!-- Login -->
+  <input type="email" id="email-input" placeholder="Enter your email" />
+  <button onclick="signIn()">Send Login Link</button>
+
+  <!-- Load Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <script>
+    // ✅ Initialize Supabase
+    const supabase = supabase.createClient(
+      'https://vrasvqmlpdqogghtkqfu.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYXN2cW1scGRxb2dnaHRrcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNTQ5ODgsImV4cCI6MjA2NTkzMDk4OH0.K5wuITvCrQdCvfsRRpWZnFtZ3cvHLAdXhudBxiP9hAc'
+    );
+
+    // ✅ Magic link login
+    async function signIn() {
+      const email = document.getElementById('email-input').value;
+      const { error } = await supabase.auth.signInWithOtp({ email });
+      if (error) {
+        alert('Error: ' + error.message);
+      } else {
+        alert('Check your email for the login link!');
+      }
+    }
+
+    // ✅ Notes save function with token
+    const filteredCoffees = [{ id: 'your-test-id' }]; // just for demo
+    const allCoffees = [...filteredCoffees]; // clone for demo
+
+    async function saveNotes(coffeeIndex) {
+      const notesInput = document.getElementById(`notes-input-${coffeeIndex}`);
+      const newNotes = notesInput.value.trim();
+      const coffeeId = filteredCoffees[coffeeIndex].id;
+
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Please log in before saving notes.');
+        return;
+      }
+
+      const accessToken = session.access_token;
+
+      const response = await fetch('http://localhost:3000/api/coffee-beans/notes', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ id: coffeeId, notes: newNotes })
+      });
+
+      const result = await response.json();
+      console.log('Server response:', result);
+
+      if (result.success) {
+        alert('Notes saved!');
+      } else {
+        alert('Failed to save notes: ' + result.error);
+      }
+    }
+  </script>
+</body>
+</html>
