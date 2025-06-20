@@ -1313,7 +1313,8 @@ function updateUIForUnauthorizedUser() {
 	        if (result.success) {
 	            // Update local data
 	            filteredCoffees[coffeeIndex].notes = newNotes;
-	            const coffeeInAll = allCoffees.find(coffee => coffee.name === coffeeName);
+		    const coffeeId = filteredCoffees[coffeeIndex].id;
+		    const coffeeInAll = allCoffees.find(coffee => coffee.id === coffeeId);
 	            if (coffeeInAll) coffeeInAll.notes = newNotes;
 	            
 	            // Re-render the notes section
