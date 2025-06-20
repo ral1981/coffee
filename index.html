@@ -1282,7 +1282,7 @@ function updateUIForUnauthorizedUser() {
 	    
 	    const notesInput = document.getElementById(`notes-input-${coffeeIndex}`);
 	    const newNotes = notesInput.value.trim();
-	    const coffeeName = filteredCoffees[coffeeIndex].name;
+	    const coffeeId = filteredCoffees[coffeeIndex].id;
 	    const saveButton = notesInput.parentNode.querySelector('.notes-btn-save');
 	    const originalSaveText = saveButton.innerHTML;
 	    
@@ -1297,7 +1297,7 @@ function updateUIForUnauthorizedUser() {
 	                'Content-Type': 'application/json',
 	            },
 	            body: JSON.stringify({
-	                coffeeName: coffeeName,
+	                id: coffeeId,
 	                notes: newNotes
 	            })
 	        });
