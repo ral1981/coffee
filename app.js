@@ -1340,7 +1340,7 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
 	            userEmail: currentUser
 	        });
 	        
-	        const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
+	        const url = `API_BASE?${params.toString()}`;
 	        const response = await fetch(url);
 	        
 	        if (!response.ok) {
