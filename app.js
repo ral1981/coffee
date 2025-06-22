@@ -424,7 +424,7 @@ function resetAddCoffeeForm() {
 	        }
 	        
 	        // Call your new Node.js API
-	        const response = await fetch('${API_BASE}', {
+	        const response = await fetch(API_BASE, {
 	            method: 'POST',
 	            headers: {
 	                'Content-Type': 'application/json',
@@ -740,7 +740,7 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
 
     async function loadCoffeeData() {
 	try {
-	   const response = await fetch('${API_BASE}');
+	   const response = await fetch(API_BASE);
 	     
 	   if (!response.ok) {
 	       throw new Error(`HTTP error! status: ${response.status}`);
@@ -771,7 +771,7 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
 	        if (filters.processing_method) params.append('processing_method', filters.processing_method);
 	        if (filters.container) params.append('container', filters.container);
 	        
-	        const url = `${API_BASE}/filter?${params.toString()}`;
+	        const url = `API_BASE/filter?${params.toString()}`;
 	        const response = await fetch(url);
 	        
 	        if (!response.ok) {
@@ -795,7 +795,7 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
 
     async function addCoffeeBean(coffeeData) {
 	    try {
-	        const response = await fetch('${API_BASE}', {
+	        const response = await fetch(API_BASE, {
 	            method: 'POST',
 	            headers: {
 	                'Content-Type': 'application/json',
@@ -1021,7 +1021,7 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
 	    
 	    try {
 	        // Call your new Node.js API to update notes
-	        const response = await fetch('${API_BASE}/notes', {
+	        const response = await fetch(API_BASE/notes, {
 	            method: 'PATCH',
 	            headers: {
 	                'Content-Type': 'application/json',
