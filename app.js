@@ -2,8 +2,9 @@
     // Global variables
     let allCoffees = [];
     let filteredCoffees = [];	    
-	    
-    // Authentication variables
+
+/*
+// Authentication variables
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyuenWBem5DtTOZgU1jL5hbSoHw-19ed2mDN0H6xb1K_qv5PrtoyAW77nTDS3QBa2YCrw/exec'; // Replace with your actual URL
 let currentUser = null;
 let isAuthorized = false;
@@ -15,6 +16,26 @@ async function promptForEmail() {
         await checkAuthorization(email.trim().toLowerCase());
     }
 }
+*/
+
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = 'https://vrasvqmlpdqogghtkqfu.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZyYXN2cW1scGRxb2dnaHRrcWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNTQ5ODgsImV4cCI6MjA2NTkzMDk4OH0.K5wuITvCrQdCvfsRRpWZnFtZ3cvHLAdXhudBxiP9hAc'
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Auth state listener
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Auth event:', event)
+  console.log('Session:', session)
+  
+  if (event === 'SIGNED_IN') {
+    console.log('User signed in:', session.user)
+  } else if (event === 'SIGNED_OUT') {
+    console.log('User signed out')
+  }
+})
 
 async function checkAuthorization(email) {
     try {
