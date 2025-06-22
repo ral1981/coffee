@@ -1,7 +1,8 @@
 // Global variables
-    // Global variables
-    let allCoffees = [];
-    let filteredCoffees = [];	    
+let allCoffees = [];
+let filteredCoffees = [];
+
+const API_BASE = 'http://localhost:3000/api/coffee-beans';
 
 /*
 // Authentication variables
@@ -276,28 +277,35 @@ function updateUIForUnauthorizedUser() {
 	    faviconUpdateTimeout = setTimeout(updateFavicon, 300);
 	}
 	
-	// Enhanced resetAddCoffeeForm function to also reset favicon
-	function resetAddCoffeeForm() {
-	    const form = document.getElementById('add-coffee-form');
-	    if (form) {
-	        form.reset();
-	    }
-	    
-	    // Reset favicon display
-	    const faviconImg = document.getElementById('favicon-img');
-	    const faviconPlaceholder = document.getElementById('favicon-placeholder');
-	    
-	    if (faviconImg) {
-	        faviconImg.style.display = 'none';
-	        faviconImg.classList.remove('loading');
-	    }
-	    
-	    if (faviconPlaceholder) {
-	        faviconPlaceholder.style.display = 'block';
-	    }
-	}
-	
-	// Initialize favicon functionality when the page loads
+// Enhanced resetAddCoffeeForm function to also reset favicon
+function resetAddCoffeeForm() {
+  const form = document.getElementById('add-coffee-form');
+  if (form) form.reset();
+
+  const ratioField = document.getElementById('add-recipe-ratio');
+  if (ratioField) ratioField.value = '';
+
+  const faviconImg = document.getElementById('favicon-img');
+  const faviconPlaceholder = document.getElementById('favicon-placeholder');
+  if (faviconImg) {
+    faviconImg.style.display = 'none';
+    faviconImg.classList.remove('loading');
+    faviconImg.onload = null;
+    faviconImg.onerror = null;
+  }
+  if (faviconPlaceholder) {
+    faviconPlaceholder.style.display = 'block';
+  }
+
+  const toggle = document.getElementById('add-coffee-toggle');
+  const content = document.getElementById('add-coffee-content');
+  if (toggle && content) {
+    toggle.setAttribute('aria-expanded', 'false');
+    content.classList.remove('expanded');
+    content.classList.add('collapsed');
+  }
+}
+
 	document.addEventListener('DOMContentLoaded', function() {
 	    const shopUrlInput = document.getElementById('add-shop-url');
 	    if (shopUrlInput) {
@@ -311,8 +319,7 @@ function updateUIForUnauthorizedUser() {
 	        });
 	    }
 	});
-
-	// Function to calculate recipe ratio		    
+    
 	function calculateRatio() {
 	    const inGr = parseFloat(document.getElementById('add-recipe-in').value);
 	    const outGr = parseFloat(document.getElementById('add-recipe-out').value);
@@ -325,19 +332,7 @@ function updateUIForUnauthorizedUser() {
 	        ratioField.value = '';
 	    }
 	}
-	
-	function resetAddCoffeeForm() {
-	    document.getElementById('add-coffee-form').reset();
-	    document.getElementById('add-recipe-ratio').value = '';
-	    
-	    // Collapse the add coffee section
-	    const toggle = document.getElementById('add-coffee-toggle');
-	    const content = document.getElementById('add-coffee-content');
-	    toggle.setAttribute('aria-expanded', 'false');
-	    content.classList.remove('expanded');
-	    content.classList.add('collapsed');
-	}
-	
+
 	async function submitNewCoffee(event, confirmContainerReplacement = false) {
 	    event.preventDefault();
 	    
@@ -431,7 +426,7 @@ function updateUIForUnauthorizedUser() {
 	        }
 	        
 	        // Call your new Node.js API
-	        const response = await fetch('http://localhost:3000/api/coffee-beans', {
+	        const response = await fetch('${API_BASE}', {
 	            method: 'POST',
 	            headers: {
 	                'Content-Type': 'application/json',
@@ -567,47 +562,60 @@ function updateUIForUnauthorizedUser() {
         }
     }
 
-    function getDomainFromUrl(url) {
-        try { return new URL(url).hostname.replace('www.', ''); } catch { return null; }
-    }
+function getDomainFromUrl(url) {
+  try {
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
 
-    function getFaviconUrl(shopUrl) {
-        const domain = getDomainFromUrl(shopUrl);
-        return domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : null;
-    }
+function getFaviconUrl(url) {
+  const domain = getDomainFromUrl(url);
+  return domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : null;
+}
 
-    function createShopLogoElement(shopLogo, shopUrl, shopName) {
-        const logoContainer = document.createElement('div');
-        if (shopLogo && shopLogo !== 'N/A' && shopLogo.trim() !== '') {
-            const img = document.createElement('img');
-            img.src = shopLogo;
-            img.alt = `${shopName} logo`;
-            img.className = 'shop-logo';
-            img.onerror = function() {
-                const faviconUrl = getFaviconUrl(shopUrl);
-                if (faviconUrl) {
-                    this.src = faviconUrl;
-                    this.onerror = function() { this.className = 'shop-logo hidden'; const icon = document.createElement('div'); icon.className = 'shop-icon'; icon.textContent = '??'; this.parentNode.insertBefore(icon, this); };
-                } else {
-                    this.className = 'shop-logo hidden'; const icon = document.createElement('div'); icon.className = 'shop-icon'; icon.textContent = '??'; this.parentNode.insertBefore(icon, this);
-                }
-            };
-            logoContainer.appendChild(img);
-        } else {
-            const faviconUrl = getFaviconUrl(shopUrl);
-            if (faviconUrl) {
-                const img = document.createElement('img');
-                img.src = faviconUrl;
-                img.alt = `${shopName} favicon`;
-                img.className = 'shop-logo';
-                img.onerror = function() { this.className = 'shop-logo hidden'; const icon = document.createElement('div'); icon.className = 'shop-icon'; icon.textContent = '??'; this.parentNode.insertBefore(icon, this); };
-                logoContainer.appendChild(img);
-            } else {
-                const icon = document.createElement('div'); icon.className = 'shop-icon'; icon.textContent = '??'; logoContainer.appendChild(icon);
-            }
-        }
-        return logoContainer;
-    }
+function createShopLogoElement(shopLogo, shopUrl, shopName) {
+  const logoContainer = document.createElement('div');
+  logoContainer.innerHTML = ''; // prevent stacking duplicates
+
+  const fallbackIcon = () => {
+    const icon = document.createElement('div');
+    icon.className = 'shop-icon';
+    icon.textContent = '??';
+    logoContainer.appendChild(icon);
+  };
+
+  const favicon = getFaviconUrl(shopUrl);
+
+  if (shopLogo && shopLogo !== 'N/A' && shopLogo.trim() !== '') {
+    const img = document.createElement('img');
+    img.src = shopLogo;
+    img.alt = `${shopName} logo`;
+    img.className = 'shop-logo';
+    img.onerror = () => {
+      if (favicon) {
+        img.src = favicon;
+        img.onerror = fallbackIcon;
+      } else {
+        fallbackIcon();
+      }
+    };
+    logoContainer.appendChild(img);
+  } else if (favicon) {
+    const img = document.createElement('img');
+    img.src = favicon;
+    img.alt = `${shopName} favicon`;
+    img.className = 'shop-logo';
+    img.onerror = fallbackIcon;
+    logoContainer.appendChild(img);
+  } else {
+    fallbackIcon();
+  }
+
+  return logoContainer;
+}
 
     function populateFilters(coffees) {
         const shops = [...new Set(coffees.map(coffee => coffee.shop_name || 'N/A'))].filter(shop => shop !== 'N/A').sort();
@@ -734,7 +742,7 @@ function updateUIForUnauthorizedUser() {
 
     async function loadCoffeeData() {
 	try {
-	   const response = await fetch('http://localhost:3000/api/coffee-beans');
+	   const response = await fetch('${API_BASE}');
 	     
 	   if (!response.ok) {
 	       throw new Error(`HTTP error! status: ${response.status}`);
@@ -765,7 +773,7 @@ function updateUIForUnauthorizedUser() {
 	        if (filters.processing_method) params.append('processing_method', filters.processing_method);
 	        if (filters.container) params.append('container', filters.container);
 	        
-	        const url = `http://localhost:3000/api/coffee-beans/filter?${params.toString()}`;
+	        const url = `${API_BASE}/filter?${params.toString()}`;
 	        const response = await fetch(url);
 	        
 	        if (!response.ok) {
@@ -789,7 +797,7 @@ function updateUIForUnauthorizedUser() {
 
     async function addCoffeeBean(coffeeData) {
 	    try {
-	        const response = await fetch('http://localhost:3000/api/coffee-beans', {
+	        const response = await fetch('${API_BASE}', {
 	            method: 'POST',
 	            headers: {
 	                'Content-Type': 'application/json',
@@ -1015,7 +1023,7 @@ function updateUIForUnauthorizedUser() {
 	    
 	    try {
 	        // Call your new Node.js API to update notes
-	        const response = await fetch('http://localhost:3000/api/coffee-beans/notes', {
+	        const response = await fetch('${API_BASE}/notes', {
 	            method: 'PATCH',
 	            headers: {
 	                'Content-Type': 'application/json',
