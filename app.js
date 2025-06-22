@@ -4,7 +4,6 @@ let filteredCoffees = [];
 
 const API_BASE = 'http://localhost:3000/api/coffee-beans';
 
-/*
 // Authentication variables
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyuenWBem5DtTOZgU1jL5hbSoHw-19ed2mDN0H6xb1K_qv5PrtoyAW77nTDS3QBa2YCrw/exec'; // Replace with your actual URL
 let currentUser = null;
@@ -17,7 +16,6 @@ async function promptForEmail() {
         await checkAuthorization(email.trim().toLowerCase());
     }
 }
-*/
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
