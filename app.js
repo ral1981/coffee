@@ -2,20 +2,8 @@
 let allCoffees = [];
 let filteredCoffees = [];
 
+// Supabase client
 const API_BASE = 'http://localhost:3000/api/coffee-beans';
-
-// Authentication variables
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyuenWBem5DtTOZgU1jL5hbSoHw-19ed2mDN0H6xb1K_qv5PrtoyAW77nTDS3QBa2YCrw/exec'; // Replace with your actual URL
-let currentUser = null;
-let isAuthorized = false;
-
-// --- Authentication Functions ---
-async function promptForEmail() {
-    const email = prompt('Please enter your login details to access editing features:');
-    if (email && email.trim()) {
-        await checkAuthorization(email.trim().toLowerCase());
-    }
-}
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -24,45 +12,140 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Auth state listener
+// Authentication variables
+let currentUser = null;
+let isAuthorized = false;
+
+// Auth state listener - automatically updates when user signs in/out
 supabase.auth.onAuthStateChange((event, session) => {
   console.log('Auth event:', event)
-  console.log('Session:', session)
   
-  if (event === 'SIGNED_IN') {
+  if (event === 'SIGNED_IN' && session) {
     console.log('User signed in:', session.user)
+    currentUser = session.user.email
+    isAuthorized = true
+    updateUIForAuthorizedUser()
+    showNotification('Logged in successfully.', 'success')
   } else if (event === 'SIGNED_OUT') {
     console.log('User signed out')
+    currentUser = null
+    isAuthorized = false
+    updateUIForUnauthorizedUser()
+    showNotification('Logged out successfully.', 'info')    
   }
 })
 
-async function checkAuthorization(email) {
-    try {
-        showNotification('Checking authorization...', 'info');
+/*
+// Optional: Functions to handle UI updates after auth changes
+function onUserSignedIn(user) {
+  // Update your UI to show authenticated state
+  console.log('Welcome back,', user.email)
+}
+
+function onUserSignedOut() {
+  // Update your UI to show unauthenticated state
+  console.log('User logged out')
+}
+*/
+
+// NEW promptForEmail function
+async function promptForEmail() {
+    const email = prompt('Please enter your email:');
+    if (!email || !email.trim()) return;
+    
+    const password = prompt('Please enter your password:');
+    if (!password || !password.trim()) return;
+    
+    showNotification('Signing in...', 'info');
+    
+    // Try to sign in first
+    const signInResult = await signIn(email.trim().toLowerCase(), password);
+    
+    if (signInResult.success) {
+        // Success! The auth state listener will handle UI updates
+        return;
+    }
+    
+    // If sign in failed, offer to create account
+    const createAccount = confirm(
+        `Sign in failed: ${signInResult.error}\n\nWould you like to create a new account with this email?`
+    );
+    
+    if (createAccount) {
+        showNotification('Creating account...', 'info');
+        const signUpResult = await signUp(email.trim().toLowerCase(), password);
         
-        // Use GET request with URL parameters instead of POST
-        const url = `${APPS_SCRIPT_URL}?action=checkAuth&userEmail=${encodeURIComponent(email)}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.success && result.authorized) {
-            currentUser = email;
-            isAuthorized = true;
-            showNotification('Logged in successfully.', 'success');
-            updateUIForAuthorizedUser();
+        if (signUpResult.success) {
+            showNotification('Account created! Please check your email to verify your account, then try signing in again.', 'success');
         } else {
-            showNotification('You are not authorized to edit notes.', 'error');
-            updateUIForUnauthorizedUser();
+            showNotification('Failed to create account: ' + signUpResult.error, 'error');
         }
-    } catch (error) {
-        console.error('Auth check failed:', error);
-        showNotification('Authentication failed. Please try again.', 'error');
-        updateUIForUnauthorizedUser();
+    }
+}
+
+// Core Supabase auth functions
+async function signUp(email, password) {
+  const { data, error } = await supabase.auth.signUp({
+    email: email,
+    password: password,
+  })
+  
+  if (error) {
+    console.error('Sign up error:', error)
+    return { success: false, error: error.message }
+  }
+  
+  return { success: true, data }
+}
+
+async function signIn(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email,
+    password: password,
+  })
+  
+  if (error) {
+    console.error('Sign in error:', error)
+    return { success: false, error: error.message }
+  }
+  
+  return { success: true, data }
+}
+
+async function signOut() {
+  const { error } = await supabase.auth.signOut()
+  
+  if (error) {
+    console.error('Sign out error:', error)
+    return { success: false, error: error.message }
+  }
+  
+  return { success: true }
+}
+
+// NEW logout function - replace the old one
+async function logout() {
+    showNotification('Signing out...', 'info');
+    await signOut();
+    // The auth state listener will handle UI updates
+}
+
+// For saveNotes function - simpler login prompt
+async function promptForLogin() {
+    const email = prompt('Please enter your email to save:');
+    if (!email || !email.trim()) return false;
+    
+    const password = prompt('Please enter your password:');
+    if (!password || !password.trim()) return false;
+    
+    showNotification('Signing in...', 'info');
+    const signInResult = await signIn(email.trim().toLowerCase(), password);
+    
+    if (signInResult.success) {
+        return true; // Success - can proceed with save
+    } else {
+        showNotification('Sign in failed: ' + signInResult.error, 'error');
+        return false; // Failed - don't proceed with save
     }
 }
 
@@ -132,13 +215,6 @@ function updateUIForUnauthorizedUser() {
         logoutBtn.onclick = logout;
         document.body.appendChild(logoutBtn);
         lucide.createIcons();
-    }
-
-    function logout() {
-        currentUser = null;
-        isAuthorized = false;
-        updateUIForUnauthorizedUser();
-        showNotification('Logged out successfully.', 'info');
     }
 
     function showNotification(message, type = 'info') {
@@ -1006,7 +1082,9 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
     async function saveNotes(coffeeIndex) {
 	    if (!isAuthorized) {
 	        showNotification('Please log in to save notes.', 'error');
-	        promptForEmail();
+	        const loginSuccess = await promptForLogin();
+			if (!loginSuccess) {
+    				return; // Don't proceed with save if login failed
 	        return;
 	    }
 	    
