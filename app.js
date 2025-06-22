@@ -1083,9 +1083,8 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
 	    if (!isAuthorized) {
 	        showNotification('Please log in to save notes.', 'error');
 	        const loginSuccess = await promptForLogin();
-			if (!loginSuccess) {
-    				return; // Don't proceed with save if login failed
-	        return;
+		if (!loginSuccess) {
+    		return; // Don't proceed with save if login failed
 	    }
 	    
 	    const notesInput = document.getElementById(`notes-input-${coffeeIndex}`);
