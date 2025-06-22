@@ -19,8 +19,6 @@ async function promptForEmail() {
 }
 */
 
-const supabase = createClient('https://your-project.supabase.co', 'your-anon-key')
-
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
 const supabaseUrl = 'https://vrasvqmlpdqogghtkqfu.supabase.co'
