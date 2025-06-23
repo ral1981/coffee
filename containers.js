@@ -240,7 +240,6 @@ style.textContent = `
 	    }
 	`;
 document.head.appendChild(style);
-document.body.appendChild(modal);
 
 function closeContainerModal() {
   const modal = document.getElementById("container-modal");
