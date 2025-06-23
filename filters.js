@@ -6,16 +6,12 @@ import { renderCoffeeCards } from './ui.js';
 
 function toggleFilters() {
   const filtersContent = document.getElementById("filters-content");
-  const toggleButton = document.querySelector(".filters-toggle");
+  const toggleButton = document.getElementById("toggle-filters-btn");
+  if (!filtersContent || !toggleButton) return;
+
   const isCollapsed = filtersContent.classList.contains("collapsed");
-  if (isCollapsed) {
-    filtersContent.classList.remove("collapsed");
-    toggleButton.setAttribute("aria-expanded", "true");
-  } else {
-    filtersContent.classList.add("collapsed");
-    toggleButton.setAttribute("aria-expanded", "false");
-    f;
-  }
+  filtersContent.classList.toggle("collapsed", isCollapsed);
+  toggleButton.setAttribute("aria-expanded", String(!isCollapsed));
 }
 
 function populateFilters(coffees) {
