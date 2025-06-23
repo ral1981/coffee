@@ -1282,6 +1282,10 @@ const containerStyles = `
     }
 }
 
+.highlight {
+	transition: 2s ease-in-out;
+}
+
 @media (max-width: 768px) {
     body {
         padding: 20px 12px 40px;
