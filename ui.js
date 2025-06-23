@@ -1,13 +1,13 @@
 import { getIsAuthorized, logout, promptForEmail } from "./auth.js";
-import { filteredCoffees, 
-		 editNotes,
-		 loadCoffeeData,
-		 populateFilters,
-		 applyUrlParameters,
-		 getUrlParameters,
-		 updateResultsCount,
-		 updateFilterStates
-		} from "./coffees.js";
+import { filteredCoffees } from "./coffees.js";
+import { editNotes,
+	 loadCoffeeData,
+	 populateFilters,
+	 applyUrlParameters,
+	 getUrlParameters,
+	 updateResultsCount,
+	 updateFilterStates
+	} from "./filters.js";
 
 function getDomainFromUrl(url) {
   try {
