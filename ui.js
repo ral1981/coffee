@@ -12,6 +12,7 @@ import { loadCoffeeData,
 	 updateResultsCount,
 	 updateFilterStates
 	} from "./filters.js";
+import { getContainerType } from "./containers.js";
 
 function getDomainFromUrl(url) {
   try {
