@@ -193,19 +193,35 @@ function updateFilterStates() {
   const originFilter = document.getElementById("origin-filter");
   const clearButton = document.getElementById("clear-filters-btn");
   const filtersToggle = document.querySelector(".filters-toggle");
-  containerFilter
-    .closest(".filter-group")
-    .classList.toggle("active", containerFilter.value !== "");
-  shopFilter
-    .closest(".filter-group")
-    .classList.toggle("active", shopFilter.value !== "");
-  originFilter
-    .closest(".filter-group")
-    .classList.toggle("active", originFilter.value !== "");
-  const hasFilters = hasActiveFilters();
-  clearButton.disabled = !hasFilters;
-  filtersToggle.classList.toggle("has-active-filters", hasFilters);
+
+  if (containerFilter && containerFilter.closest(".filter-group")) {
+    containerFilter
+      .closest(".filter-group")
+      .classList.toggle("active", containerFilter.value !== "");
+  }
+
+  if (shopFilter && shopFilter.closest(".filter-group")) {
+    shopFilter
+      .closest(".filter-group")
+      .classList.toggle("active", shopFilter.value !== "");
+  }
+
+  if (originFilter && originFilter.closest(".filter-group")) {
+    originFilter
+      .closest(".filter-group")
+      .classList.toggle("active", originFilter.value !== "");
+  }
+
+  const hasFilters =
+    containerFilter?.value !== "" ||
+    shopFilter?.value !== "" ||
+    originFilter?.value !== "";
+
+  if (clearButton) clearButton.disabled = !hasFilters;
+  if (filtersToggle)
+    filtersToggle.classList.toggle("has-active-filters", hasFilters);
 }
+
 
 function updateResultsCount(filtered, total) {
   const resultsElement = document.getElementById("results-count");
