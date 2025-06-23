@@ -392,7 +392,5 @@ export {
   allCoffees,
   filteredCoffees,
   setAllCoffees,
-  setFilteredCoffees,
-  allCoffees = data;
-  filteredCoffees = [...data];
+  setFilteredCoffees
 }
