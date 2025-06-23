@@ -15,12 +15,23 @@ function toggleFilters() {
 }
 
 function populateFilters(coffees) {
+  const containers = [...new Set(coffees.map(c => c.container || "N/A"))]
+    .filter(c => c !== "N/A")
+    .sort();
   const shops = [...new Set(coffees.map((coffee) => coffee.shop_name || "N/A"))]
     .filter((shop) => shop !== "N/A")
     .sort();
   const origins = [...new Set(coffees.map((coffee) => coffee.origin || "N/A"))]
     .filter((origin) => origin !== "N/A")
     .sort();
+  const containerFilter = document.getElementById("container-filter");
+  containerFilter.innerHTML = '<option value="">All Containers</option>';
+  containers.forEach(container => {
+    const option = document.createElement("option");
+    option.value = container.toLowerCase();
+    option.textContent = container;
+    containerFilter.appendChild(option);
+  });
   const shopFilter = document.getElementById("shop-filter");
   shopFilter.innerHTML = '<option value="">All Shops</option>';
   shops.forEach((shop) => {
