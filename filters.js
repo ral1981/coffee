@@ -129,7 +129,7 @@ function applyFilters() {
   const containerFilter = document.getElementById("container-filter").value;
   const shopFilter = document.getElementById("shop-filter").value;
   const originFilter = document.getElementById("origin-filter").value;
-  filteredCoffees = allCoffees.filter((coffee) => {
+  const filtered = allCoffees.filter((coffee) => {
     if (containerFilter) {
       const containerValue = (coffee.container || "").toLowerCase();
       if (
@@ -160,6 +160,7 @@ function applyFilters() {
     if (originFilter && (coffee.origin || "N/A") !== originFilter) return false;
     return true;
   });
+  setFilteredCoffees(filtered);
   renderCoffeeCards(filteredCoffees);
   updateResultsCount(filteredCoffees.length, allCoffees.length);
   updateUrlParameters();
