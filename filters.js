@@ -1,6 +1,7 @@
 //import { supabase } from './api.js';
 import { API_BASE } from "./api.js";
 import { allCoffees, filteredCoffees, setFilteredCoffees } from './coffees.js';
+import { renderCoffeeCards } from './ui.js';
 
 
 function toggleFilters() {
