@@ -339,3 +339,7 @@ async function updateContainer(coffeeIndex, newContainerType) {
     }
   }
 }
+
+export {
+  getContainerType
+};
