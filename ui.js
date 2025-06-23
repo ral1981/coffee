@@ -1,7 +1,7 @@
 import { getIsAuthorized, logout, promptForEmail } from "./auth.js";
 import { filteredCoffees } from "./coffees.js";
-import { editNotes,
-	 loadCoffeeData,
+import { editNotes } from "./notes.js";
+import { loadCoffeeData,
 	 populateFilters,
 	 applyUrlParameters,
 	 getUrlParameters,
