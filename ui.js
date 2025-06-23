@@ -444,4 +444,5 @@ export {
   addLogoutButton,
   renderCoffeeCards,
   createShopLogoElement,
+  scrollToTop
 };
