@@ -15,10 +15,17 @@ import { loadCoffeeData,
 	} from "./filters.js";
 import { getContainerType } from "./containers.js";
 
-document.addEventListener('DOMContentLoaded', () => {
-  const toggleBtn = document.getElementById('toggle-filters-btn');
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleBtn = document.getElementById("toggle-filters-btn");
   if (toggleBtn) {
-    toggleBtn.addEventListener('click', toggleFilters);
+    toggleBtn.addEventListener("click", toggleFilters);
+  }
+
+  const backToTopBtn = document.getElementById("back-to-top");
+  if (backToTopBtn) {
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
   }
 });
 
