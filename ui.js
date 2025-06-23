@@ -1,5 +1,9 @@
 import { getIsAuthorized, logout, promptForEmail } from "./auth.js";
-import { allCoffees, filteredCoffees } from "./coffees.js";
+import { allCoffees,
+	 filteredCoffees,
+         setAllCoffees,
+         setFilteredCoffees
+       } from "./coffees.js";
 import { editNotes } from "./notes.js";
 import { loadCoffeeData,
 	 populateFilters,
@@ -395,8 +399,8 @@ window.addEventListener("scroll", function () {
 
 document.addEventListener("DOMContentLoaded", function () {
   loadCoffeeData().then((coffees) => {
-    allCoffees = coffees;
-    filteredCoffees = [...coffees];
+    setAllCoffees(coffees);
+    setFilteredCoffees([...coffees]);
     populateFilters(coffees);
     applyUrlParameters();
     if (
