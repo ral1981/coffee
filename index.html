@@ -232,13 +232,11 @@
         </div>
     </div>
     <div class="filters-section">
-        <div class="filters-container">
-            <button aria-expanded="false"
-                 class="filters-toggle"
-                 onclick="toggleFilters()"><span>Filter Coffee Collection</span></button>
-            <div class="filters-content collapsed"
-                 id="filters-content">
-                <div class="filters-grid">
+        <div class="filters-container">            
+                <button aria-expanded="false" id="toggle-filters-btn">Filter Coffee Collection</button>
+                    <div class="filters-content collapsed"
+                        id="filters-content">                
+                    <div class="filters-grid">
                     <div class="filter-group">
                         <label for="container-filter">Container:</label> <select id="container-filter"
                              onchange="applyFilters()">
