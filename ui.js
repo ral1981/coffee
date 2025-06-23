@@ -355,6 +355,7 @@ function renderCoffeeCards(coffees) {
 	  switchEl.addEventListener('click', () => toggleSlide(switchEl));
 	}
 	lucide.createIcons();
+	});
   }
 
 function toggleSlide(switchEl) {
