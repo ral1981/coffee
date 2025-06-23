@@ -151,6 +151,10 @@ function showContainerModal(message, onConfirm, onCancel) {
   `;
   document.body.appendChild(modal);
 
+  // Store callbacks for the modal buttons
+  window.containerModalOnConfirm = onConfirm;
+  window.containerModalOnCancel = onCancel;
+
   // Bind buttons
   modal
     .querySelector(".modal-btn-cancel")
@@ -237,10 +241,6 @@ style.textContent = `
 	`;
 document.head.appendChild(style);
 document.body.appendChild(modal);
-
-// Store callbacks for the modal buttons
-window.containerModalOnConfirm = onConfirm;
-window.containerModalOnCancel = onCancel;
 
 function closeContainerModal() {
   const modal = document.getElementById("container-modal");
