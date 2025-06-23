@@ -1,5 +1,7 @@
 //import { supabase } from './api.js';
 import { API_BASE } from "./api.js";
+import { allCoffees, filteredCoffees, setFilteredCoffees } from './coffees.js';
+
 
 function toggleFilters() {
   const filtersContent = document.getElementById("filters-content");
