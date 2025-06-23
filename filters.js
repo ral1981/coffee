@@ -9,8 +9,8 @@ function toggleFilters() {
   const toggleButton = document.getElementById("toggle-filters-btn");
   if (!filtersContent || !toggleButton) return;
 
+  filtersContent.classList.toggle("collapsed");
   const isCollapsed = filtersContent.classList.contains("collapsed");
-  filtersContent.classList.toggle("collapsed", isCollapsed);
   toggleButton.setAttribute("aria-expanded", String(!isCollapsed));
 }
 
