@@ -3,6 +3,18 @@ import { getIsAuthorized, logout } from './auth.js';
 import { showNotification } from './ui.js';
 import { populateFilters, applyFilters } from './filters.js';
 
+let allCoffees = [];
+let filteredCoffees = [];
+
+function setAllCoffees(data) {
+  allCoffees = data;
+}
+
+function setFilteredCoffees(data) {
+  filteredCoffees = data;
+}
+
+
 // Toggle Add Coffee Section
 function toggleAddCoffee() {
   const toggle = document.getElementById("add-coffee-toggle");
@@ -376,10 +388,11 @@ async function addCoffeeBean(coffeeData) {
   }
 }
 
-export function setAllCoffees(data) {
+export {
+  allCoffees,
+  filteredCoffees,
+  setAllCoffees,
+  setFilteredCoffees,
   allCoffees = data;
   filteredCoffees = [...data];
 }
-
-export let allCoffees = [];
-export let filteredCoffees = [];
