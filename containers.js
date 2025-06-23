@@ -28,7 +28,6 @@ function showContainerReplacementDialog(result, originalEvent) {
 				</div>
 	        </div>
 	    `;
-  const dialog = document.querySelector(".confirmation-dialog-overlay");
 
   const cancelBtn = dialog.querySelector(".btn-cancel");
   const confirmBtn = dialog.querySelector(".btn-confirm");
@@ -41,16 +40,12 @@ function showContainerReplacementDialog(result, originalEvent) {
     confirmBtn.addEventListener("click", (e) => confirmContainerReplacement(e));
   }
 
-  // Store the original event for later use
   dialog.originalEvent = originalEvent;
-
   document.body.appendChild(dialog);
   lucide.createIcons();
-
-  // Focus on the dialog for accessibility
+  
   dialog.querySelector(".btn-confirm").focus();
 
-  // Handle escape key
   const handleEscape = (e) => {
     if (e.key === "Escape") {
       closeContainerReplacementDialog();
