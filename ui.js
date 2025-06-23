@@ -10,9 +10,17 @@ import { loadCoffeeData,
 	 applyUrlParameters,
 	 getUrlParameters,
 	 updateResultsCount,
+	 toggleFilters,
 	 updateFilterStates
 	} from "./filters.js";
 import { getContainerType } from "./containers.js";
+
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleBtn = document.getElementById('toggle-filters-btn');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', toggleFilters);
+  }
+});
 
 function getDomainFromUrl(url) {
   try {
