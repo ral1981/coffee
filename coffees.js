@@ -393,4 +393,4 @@ export {
   filteredCoffees,
   setAllCoffees,
   setFilteredCoffees
-}
+};
