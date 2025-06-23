@@ -7,6 +7,7 @@ import { allCoffees,
 import { editNotes } from "./notes.js";
 import { loadCoffeeData,
 	 populateFilters,
+	 applyFilters,
 	 applyUrlParameters,
 	 getUrlParameters,
 	 updateResultsCount,
@@ -14,20 +15,6 @@ import { loadCoffeeData,
 	 updateFilterStates
 	} from "./filters.js";
 import { getContainerType } from "./containers.js";
-
-document.addEventListener("DOMContentLoaded", () => {
-  const toggleBtn = document.getElementById("toggle-filters-btn");
-  if (toggleBtn) {
-    toggleBtn.addEventListener("click", toggleFilters);
-  }
-
-  const backToTopBtn = document.getElementById("back-to-top");
-  if (backToTopBtn) {
-    backToTopBtn.addEventListener("click", () => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  }
-});
 
 function getDomainFromUrl(url) {
   try {
@@ -406,34 +393,58 @@ function scrollToTop() {
 // --- Event Listeners and Initialization ---
 window.addEventListener("scroll", function () {
   const backToTopButton = document.getElementById("back-to-top");
-  if (window.pageYOffset > 300) {
-    backToTopButton.classList.add("visible");
-  } else {
-    backToTopButton.classList.remove("visible");
+  if (backToTopButton) {
+    if (window.pageYOffset > 300) {
+      backToTopButton.classList.add("visible");
+    } else {
+      backToTopButton.classList.remove("visible");
+    }
   }
 });
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
+  // Bind filter toggle
+  const toggleBtn = document.getElementById("toggle-filters-btn");
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", toggleFilters);
+  }
+
+  // Bind filter <select> changes
+  const container = document.getElementById("container-filter");
+  const shop = document.getElementById("shop-filter");
+  const origin = document.getElementById("origin-filter");
+
+  if (container) container.addEventListener("change", applyFilters);
+  if (shop) shop.addEventListener("change", applyFilters);
+  if (origin) origin.addEventListener("change", applyFilters);
+
+  // Back to top button
+  const backToTopBtn = document.getElementById("back-to-top");
+  if (backToTopBtn) {
+    backToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    if (window.pageYOffset > 300) {
+      backToTopBtn.classList.add("visible");
+    }
+  }
+
+  // Coffee data + UI setup
   loadCoffeeData().then((coffees) => {
     setAllCoffees(coffees);
     setFilteredCoffees([...coffees]);
     populateFilters(coffees);
     applyUrlParameters();
-    if (
-      !getUrlParameters().container &&
-      !getUrlParameters().shop &&
-      !getUrlParameters().origin
-    ) {
+
+    const params = getUrlParameters();
+    if (!params.container && !params.shop && !params.origin) {
       renderCoffeeCards(filteredCoffees);
       updateResultsCount(filteredCoffees.length, allCoffees.length);
     }
+
     updateFilterStates();
   });
-
-  const backToTopButton = document.getElementById("back-to-top");
-  if (window.pageYOffset > 300) {
-    backToTopButton.classList.add("visible");
-  }
 
   updateUIForUnauthorizedUser();
   setTimeout(() => {
