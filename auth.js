@@ -1,4 +1,4 @@
-import { supabase } from "./api.js";
+import { supabase } from "./supabase.js";
 
 import {
   updateUIForAuthorizedUser,
