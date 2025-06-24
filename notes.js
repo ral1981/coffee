@@ -1,8 +1,8 @@
 // === Imports ===
+import { supabase } from './supabase.js';
 import { getIsAuthorized, promptForLogin, logout } from './auth.js';
 import { showNotification } from './ui.js';
 import { allCoffees, filteredCoffees } from './coffees.js';
-import { API_BASE } from './api.js'; // assuming this holds your localhost URL
 import lucide from 'https://cdn.jsdelivr.net/npm/lucide@latest/+esm';
 
 // === Edit Notes ===
@@ -54,27 +54,21 @@ export async function saveNotes(coffeeIndex) {
   saveButton.disabled = true;
 
   try {
-    const response = await fetch(`${API_BASE}/notes`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: coffeeId, notes: newNotes })
-    });
+    const { error } = await supabase
+      .from('coffee_beans')
+      .update({ notes: newNotes })
+      .eq('id', coffeeId)
+      .eq('userEmail', getCurrentUser()); // Optional, based on your RLS
 
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (error) throw error;
 
-    const result = await response.json();
+    // Update local state
+    filteredCoffees[coffeeIndex].notes = newNotes;
+    const match = allCoffees.find(c => c.id === coffeeId);
+    if (match) match.notes = newNotes;
 
-    if (result.success) {
-      // Update local state
-      filteredCoffees[coffeeIndex].notes = newNotes;
-      const match = allCoffees.find(c => c.id === coffeeId);
-      if (match) match.notes = newNotes;
-
-      renderNotesSection(coffeeIndex, newNotes);
-      showNotification('Notes saved successfully!', 'success');
-    } else {
-      throw new Error(result.error || 'Failed to save notes');
-    }
+    renderNotesSection(coffeeIndex, newNotes);
+    showNotification('Notes saved successfully!', 'success');
   } catch (err) {
     console.error('Save notes error:', err);
     saveButton.innerHTML = originalSaveText;
