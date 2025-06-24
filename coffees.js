@@ -1,7 +1,7 @@
-import { supabase, API_BASE } from "./api.js";
-import { getIsAuthorized, logout } from './auth.js';
-import { showNotification } from './ui.js';
-import { populateFilters, applyFilters } from './filters.js';
+import { supabase } from "./supabase.js";
+import { getIsAuthorized, logout } from "./auth.js";
+import { showNotification } from "./ui.js";
+import { populateFilters, applyFilters } from "./filters.js";
 
 let allCoffees = [];
 let filteredCoffees = [];
@@ -13,7 +13,6 @@ function setAllCoffees(data) {
 function setFilteredCoffees(data) {
   filteredCoffees = data;
 }
-
 
 // Toggle Add Coffee Section
 function toggleAddCoffee() {
@@ -294,52 +293,18 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
       throw new Error("A coffee with this name already exists");
     }
 
-    // Call your new Node.js API
-    const response = await fetch(API_BASE, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(coffeeData),
-    });
+    // Submit New Coffee
+    const { data: inserted, error } = await supabase
+      .from("coffee_beans")
+      .insert(coffeeData)
+      .select()
+      .single();
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (error) {
+      throw new Error(error.message || "Failed to add coffee");
     }
 
-    const result = await response.json();
-
-    if (result.success) {
-      // Add new coffee to local arrays (using the returned data from DB)
-      const newCoffee = result.data;
-      allCoffees.push(newCoffee);
-
-      // Refresh filters and display
-      populateFilters(allCoffees);
-      applyFilters();
-
-      // Reset form and close section
-      resetAddCoffeeForm();
-
-      showNotification("Coffee added successfully!", "success");
-
-      // Scroll to the new coffee card if it's visible in current filter
-      setTimeout(() => {
-        const coffeeCards = document.querySelectorAll(".coffee-card");
-        const newCard = Array.from(coffeeCards).find(
-          (card) =>
-            card.querySelector(".coffee-name").textContent === newCoffee.name,
-        );
-        if (newCard) {
-          newCard.scrollIntoView({ behavior: "smooth", block: "center" });
-          newCard.classList.remove('highlight');
-		  void newCard.offsetWidth; // force reflow
-		  newCard.classList.add('highlight');
-        }
-      }, 300);
-    } else {
-      throw new Error(result.error || "Failed to add coffee");
-    }
+    const newCoffee = inserted;
   } catch (error) {
     console.error("Error adding coffee:", error);
 
@@ -360,37 +325,17 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
   }
 }
 
-async function addCoffeeBean(coffeeData) {
-  try {
-    const response = await fetch(API_BASE, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(coffeeData),
-    });
+const { data, error } = await supabase
+  .from("coffee_beans")
+  .insert(coffeeData)
+  .select()
+  .single();
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    if (result.success) {
-      console.log("Coffee bean added successfully:", result.data);
-      return result.data;
-    } else {
-      throw new Error(result.error || "Failed to add coffee bean");
-    }
-  } catch (error) {
-    console.error("Error adding coffee bean:", error);
-    throw error; // Re-throw so calling code can handle it
-  }
+if (error) {
+  throw error;
 }
 
-export {
-  allCoffees,
-  filteredCoffees,
-  setAllCoffees,
-  setFilteredCoffees
-};
+console.log("Coffee bean added successfully:", data);
+return data;
+
+export { allCoffees, filteredCoffees, setAllCoffees, setFilteredCoffees };
