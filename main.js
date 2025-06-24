@@ -1,5 +1,5 @@
 // main.js
-import './api.js';
+import './supabase.js';
 import './auth.js';
 import './coffees.js';
 import './containers.js';
