@@ -431,7 +431,7 @@ h1 {
     cursor: not-allowed;
 }
 
-.filters-toggle {
+.toggle-filters-btn {
 width: 100%;
 background: none;
     border: none;
@@ -448,15 +448,15 @@ background: none;
     transition: background-color 0.2s ease;
 }
 
-.filters-toggle:hover {
+.toggle-filters-btn:hover {
     background: #f9fafb;
 }
 
-.filters-toggle .toggle-icon {
+.toggle-filters-btn .toggle-icon {
     transition: transform 0.3s ease;
 }
 
-.filters-toggle[aria-expanded="true"] .toggle-icon {
+.toggle-filters-btn[aria-expanded="true"] .toggle-icon {
     transform: rotate(180deg);
 }
 
@@ -584,11 +584,11 @@ background: none;
     transform: none;
 }
 
-.filters-toggle.has-active-filters {
+.toggle-filters-btn.has-active-filters {
     color: #4f46e5;
 }
 
-.filters-toggle.has-active-filters svg:first-child {
+.toggle-filters-btn.has-active-filters svg:first-child {
     color: #4f46e5;
 }
 
