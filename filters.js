@@ -1,5 +1,4 @@
-//import { supabase } from './api.js';
-import { API_BASE } from "./api.js";
+import { supabase } from "./supabase.js";
 import { allCoffees, filteredCoffees, setFilteredCoffees } from './coffees.js';
 import { renderCoffeeCards } from './ui.js';
 
@@ -252,52 +251,35 @@ function updateResultsCount(filtered, total) {
 
 async function loadCoffeeData() {
   try {
-    const response = await fetch(API_BASE);
+    const { data, error } = await supabase
+      .from('coffee_beans')
+      .select('*');
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    if (error) throw error;
 
-    const result = await response.json();
-
-    if (result.success) {
-      console.log(`Loaded ${result.count} coffee beans from database`);
-      return result.data;
-    } else {
-      throw new Error(result.error || "Failed to load data");
-    }
+    console.log(`Loaded ${data.length} coffee beans from database`);
+    return data;
   } catch (error) {
     console.error("Error loading coffee data:", error);
-    // You can return an empty array or show an error message to users
     return [];
   }
 }
 
 async function loadFilteredCoffeeData(filters = {}) {
   try {
-    // Build query parameters
-    const params = new URLSearchParams();
-    if (filters.shop_name) params.append("shop_name", filters.shop_name);
-    if (filters.origin) params.append("origin", filters.origin);
-    if (filters.processing_method)
-      params.append("processing_method", filters.processing_method);
-    if (filters.container) params.append("container", filters.container);
+    let query = supabase.from('coffee_beans').select('*');
 
-    const url = `${API_BASE}/filter?${params.toString()}`;
-    const response = await fetch(url);
+    if (filters.shop_name) query = query.eq('shop_name', filters.shop_name);
+    if (filters.origin) query = query.eq('origin', filters.origin);
+    if (filters.processing_method) query = query.eq('processing_method', filters.processing_method);
+    if (filters.container) query = query.eq('container', filters.container);
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    const { data, error } = await query;
 
-    const result = await response.json();
+    if (error) throw error;
 
-    if (result.success) {
-      console.log(`Found ${result.count} filtered coffee beans`);
-      return result.data;
-    } else {
-      throw new Error(result.error || "Failed to filter data");
-    }
+    console.log(`Found ${data.length} filtered coffee beans`);
+    return data;
   } catch (error) {
     console.error("Error filtering coffee data:", error);
     return [];
