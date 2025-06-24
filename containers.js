@@ -1,7 +1,7 @@
+import { supabase } from "./supabase.js";
 import { getIsAuthorized, getCurrentUser, logout } from "./auth.js";
 import { allCoffees, filteredCoffees } from "./coffees.js";
 import { showNotification, renderCoffeeCards } from "./ui.js";
-//import { supabase } from './api.js'; // if replacing API_BASE with direct Supabase calls
 
 // Function to show container replacement confirmation dialog
 function showContainerReplacementDialog(result, originalEvent) {
@@ -269,76 +269,61 @@ async function updateContainer(coffeeIndex, newContainerType) {
   try {
     showNotification("Updating container...", "info");
 
-    // Build URL with parameters for GET request
-    const params = new URLSearchParams({
-      action: "updateContainer",
-      coffeeName: coffee.name,
-      containerType: newContainerType || "", // Send empty string for removal
-      userEmail: getCurrentUser(),
-    });
+    const { error } = await supabase
+      .from("coffee_beans")
+      .update({ container: containerValue })
+      .eq("id", coffee.id) // Use the coffee's unique ID
+      .eq("userEmail", getCurrentUser());
 
-    const url = `API_BASE?${params.toString()}`;
-    const response = await fetch(url);
+    if (error) throw error;
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    if (result.success) {
-      // First, remove any other coffee from this container if setting a new container
-      if (newContainerType) {
-        const otherCoffeeIndex = allCoffees.findIndex(
-          (c) =>
-            c.name !== coffee.name &&
-            getContainerType(c.container) === newContainerType,
+    // Remove any other coffee in the same container
+    if (newContainerType) {
+      const otherCoffeeIndex = allCoffees.findIndex(
+        (c) =>
+          c.id !== coffee.id &&
+          getContainerType(c.container) === newContainerType
+      );
+      if (otherCoffeeIndex !== -1) {
+        allCoffees[otherCoffeeIndex].container = "";
+        const filteredOtherIndex = filteredCoffees.findIndex(
+          (c) => c.id === allCoffees[otherCoffeeIndex].id
         );
-        if (otherCoffeeIndex !== -1) {
-          allCoffees[otherCoffeeIndex].container = "";
-          // Update in filtered coffees too if it exists there
-          const filteredOtherIndex = filteredCoffees.findIndex(
-            (c) => c.name === allCoffees[otherCoffeeIndex].name,
-          );
-          if (filteredOtherIndex !== -1) {
-            filteredCoffees[filteredOtherIndex].container = "";
-          }
+        if (filteredOtherIndex !== -1) {
+          filteredCoffees[filteredOtherIndex].container = "";
         }
       }
-
-      // Update the current coffee
-      coffee.container = containerValue;
-      const coffeeInAll = allCoffees.find((c) => c.name === coffee.name);
-      if (coffeeInAll) {
-        coffeeInAll.container = containerValue;
-      }
-
-      // Re-render all cards to update container states
-      renderCoffeeCards(filteredCoffees);
-
-      showNotification(
-        newContainerType
-          ? `${coffee.name} moved to ${newContainerType} container!`
-          : `${coffee.name} removed from container!`,
-        "success",
-      );
-    } else {
-      throw new Error(result.error || "Failed to update container");
     }
+
+    // Update the current coffee
+    coffee.container = containerValue;
+    const coffeeInAll = allCoffees.find((c) => c.id === coffee.id);
+    if (coffeeInAll) {
+      coffeeInAll.container = containerValue;
+    }
+
+    renderCoffeeCards(filteredCoffees);
+    showNotification(
+      newContainerType
+        ? `${coffee.name} moved to ${newContainerType} container!`
+        : `${coffee.name} removed from container!`,
+      "success"
+    );
   } catch (error) {
     console.error("Error updating container:", error);
-
     if (error.message.includes("Unauthorized")) {
       showNotification("Session expired. Please log in again.", "warning");
       logout();
     } else {
       showNotification(
         "Failed to update container. Please try again.",
-        "error",
+        "error"
       );
     }
   }
 }
+
+
 
 export {
   getContainerType
