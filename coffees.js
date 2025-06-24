@@ -325,29 +325,4 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
   }
 }
 
-const { data, error } = await supabase
-  .from("coffee_beans")
-  .insert(coffeeData)
-  .select()
-  .single();
-
-if (error) {
-  throw error;
-}
-
-async function addCoffeeBean(coffeeData) {
-  const { data, error } = await supabase
-    .from("coffee_beans")
-    .insert(coffeeData)
-    .select()
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  console.log("Coffee bean added successfully:", data);
-  return data;
-}
-
 export { allCoffees, filteredCoffees, setAllCoffees, setFilteredCoffees };
