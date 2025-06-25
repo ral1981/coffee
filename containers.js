@@ -272,8 +272,7 @@ async function updateContainer(coffeeIndex, newContainerType) {
     const { error } = await supabase
       .from("coffee_beans")
       .update({ container: containerValue })
-      .eq("id", coffee.id) // Use the coffee's unique ID
-      .eq("userEmail", getCurrentUser());
+      .eq("id", coffee.id) // Use the coffee's unique ID;
 
     if (error) throw error;
 
