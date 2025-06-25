@@ -137,31 +137,11 @@ function applyFilters() {
   const shopFilter = document.getElementById("shop-filter").value;
   const originFilter = document.getElementById("origin-filter").value;
   const filtered = allCoffees.filter((coffee) => {
-    if (containerFilter) {
-      const containerValue = (coffee.container || "").toLowerCase();
-      if (
-        containerFilter === "green" &&
-        !(
-          containerValue.includes("green") ||
-          containerValue.includes("container_01")
-        )
-      )
-        return false;
-      if (
-        containerFilter === "grey" &&
-        !(
-          containerValue.includes("grey") ||
-          containerValue.includes("gray") ||
-          containerValue.includes("container_02")
-        )
-      )
-        return false;
-      if (
-        containerFilter === "none" &&
-        containerValue &&
-        containerValue.trim() !== ""
-      )
-        return false;
+    if (
+      containerFilter &&
+      (coffee.container || "").toLowerCase() !== containerFilter.toLowerCase()
+    ) {
+      return false;
     }
     if (shopFilter && (coffee.shop_name || "N/A") !== shopFilter) return false;
     if (originFilter && (coffee.origin || "N/A") !== originFilter) return false;
