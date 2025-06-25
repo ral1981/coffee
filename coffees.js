@@ -10,6 +10,14 @@ let filteredCoffees = [];
 
 function setAllCoffees(data) {
   allCoffees = data;
+
+  console.log(allCoffees.map(c => ({
+  name: c.name,
+  in: c.recipe_in_grams,
+  out: c.recipe_out_grams
+})));
+
+  
 }
 
 function setFilteredCoffees(data) {
