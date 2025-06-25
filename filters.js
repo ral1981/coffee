@@ -175,10 +175,13 @@ function applyFilters() {
 }
 
 function clearAllFilters() {
-  document.getElementById("container-filter").value = "";
-  document.getElementById("shop-filter").value = "";
-  document.getElementById("origin-filter").value = "";
-  filteredCoffees = [...allCoffees];
+  document.getElementById("container-filter").value = '';
+  document.getElementById("shop-filter").value = '';
+  document.getElementById("origin-filter").value = '';
+
+  filteredCoffees.length = 0;
+  filteredCoffees.push(...allCoffees);
+
   renderCoffeeCards(filteredCoffees);
   updateResultsCount(filteredCoffees.length, allCoffees.length);
   clearUrlParameters();
@@ -187,47 +190,27 @@ function clearAllFilters() {
 
 function hasActiveFilters() {
   return (
-    document.getElementById("container-filter").value !== "" ||
-    document.getElementById("shop-filter").value !== "" ||
-    document.getElementById("origin-filter").value !== ""
+    document.getElementById("container-filter").value !== '' ||
+    document.getElementById("shop-filter").value !== '' ||
+    document.getElementById("origin-filter").value !== ''
   );
 }
 
 function updateFilterStates() {
-  const containerFilter = document.getElementById("container-filter");
-  const shopFilter = document.getElementById("shop-filter");
-  const originFilter = document.getElementById("origin-filter");
-  const clearButton = document.getElementById("clear-filters-btn");
-  const filtersToggle = document.querySelector(".filters-toggle");
+  const container = document.getElementById("container-filter");
+  const shop = document.getElementById("shop-filter");
+  const origin = document.getElementById("origin-filter");
+  const clearBtn = document.getElementById("clear-filters-btn");
+  const toggle = document.querySelector(".filters-toggle");
 
-  if (containerFilter && containerFilter.closest(".filter-group")) {
-    containerFilter
-      .closest(".filter-group")
-      .classList.toggle("active", containerFilter.value !== "");
-  }
+  container.closest(".filter-group").classList.toggle("active", container.value !== '');
+  shop.closest(".filter-group").classList.toggle("active", shop.value !== '');
+  origin.closest(".filter-group").classList.toggle("active", origin.value !== '');
 
-  if (shopFilter && shopFilter.closest(".filter-group")) {
-    shopFilter
-      .closest(".filter-group")
-      .classList.toggle("active", shopFilter.value !== "");
-  }
-
-  if (originFilter && originFilter.closest(".filter-group")) {
-    originFilter
-      .closest(".filter-group")
-      .classList.toggle("active", originFilter.value !== "");
-  }
-
-  const hasFilters =
-    containerFilter?.value !== "" ||
-    shopFilter?.value !== "" ||
-    originFilter?.value !== "";
-
-  if (clearButton) clearButton.disabled = !hasFilters;
-  if (filtersToggle)
-    filtersToggle.classList.toggle("has-active-filters", hasFilters);
+  const active = hasActiveFilters();
+  clearBtn.disabled = !active;
+  toggle.classList.toggle("has-active-filters", active);
 }
-
 
 function updateResultsCount(filtered, total) {
   const resultsElement = document.getElementById("results-count");
@@ -289,12 +272,13 @@ async function loadFilteredCoffeeData(filters = {}) {
 export {
   toggleFilters,
   populateFilters,
-  getUrlParameters,
   applyFilters,
-  applyUrlParameters,
   clearAllFilters,
   hasActiveFilters,
   updateFilterStates,
+  getUrlParameters,  
+  applyUrlParameters,
+  clearUrlParameters,
   updateResultsCount,
   loadCoffeeData,
   loadFilteredCoffeeData,
