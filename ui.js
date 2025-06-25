@@ -123,6 +123,22 @@ function showNotification(message, type = "info") {
   }, 4000);
 }
 
+function toggleAddCoffee() {
+  const toggle = document.getElementById("add-coffee-toggle");
+  const content = document.getElementById("add-coffee-content");
+
+  if (!getIsAuthorized()) {
+    showNotification("Please log in to add coffee entries.", "warning");
+    return;
+  }
+
+  const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+  toggle.setAttribute("aria-expanded", !isExpanded);
+
+  content.classList.toggle("collapsed", isExpanded);
+  content.classList.toggle("expanded", !isExpanded);
+}
+
 function getFaviconUrl(url) {
   const domain = getDomainFromUrl(url);
   return domain
@@ -403,6 +419,12 @@ window.addEventListener("scroll", function () {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+// Add coffee button toggle
+const addCoffeeBtn = document.getElementById("add-coffee-toggle");
+if (addCoffeeBtn) {
+  addCoffeeBtn.addEventListener("click", toggleAddCoffee);
+}
+
   // Bind filter toggle
   const toggleBtn = document.getElementById("toggle-filters-btn");
   if (toggleBtn) {
@@ -460,6 +482,7 @@ export {
   showNotification,
   addLoginButton,
   addLogoutButton,
+  toggleAddCoffee,
   renderCoffeeCards,
   createShopLogoElement,
   scrollToTop
