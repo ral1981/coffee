@@ -234,24 +234,30 @@
     </div>
     <div class="filters-section">
         <div class="filters-container">            
-                <button aria-expanded="false" id="toggle-filters-btn">Filter Coffee Collection</button>
+                <button aria-expanded="false" id="toggle-filters-btn">
+                        <i data-lucide="funnel"></i>
+                        Filter Coffee Collection
+                </button>
                     <div class="filters-content collapsed"
                         id="filters-content">                
                     <div class="filters-grid">
                     <div class="filter-group">
+                        <i data-lucide="funnel"></i>
                         <label for="container-filter">Container:</label> <select id="container-filter">...</select>
                     </div>
                     <div class="filter-group">
+                        <i data-lucide="funnel"></i>
                         <label for="shop-filter">Shop:</label> <select id="shop-filter">...</select>
                     </div>
                     <div class="filter-group">
+                        <i data-lucide="funnel"></i>
                         <label for="origin-filter">Origin:</label> <select id="origin-filter">...</select>
                     </div>
                     <div class="filter-group">
-                        <button class="clear-filters-btn"
-                             disabled
-                             id="clear-filters-btn"
-                             onclick="clearAllFilters()">Clear All Filters</button>
+                        <button class="clear-filters-btn" id="clear-filters-btn" disabled>
+                            <i data-lucide="funnel-x"></i>
+                            Clear All Filters
+                        </button>
                     </div>
                 </div>
             </div>
