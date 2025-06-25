@@ -1,6 +1,6 @@
 // === Imports ===
 import { supabase } from './supabase.js';
-import { getIsAuthorized, promptForLogin, logout } from './auth.js';
+import { getIsAuthorized, promptForLogin, logout, getCurrentUser } from './auth.js';
 import { showNotification } from './ui.js';
 import { allCoffees, filteredCoffees } from './coffees.js';
 //import lucide from 'https://cdn.jsdelivr.net/npm/lucide@latest/+esm';
