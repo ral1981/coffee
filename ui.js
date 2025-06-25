@@ -195,7 +195,7 @@ function renderCoffeeCards(coffees) {
 
   coffees.forEach((coffee, index) => {
 console.log("⬅ Rendering card for:", coffee.name);
-console.log("→ Recipe in:", coffee["recipe:_in_grams"], "out:", coffee["recipe:_out_grams"]);	  
+console.log("→ Recipe in:", coffee["recipe_in_grams"], "out:", coffee["recipe_out_grams"]);	  
     const containerValue = coffee.container || "";
     const currentContainerType = getContainerType(containerValue);
     let containerClass = "";
@@ -210,10 +210,10 @@ console.log("→ Recipe in:", coffee["recipe:_in_grams"], "out:", coffee["recipe
     }
 
     const hasRecipe =
-      coffee["recipe:_in_grams"] !== null &&
-      coffee["recipe:_out_grams"] !== null &&
-      coffee["recipe:_in_grams"] !== undefined &&
-      coffee["recipe:_out_grams"] !== undefined;
+      coffee["recipe_in_grams"] !== null &&
+      coffee["recipe_out_grams"] !== null &&
+      coffee["recipe_in_grams"] !== undefined &&
+      coffee["recipe_out_grams"] !== undefined;
 console.log("→ hasRecipe =", hasRecipe);	  
 
     const card = document.createElement("div");
@@ -280,11 +280,11 @@ console.log("→ hasRecipe =", hasRecipe);
             </div>` : ""
           }
 
-          ${createRecipeItem("Ratio", coffee["recipe:_ratio"] || "1:2")}
-          ${createRecipeItem("In (g)", coffee["recipe:_in_grams"] || "18", "in-val")}
-          ${createRecipeItem("Out (g)", coffee["recipe:_out_grams"] || "36", "out-val")}
-          ${createRecipeItem("Time (s)", coffee["recipe:_time_seconds"] || "28")}
-          ${createRecipeItem("Temp (°C)", coffee["recipe:_temperature_c"] || "93")}
+          ${createRecipeItem("Ratio", coffee["recipe_ratio"] || "1:2")}
+          ${createRecipeItem("In (g)", coffee["recipe_in_grams"] || "18", "in-val")}
+          ${createRecipeItem("Out (g)", coffee["recipe_out_grams"] || "36", "out-val")}
+          ${createRecipeItem("Time (s)", coffee["recipe_time_seconds"] || "28")}
+          ${createRecipeItem("Temp (°C)", coffee["recipe_temperature_c"] || "93")}
         </div>
       </div>
     `;
