@@ -290,7 +290,12 @@ async function updateContainer(coffeeIndex, newContainerType) {
         );
         if (filteredOtherIndex !== -1) {
           filteredCoffees[filteredOtherIndex].container = "";
-        }
+        }		
+	await supabase
+	  .from("coffee_beans")
+	  .update({ container: "" })
+	  .eq("id", otherCoffee.id);
+	}
       }
     }
 
