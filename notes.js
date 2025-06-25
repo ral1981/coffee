@@ -6,8 +6,6 @@ import { allCoffees, filteredCoffees } from './coffees.js';
 //import lucide from 'https://cdn.jsdelivr.net/npm/lucide@latest/+esm';
 import { createIcons } from 'https://cdn.jsdelivr.net/npm/lucide@latest/+esm';
 
-console.log('Lucide:', lucide);
-
 // === Edit Notes ===
 export function editNotes(coffeeIndex) {
   const notesSection = document.getElementById(`notes-${coffeeIndex}`);
