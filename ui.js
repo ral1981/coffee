@@ -433,6 +433,5 @@ export {
   addLogoutButton,
   toggleAddCoffee,
   renderCoffeeCards,
-  createShopLogoElement,
-  scrollToTop
+  createShopLogoElement
 };
