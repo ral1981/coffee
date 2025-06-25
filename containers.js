@@ -297,7 +297,6 @@ async function updateContainer(coffeeIndex, newContainerType) {
 	  .eq("id", otherCoffee.id);
 	}
       }
-    }
 
     // Update the current coffee
     coffee.container = containerValue;
