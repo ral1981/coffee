@@ -1,5 +1,4 @@
 import { getIsAuthorized, logout, promptForEmail } from "./auth.js";
-import { renderCoffeeCards } from "./ui.js"; 
 import { allCoffees,
 	 filteredCoffees,
          setAllCoffees,
