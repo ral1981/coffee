@@ -191,6 +191,9 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
 
 function renderCoffeeCards(coffees) {
   const grid = document.getElementById("coffee-grid");
+console.log("⬅ Rendering card for:", coffee.name);
+console.log("→ Recipe in:", coffee["recipe:_in_gr"], "out:", coffee["recipe:_out_gr"]);
+console.log("→ hasRecipe =", hasRecipe);
   grid.innerHTML = "";
 
   coffees.forEach((coffee, index) => {
