@@ -193,9 +193,7 @@ function renderCoffeeCards(coffees) {
   const grid = document.getElementById("coffee-grid");
   grid.innerHTML = "";
 
-  coffees.forEach((coffee, index) => {
-console.log("⬅ Rendering card for:", coffee.name);
-console.log("→ Recipe in:", coffee["recipe_in_grams"], "out:", coffee["recipe_out_grams"]);	  
+  coffees.forEach((coffee, index) => {	  
     const containerValue = coffee.container || "";
     const currentContainerType = getContainerType(containerValue);
     let containerClass = "";
@@ -213,8 +211,7 @@ console.log("→ Recipe in:", coffee["recipe_in_grams"], "out:", coffee["recipe_
       coffee["recipe_in_grams"] !== null &&
       coffee["recipe_out_grams"] !== null &&
       coffee["recipe_in_grams"] !== undefined &&
-      coffee["recipe_out_grams"] !== undefined;
-console.log("→ hasRecipe =", hasRecipe);	  
+      coffee["recipe_out_grams"] !== undefined;	  
 
     const card = document.createElement("div");
     card.className = `coffee-card ${containerClass}`;
