@@ -239,7 +239,7 @@ function renderCoffeeCards(coffees) {
     shopLink.appendChild(shopNameSpan);
     shopLinkDiv.appendChild(shopLink);
 
-    const hasRecipe = coffee["recipe:_in_gr"] && coffee["recipe:_out_gr"];
+    const hasRecipe = coffee["recipe:_in_gr"] != null && coffee["recipe:_out_gr"] != null;
     card.innerHTML = `
 	            <div class="container-icons-top">
 	                <button 
