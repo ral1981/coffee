@@ -1,4 +1,5 @@
 import { getIsAuthorized, logout, promptForEmail } from "./auth.js";
+import { clearAllFilters } from "./filters.js";
 import { allCoffees,
 	 filteredCoffees,
          setAllCoffees,
