@@ -60,9 +60,8 @@ export async function saveNotes(coffeeIndex) {
     const { error } = await supabase
       .from('coffee_beans')
       .update({ notes: newNotes })
-      .eq('id', coffeeId)
-      .eq('userEmail', getCurrentUser()); // Optional, based on your RLS
-
+      .eq('id', coffeeId);
+      
     if (error) throw error;
 
     // Update local state
