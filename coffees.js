@@ -1,3 +1,5 @@
+console.log("coffees.js loaded")
+
 import { supabase } from "./supabase.js";
 import { getIsAuthorized, logout } from "./auth.js";
 import { showNotification } from "./ui.js";
