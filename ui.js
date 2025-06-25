@@ -1,4 +1,5 @@
 import { getIsAuthorized, logout, promptForEmail } from "./auth.js";
+import { renderCoffeeCards } from "./ui.js"; 
 import { allCoffees,
 	 filteredCoffees,
          setAllCoffees,
@@ -10,6 +11,7 @@ import { loadCoffeeData,
 	 applyFilters,
 	 applyUrlParameters,
 	 getUrlParameters,
+	 clearUrlParameters,
 	 updateResultsCount,
 	 toggleFilters,
 	 updateFilterStates
@@ -435,11 +437,15 @@ if (addCoffeeBtn) {
   const container = document.getElementById("container-filter");
   const shop = document.getElementById("shop-filter");
   const origin = document.getElementById("origin-filter");
+  const clearBtn = document.getElementById("clear-filters-btn");
 
   if (container) container.addEventListener("change", applyFilters);
   if (shop) shop.addEventListener("change", applyFilters);
   if (origin) origin.addEventListener("change", applyFilters);
-
+  if (clearBtn)  {
+  	clearBtn.addEventListener("click", clearAllFilters);
+  }
+	
   // Back to top button
   const backToTopBtn = document.getElementById("back-to-top");
   if (backToTopBtn) {
