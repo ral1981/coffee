@@ -191,12 +191,11 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
 
 function renderCoffeeCards(coffees) {
   const grid = document.getElementById("coffee-grid");
-console.log("⬅ Rendering card for:", coffee.name);
-console.log("→ Recipe in:", coffee["recipe:_in_gr"], "out:", coffee["recipe:_out_gr"]);
-console.log("→ hasRecipe =", hasRecipe);
   grid.innerHTML = "";
 
   coffees.forEach((coffee, index) => {
+console.log("⬅ Rendering card for:", coffee.name);
+console.log("→ Recipe in:", coffee["recipe:_in_gr"], "out:", coffee["recipe:_out_gr"]);	  
     const containerValue = coffee.container || "";
     const currentContainerType = getContainerType(containerValue);
     let containerClass = "";
@@ -215,6 +214,7 @@ console.log("→ hasRecipe =", hasRecipe);
       coffee["recipe:_out_gr"] !== null &&
       coffee["recipe:_in_gr"] !== undefined &&
       coffee["recipe:_out_gr"] !== undefined;
+console.log("→ hasRecipe =", hasRecipe);	  
 
     const card = document.createElement("div");
     card.className = `coffee-card ${containerClass}`;
