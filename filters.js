@@ -203,13 +203,21 @@ function updateFilterStates() {
   const clearBtn = document.getElementById("clear-filters-btn");
   const toggle = document.querySelector(".filters-toggle");
 
-  container.closest(".filter-group").classList.toggle("active", container.value !== '');
-  shop.closest(".filter-group").classList.toggle("active", shop.value !== '');
-  origin.closest(".filter-group").classList.toggle("active", origin.value !== '');
+  if (container && container.closest(".filter-group")) {
+    container.closest(".filter-group").classList.toggle("active", container.value !== '');
+  }
+
+  if (shop && shop.closest(".filter-group")) {
+    shop.closest(".filter-group").classList.toggle("active", shop.value !== '');
+  }
+
+  if (origin && origin.closest(".filter-group")) {
+    origin.closest(".filter-group").classList.toggle("active", origin.value !== '');
+  }
 
   const active = hasActiveFilters();
-  clearBtn.disabled = !active;
-  toggle.classList.toggle("has-active-filters", active);
+  if (clearBtn) clearBtn.disabled = !active;
+  if (toggle) toggle.classList.toggle("has-active-filters", active);
 }
 
 function updateResultsCount(filtered, total) {
