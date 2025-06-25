@@ -195,7 +195,7 @@ function renderCoffeeCards(coffees) {
 
   coffees.forEach((coffee, index) => {
 console.log("⬅ Rendering card for:", coffee.name);
-console.log("→ Recipe in:", coffee["recipe:_in_gr"], "out:", coffee["recipe:_out_gr"]);	  
+console.log("→ Recipe in:", coffee["recipe:_in_grams"], "out:", coffee["recipe:_out_grams"]);	  
     const containerValue = coffee.container || "";
     const currentContainerType = getContainerType(containerValue);
     let containerClass = "";
@@ -210,10 +210,10 @@ console.log("→ Recipe in:", coffee["recipe:_in_gr"], "out:", coffee["recipe:_o
     }
 
     const hasRecipe =
-      coffee["recipe:_in_gr"] !== null &&
-      coffee["recipe:_out_gr"] !== null &&
-      coffee["recipe:_in_gr"] !== undefined &&
-      coffee["recipe:_out_gr"] !== undefined;
+      coffee["recipe:_in_grams"] !== null &&
+      coffee["recipe:_out_grams"] !== null &&
+      coffee["recipe:_in_grams"] !== undefined &&
+      coffee["recipe:_out_grams"] !== undefined;
 console.log("→ hasRecipe =", hasRecipe);	  
 
     const card = document.createElement("div");
@@ -281,10 +281,10 @@ console.log("→ hasRecipe =", hasRecipe);
           }
 
           ${createRecipeItem("Ratio", coffee["recipe:_ratio"] || "1:2")}
-          ${createRecipeItem("In (g)", coffee["recipe:_in_gr"] || "18", "in-val")}
-          ${createRecipeItem("Out (g)", coffee["recipe:_out_gr"] || "36", "out-val")}
-          ${createRecipeItem("Time (s)", coffee["recipe:_time_s"] || "28")}
-          ${createRecipeItem("Temp (°C)", coffee["recipe:_temperature_°c"] || "93")}
+          ${createRecipeItem("In (g)", coffee["recipe:_in_grams"] || "18", "in-val")}
+          ${createRecipeItem("Out (g)", coffee["recipe:_out_grams"] || "36", "out-val")}
+          ${createRecipeItem("Time (s)", coffee["recipe:_time_seconds"] || "28")}
+          ${createRecipeItem("Temp (°C)", coffee["recipe:_temperature_c"] || "93")}
         </div>
       </div>
     `;
