@@ -29,6 +29,19 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
 });
 
+// On page load, check if user is already logged in and update UI accordingly
+supabase.auth.getSession().then(({ data: { session } }) => {
+  if (session && session.user) {
+    currentUser = session.user.email;
+    isAuthorized = true;
+    updateUIForAuthorizedUser();
+  } else {
+    currentUser = null;
+    isAuthorized = false;
+    updateUIForUnauthorizedUser();
+  }
+});
+
 /*
 // Optional: Functions to handle UI updates after auth changes
 function onUserSignedIn(user) {
