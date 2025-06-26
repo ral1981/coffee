@@ -198,7 +198,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const recipeOut = document.getElementById("add-recipe-out");
   if (recipeIn) recipeIn.addEventListener("input", calculateRatio);
   if (recipeOut) recipeOut.addEventListener("input", calculateRatio);
+
+  // Reset form button
+  const cancelBtn = document.querySelector(".btn-cancel");
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", resetAddCoffeeForm);
+  }
 });
+
 
 async function submitNewCoffee(event, confirmContainerReplacement = false) {
   event.preventDefault();
