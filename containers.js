@@ -332,5 +332,5 @@ async function updateContainer(coffeeIndex, newContainerType) {
 export {
   getContainerType,
   toggleContainer,
-  showContainerReplacementDialog
+  showContainerModal
 };
