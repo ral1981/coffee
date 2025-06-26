@@ -217,6 +217,10 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
 
   const form = document.getElementById("add-coffee-form");
   const submitBtn = form.querySelector(".btn-submit");
+  if (!submitBtn) {
+    showNotification("Submit button not found.", "error");
+    return;
+  }
   const originalText = submitBtn.innerHTML;
 
   // Disable form and show loading state
@@ -343,7 +347,9 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
     // Re-enable form
     submitBtn.innerHTML = originalText;
     submitBtn.disabled = false;
-    lucide.createIcons();
+    if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
+      lucide.createIcons();
+    }
   }
 }
 
