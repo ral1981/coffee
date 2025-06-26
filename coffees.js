@@ -215,7 +215,6 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
 
   // Disable form and show loading state
   submitBtn.innerHTML = '<i data-lucide="loader-2"></i> Adding Coffee...';
-  submitBtn.disabled = true;
 
   try {
     // Use formDataObj instead of FormData
