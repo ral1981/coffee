@@ -181,65 +181,65 @@ function showContainerModal(message, onConfirm, onCancel) {
 // Add modal styles
 const style = document.createElement("style");
 style.textContent = `
-	    #container-modal .modal-backdrop {
-	        position: fixed;
-	        top: 0;
-	        left: 0;
-	        width: 100%;
-	        height: 100%;
-	        background: rgba(0, 0, 0, 0.5);
-	        display: flex;
-	        align-items: center;
-	        justify-content: center;
-	        z-index: 10000;
-	    }
-	    #container-modal .modal-content {
-	        background: white;
-	        padding: 24px;
-	        border-radius: 12px;
-	        max-width: 400px;
-	        width: 90%;
-	        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-	    }
-	    #container-modal .modal-content h3 {
-	        margin: 0 0 16px 0;
-	        color: #1f2937;
-	        font-size: 18px;
-	        font-weight: 600;
-	    }
-	    #container-modal .modal-content p {
-	        margin: 0 0 24px 0;
-	        color: #6b7280;
-	        line-height: 1.5;
-	    }
-	    #container-modal .modal-actions {
-	        display: flex;
-	        gap: 12px;
-	        justify-content: flex-end;
-	    }
-	    #container-modal .modal-btn {
-	        padding: 8px 16px;
-	        border: none;
-	        border-radius: 6px;
-	        font-weight: 500;
-	        cursor: pointer;
-	        transition: all 0.2s;
-	    }
-	    #container-modal .modal-btn-cancel {
-	        background: #f3f4f6;
-	        color: #374151;
-	    }
-	    #container-modal .modal-btn-cancel:hover {
-	        background: #e5e7eb;
-	    }
-	    #container-modal .modal-btn-confirm {
-	        background: #3b82f6;
-	        color: white;
-	    }
-	    #container-modal .modal-btn-confirm:hover {
-	        background: #2563eb;
-	    }
-	`;
+document.head.appendChild(style);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    }
+    #container-modal .modal-content {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    #container-modal .modal-content h3 {
+        margin: 0 0 16px 0;
+        color: #1f2937;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    #container-modal .modal-content p {
+        margin: 0 0 24px 0;
+        color: #6b7280;
+        line-height: 1.5;
+    }
+    #container-modal .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+    #container-modal .modal-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    #container-modal .modal-btn-cancel {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    #container-modal .modal-btn-cancel:hover {
+        background: #e5e7eb;
+    }
+    #container-modal .modal-btn-confirm {
+        background: #3b82f6;
+        color: white;
+    }
+    #container-modal .modal-btn-confirm:hover {
+        background: #2563eb;
+    }
+`;
 document.head.appendChild(style);
 
 function closeContainerModal() {

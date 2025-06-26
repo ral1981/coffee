@@ -230,7 +230,7 @@
     </div>
     <div class="filters-section">
         <div class="filters-container">            
-                <button aria-expanded="false" id="toggle-filters-btn">
+                <button aria-expanded="false" id="toggle-filters-btn" class="toggle-filters-btn">
                         <i data-lucide="funnel"></i>
                         Filter Coffee Collection
                 </button>
@@ -238,16 +238,22 @@
                         id="filters-content">                
                     <div class="filters-grid">
                     <div class="filter-group">
-                        <i data-lucide="funnel"></i>
-                        <label for="container-filter">Container:</label> <select id="container-filter">...</select>
+                        <label for="container-filter"><i data-lucide="funnel"></i>
+                            Container:
+                        </label>
+                        <select id="container-filter">...</select>
                     </div>
                     <div class="filter-group">
-                        <i data-lucide="funnel"></i>
-                        <label for="shop-filter">Shop:</label> <select id="shop-filter">...</select>
+                        <label for="shop-filter"><i data-lucide="funnel"></i>
+                            Shop:
+                        </label>
+                        <select id="shop-filter">...</select>
                     </div>
-                    <div class="filter-group">
-                        <i data-lucide="funnel"></i>
-                        <label for="origin-filter">Origin:</label> <select id="origin-filter">...</select>
+                    <div class="filter-group">                        
+                        <label for="origin-filter"><i data-lucide="funnel"></i>
+                            Origin:
+                        </label>
+                        <select id="origin-filter">...</select>
                     </div>
                     <div class="filter-group">
                         <button class="clear-filters-btn" id="clear-filters-btn" disabled>
@@ -271,7 +277,9 @@
         <h3>No coffee found</h3>
         <p>Try adjusting your filters to see more results.</p>
     </div>
-    <button aria-label="Back to top" class="back-to-top" id="back-to-top"></button>
+    <button aria-label="Back to top" class="back-to-top" id="back-to-top">
+        <i data-lucide="arrow-up"></i>
+    </button>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script> 
     <script> lucide.createIcons();</script>
     <script type="module" src="main.js"></script>

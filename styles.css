@@ -1,7 +1,3 @@
-const styleSheet = document.createElement('style');
-styleSheet.textContent = containerStyles;
-document.head.appendChild(styleSheet);
-
 * {
     margin: 0;
     padding: 0;
@@ -178,12 +174,14 @@ h1 {
 }
 
 .form-group label {
-    font-weight: 500;
-    color: #374151;
-    font-size: 0.875rem;
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .form-group label .required {
@@ -432,8 +430,8 @@ h1 {
 }
 
 .toggle-filters-btn {
-width: 100%;
-background: none;
+    width: 100%;
+    background-color: transparent;
     border: none;
     display: flex;
     align-items: center;
@@ -506,11 +504,26 @@ background: none;
 }
 
 .filter-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 0.9rem;
     font-weight: 600;
     color: #374151;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.filter-group label .required {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.filter-group label .funnel-icon {
+    margin-left: 0;
+    margin-right: 0.5em;
+    display: inline-flex;
+    vertical-align: middle;
 }
 
 .filter-group select {
@@ -772,7 +785,7 @@ background: none;
     box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
 }
 
-const containerStyles = `
+
 .container-icons {
     display: none;
 }
@@ -821,7 +834,6 @@ const containerStyles = `
 .container-icon-wrapper:has(.container-icon.active) .container-label {
     color: #374151;
 }
-`;
 
 .coffee-header {
     border-bottom: 1px solid #e5e7eb;
