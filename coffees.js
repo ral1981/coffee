@@ -4,6 +4,7 @@ import { supabase } from "./supabase.js";
 import { getIsAuthorized, logout } from "./auth.js";
 import { showNotification } from "./ui.js";
 import { populateFilters, applyFilters, loadCoffeeData } from "./filters.js";
+import { showContainerModal } from "./containers.js";
 
 let allCoffees = [];
 let filteredCoffees = [];
@@ -298,15 +299,12 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
           (c) => c.container && c.container.toLowerCase().includes(selectedContainerType)
         );
         if (coffeeInContainer) {
-          import('./containers.js').then(mod => {
-            mod.showContainerReplacementDialog({
-              message: `The ${selectedContainerType} container is already in use by ${coffeeInContainer.name}. Do you want to replace it?`,
-              onConfirm: () => {
-                // Call with cloned form data, not event
-                submitNewCoffee({ ...formDataObj }, true, coffeeInContainer);
-              }
-            }, event);
-          });
+          // Use the shared showContainerModal for confirmation
+          showContainerModal(
+            `The ${selectedContainerType} container is already in use by ${coffeeInContainer.name}. Do you want to replace it?`,
+            () => submitNewCoffee({ ...formDataObj }, true, coffeeInContainer),
+            () => {} // no-op on cancel
+          );
           submitBtn.innerHTML = originalText;
           submitBtn.disabled = false;
           return;
@@ -316,21 +314,15 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
 
     // If we replaced a container, clear the previous coffee's container in DB and UI FIRST
     if (confirmContainerReplacement && previousCoffeeInContainer && previousCoffeeInContainer.id) {
-      console.log("Attempting to clear container for coffee:", previousCoffeeInContainer);
-      console.log("Type of previousCoffeeInContainer.id:", typeof previousCoffeeInContainer.id, previousCoffeeInContainer.id);
-      console.log("All coffee IDs:", allCoffees.map(c => ({ id: c.id, type: typeof c.id, name: c.name, container: c.container })));
-      const { error: updateError, data: updateData } = await supabase
+      const { error: updateError } = await supabase
         .from("coffee_beans")
         .update({ container: null })
         .eq("id", previousCoffeeInContainer.id)
         .select();
       if (updateError) {
-        console.error("Failed to clear previous coffee's container:", updateError);
         showNotification("Failed to clear previous coffee's container. Please check your database column name.", "error");
         // Optionally, abort here
         // return;
-      } else {
-        console.log("Cleared previous coffee's container:", updateData);
       }
       allCoffees = allCoffees.map(c =>
         c.id === previousCoffeeInContainer.id ? { ...c, container: null } : c
