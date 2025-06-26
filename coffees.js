@@ -168,21 +168,6 @@ function resetAddCoffeeForm() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  const shopUrlInput = document.getElementById("add-shop-url");
-  if (shopUrlInput) {
-    // Replace the existing oninput with the debounced version
-    shopUrlInput.removeAttribute("oninput");
-    shopUrlInput.addEventListener("blur", ensureHttps);
-    shopUrlInput.addEventListener("input", debouncedUpdateFavicon);
-
-    // Also update on paste events
-    shopUrlInput.addEventListener("paste", function () {
-      setTimeout(debouncedUpdateFavicon, 10);
-    });
-  }
-});
-
 function calculateRatio() {
   const inGr = parseFloat(document.getElementById("add-recipe-in").value);
   const outGr = parseFloat(document.getElementById("add-recipe-out").value);
@@ -195,6 +180,25 @@ function calculateRatio() {
     ratioField.value = "";
   }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Shop URL input handling
+  const shopUrlInput = document.getElementById("add-shop-url");
+  if (shopUrlInput) {
+    shopUrlInput.removeAttribute("oninput");
+    shopUrlInput.addEventListener("blur", ensureHttps);
+    shopUrlInput.addEventListener("input", debouncedUpdateFavicon);
+    shopUrlInput.addEventListener("paste", () => {
+      setTimeout(debouncedUpdateFavicon, 10);
+    });
+  }
+
+  // Espresso recipe inputs
+  const recipeIn = document.getElementById("add-recipe-in");
+  const recipeOut = document.getElementById("add-recipe-out");
+  if (recipeIn) recipeIn.addEventListener("input", calculateRatio);
+  if (recipeOut) recipeOut.addEventListener("input", calculateRatio);
+});
 
 async function submitNewCoffee(event, confirmContainerReplacement = false) {
   event.preventDefault();
