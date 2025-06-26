@@ -3,7 +3,7 @@ console.log("coffees.js loaded")
 import { supabase } from "./supabase.js";
 import { getIsAuthorized, logout } from "./auth.js";
 import { showNotification } from "./ui.js";
-import { populateFilters, applyFilters } from "./filters.js";
+import { populateFilters, applyFilters, loadCoffeeData } from "./filters.js";
 
 let allCoffees = [];
 let filteredCoffees = [];
@@ -181,7 +181,7 @@ function calculateRatio() {
   }
 }
 
-async function submitNewCoffee(event, confirmContainerReplacement = false) {
+async function submitNewCoffee(event, confirmContainerReplacement = false, previousCoffeeInContainer = null) {
   event.preventDefault();
 
   if (!getIsAuthorized()) {
@@ -306,6 +306,10 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
           import('./containers.js').then(mod => {
             mod.showContainerReplacementDialog({
               message: `The ${selectedContainerType} container is already in use by ${coffeeInContainer.name}. Do you want to replace it?`,
+              onConfirm: () => {
+                // Retry submission with confirmation and pass previous coffee
+                submitNewCoffee(event, true, coffeeInContainer);
+              }
             }, event);
           });
           // Stop normal submission until user confirms
@@ -328,6 +332,23 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
     }
 
     const newCoffee = inserted;
+
+    // If we replaced a container, clear the previous coffee's container in DB and UI
+    if (confirmContainerReplacement && previousCoffeeInContainer && previousCoffeeInContainer.id) {
+      // Update in Supabase
+      await supabase
+        .from("coffee_beans")
+        .update({ container: null })
+        .eq("id", previousCoffeeInContainer.id);
+      // Update in-memory state for immediate UI feedback
+      allCoffees = allCoffees.map(c =>
+        c.id === previousCoffeeInContainer.id ? { ...c, container: null } : c
+      );
+      filteredCoffees = filteredCoffees.map(c =>
+        c.id === previousCoffeeInContainer.id ? { ...c, container: null } : c
+      );
+    }
+
     // Show success notification and reset form
     showNotification('Coffee added successfully!', 'success');
     resetAddCoffeeForm();
