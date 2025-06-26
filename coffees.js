@@ -394,4 +394,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-export { allCoffees, filteredCoffees, setAllCoffees, setFilteredCoffees };
+export { allCoffees, filteredCoffees, setAllCoffees, setFilteredCoffees, submitNewCoffee };
