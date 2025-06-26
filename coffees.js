@@ -351,10 +351,10 @@ document.addEventListener("DOMContentLoaded", () => {
     cancelBtn.addEventListener("click", resetAddCoffeeForm);
   }
 
-    // Submit form button
-  const form = document.getElementById("btn-submit");
-  if (form) {
-    form.addEventListener("submit", submitNewCoffee);
+  // Submit form handler (attach to the form, not the button)
+  const addCoffeeForm = document.getElementById("add-coffee-form");
+  if (addCoffeeForm) {
+    addCoffeeForm.addEventListener("submit", submitNewCoffee);
   }
 });
 
