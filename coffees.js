@@ -181,32 +181,6 @@ function calculateRatio() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Shop URL input handling
-  const shopUrlInput = document.getElementById("add-shop-url");
-  if (shopUrlInput) {
-    shopUrlInput.removeAttribute("oninput");
-    shopUrlInput.addEventListener("blur", ensureHttps);
-    shopUrlInput.addEventListener("input", debouncedUpdateFavicon);
-    shopUrlInput.addEventListener("paste", () => {
-      setTimeout(debouncedUpdateFavicon, 10);
-    });
-  }
-
-  // Espresso recipe inputs
-  const recipeIn = document.getElementById("add-recipe-in");
-  const recipeOut = document.getElementById("add-recipe-out");
-  if (recipeIn) recipeIn.addEventListener("input", calculateRatio);
-  if (recipeOut) recipeOut.addEventListener("input", calculateRatio);
-
-  // Reset form button
-  const cancelBtn = document.querySelector(".btn-cancel");
-  if (cancelBtn) {
-    cancelBtn.addEventListener("click", resetAddCoffeeForm);
-  }
-});
-
-
 async function submitNewCoffee(event, confirmContainerReplacement = false) {
   event.preventDefault();
 
@@ -352,5 +326,39 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
     }
   }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Shop URL input handling
+  const shopUrlInput = document.getElementById("add-shop-url");
+  if (shopUrlInput) {
+    shopUrlInput.removeAttribute("oninput");
+    shopUrlInput.addEventListener("blur", ensureHttps);
+    shopUrlInput.addEventListener("input", debouncedUpdateFavicon);
+    shopUrlInput.addEventListener("paste", () => {
+      setTimeout(debouncedUpdateFavicon, 10);
+    });
+  }
+
+  // Espresso recipe inputs
+  const recipeIn = document.getElementById("add-recipe-in");
+  const recipeOut = document.getElementById("add-recipe-out");
+  if (recipeIn) recipeIn.addEventListener("input", calculateRatio);
+  if (recipeOut) recipeOut.addEventListener("input", calculateRatio);
+
+  // Reset form button
+  const cancelBtn = document.querySelector(".btn-cancel");
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", resetAddCoffeeForm);
+  }
+
+    // Submit form button
+  const form = document.getElementById("btn-submit");
+  if (form) {
+    form.addEventListener("submit", submitNewCoffee);
+  }
+});
+
+
+
 
 export { allCoffees, filteredCoffees, setAllCoffees, setFilteredCoffees };
