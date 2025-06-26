@@ -293,6 +293,29 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
       throw new Error("A coffee with this name already exists");
     }
 
+    // Check for container conflict if a container is selected and not already confirmed
+    if (coffeeData.container && !confirmContainerReplacement) {
+      // Find if any other coffee is already using this container
+      const selectedContainerType = coffeeData.container.toLowerCase().includes('green') ? 'green' : coffeeData.container.toLowerCase().includes('grey') ? 'grey' : null;
+      if (selectedContainerType) {
+        const coffeeInContainer = allCoffees.find(
+          (c) => c.container && c.container.toLowerCase().includes(selectedContainerType)
+        );
+        if (coffeeInContainer) {
+          // Use the existing confirmation dialog logic from containers.js
+          import('./containers.js').then(mod => {
+            mod.showContainerReplacementDialog({
+              message: `The ${selectedContainerType} container is already in use by ${coffeeInContainer.name}. Do you want to replace it?`,
+            }, event);
+          });
+          // Stop normal submission until user confirms
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+          return;
+        }
+      }
+    }
+
     // Submit New Coffee
     const { data: inserted, error } = await supabase
       .from("coffee_beans")
@@ -305,6 +328,9 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
     }
 
     const newCoffee = inserted;
+    // Show success notification and reset form
+    showNotification('Coffee added successfully!', 'success');
+    resetAddCoffeeForm();
   } catch (error) {
     console.error("Error adding coffee:", error);
 
