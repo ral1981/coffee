@@ -181,8 +181,23 @@ function calculateRatio() {
   }
 }
 
-async function submitNewCoffee(event, confirmContainerReplacement = false, previousCoffeeInContainer = null) {
-  event.preventDefault();
+async function submitNewCoffee(eventOrData, confirmContainerReplacement = false, previousCoffeeInContainer = null) {
+  let formDataObj;
+  let event = null;
+  if (eventOrData instanceof Event) {
+    event = eventOrData;
+    event.preventDefault();
+    // Collect form data as plain object for possible reuse
+    const form = document.getElementById("add-coffee-form");
+    const formData = new FormData(form);
+    formDataObj = {};
+    for (const [key, value] of formData.entries()) {
+      formDataObj[key] = value;
+    }
+  } else {
+    // Called with formDataObj (from confirmation)
+    formDataObj = eventOrData;
+  }
 
   if (!getIsAuthorized()) {
     showNotification("Please log in to add coffee entries.", "error");
@@ -202,11 +217,8 @@ async function submitNewCoffee(event, confirmContainerReplacement = false, previ
   submitBtn.disabled = true;
 
   try {
-    // Collect form data
-    const formData = new FormData(form);
+    // Use formDataObj instead of FormData
     const coffeeData = {};
-
-    // Updated field mapping to match your Supabase table columns
     const fieldMapping = {
       container: "container",
       name: "name",
@@ -215,27 +227,24 @@ async function submitNewCoffee(event, confirmContainerReplacement = false, previ
       shop_logo: "shop_logo",
       origin: "origin",
       region: "region",
-      height_m: "height_meters", // Updated to match DB column
+      height_m: "height_meters",
       botanic_variety: "botanic_variety",
-      farm_producer: "farm_producer", // Simplified field name
+      farm_producer: "farm_producer",
       processing_method: "processing_method",
       sca: "sca",
       flavor: "flavor",
-      recipe_ratio: "recipe_ratio", // Simplified field names
+      recipe_ratio: "recipe_ratio",
       recipe_in_gr: "recipe_in_grams",
       recipe_out_gr: "recipe_out_grams",
       recipe_time_s: "recipe_time_seconds",
       recipe_temperature_c: "recipe_temperature_c",
     };
-
-    // Data collection with type conversion
     for (const [formField, dbField] of Object.entries(fieldMapping)) {
-      const value = formData.get(formField);
+      const value = formDataObj[formField];
       if (value !== null && value !== undefined) {
         const trimmedValue = value.toString().trim();
         if (trimmedValue) {
           if (formField === "container") {
-            // Convert container value to display format
             coffeeData[dbField] =
               value === "green"
                 ? "Green Container"
@@ -249,7 +258,6 @@ async function submitNewCoffee(event, confirmContainerReplacement = false, previ
             formField.includes("recipe_out_gr") ||
             formField.includes("recipe_temperature_c")
           ) {
-            // Convert numeric fields
             const numValue = parseFloat(trimmedValue);
             coffeeData[dbField] = isNaN(numValue) ? null : numValue;
           } else {
@@ -258,14 +266,7 @@ async function submitNewCoffee(event, confirmContainerReplacement = false, previ
         }
       }
     }
-
-    // Add notes field (empty by default)
-    coffeeData.notes = formData.get("notes")
-      ? formData.get("notes").toString().trim()
-      : "";
-
-    // Debug logging to see what's being sent
-    console.log("Coffee data being sent:", coffeeData);
+    coffeeData.notes = formDataObj["notes"] ? formDataObj["notes"].toString().trim() : "";
 
     // Validate required fields
     const requiredFields = ["name", "shop_name", "shop_url", "origin"];
@@ -275,44 +276,37 @@ async function submitNewCoffee(event, confirmContainerReplacement = false, previ
         !coffeeData[mappedField] || !coffeeData[mappedField].toString().trim()
       );
     });
-
     if (missingFields.length > 0) {
       throw new Error(
         `Please fill in all required fields: ${missingFields.join(", ")}`,
       );
     }
-
     // Check if coffee with same name already exists
     const existingCoffee = allCoffees.find(
       (coffee) =>
         coffee.name &&
         coffee.name.toLowerCase() === coffeeData.name.toLowerCase(),
     );
-
     if (existingCoffee) {
       throw new Error("A coffee with this name already exists");
     }
-
     // Check for container conflict if a container is selected and not already confirmed
     if (coffeeData.container && !confirmContainerReplacement) {
-      // Find if any other coffee is already using this container
       const selectedContainerType = coffeeData.container.toLowerCase().includes('green') ? 'green' : coffeeData.container.toLowerCase().includes('grey') ? 'grey' : null;
       if (selectedContainerType) {
         const coffeeInContainer = allCoffees.find(
           (c) => c.container && c.container.toLowerCase().includes(selectedContainerType)
         );
         if (coffeeInContainer) {
-          // Use the existing confirmation dialog logic from containers.js
           import('./containers.js').then(mod => {
             mod.showContainerReplacementDialog({
               message: `The ${selectedContainerType} container is already in use by ${coffeeInContainer.name}. Do you want to replace it?`,
               onConfirm: () => {
-                // Retry submission with confirmation and pass previous coffee
-                submitNewCoffee(event, true, coffeeInContainer);
+                // Call with cloned form data, not event
+                submitNewCoffee({ ...formDataObj }, true, coffeeInContainer);
               }
             }, event);
           });
-          // Stop normal submission until user confirms
           submitBtn.innerHTML = originalText;
           submitBtn.disabled = false;
           return;
@@ -326,21 +320,17 @@ async function submitNewCoffee(event, confirmContainerReplacement = false, previ
       .insert(coffeeData)
       .select()
       .single();
-
     if (error) {
       throw new Error(error.message || "Failed to add coffee");
     }
-
     const newCoffee = inserted;
 
     // If we replaced a container, clear the previous coffee's container in DB and UI
     if (confirmContainerReplacement && previousCoffeeInContainer && previousCoffeeInContainer.id) {
-      // Update in Supabase
       await supabase
         .from("coffee_beans")
         .update({ container: null })
         .eq("id", previousCoffeeInContainer.id);
-      // Update in-memory state for immediate UI feedback
       allCoffees = allCoffees.map(c =>
         c.id === previousCoffeeInContainer.id ? { ...c, container: null } : c
       );
