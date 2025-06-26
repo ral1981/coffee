@@ -314,18 +314,7 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
       }
     }
 
-    // Submit New Coffee
-    const { data: inserted, error } = await supabase
-      .from("coffee_beans")
-      .insert(coffeeData)
-      .select()
-      .single();
-    if (error) {
-      throw new Error(error.message || "Failed to add coffee");
-    }
-    const newCoffee = inserted;
-
-    // If we replaced a container, clear the previous coffee's container in DB and UI
+    // If we replaced a container, clear the previous coffee's container in DB and UI FIRST
     if (confirmContainerReplacement && previousCoffeeInContainer && previousCoffeeInContainer.id) {
       await supabase
         .from("coffee_beans")
@@ -338,6 +327,17 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
         c.id === previousCoffeeInContainer.id ? { ...c, container: null } : c
       );
     }
+
+    // Now insert the new coffee
+    const { data: inserted, error } = await supabase
+      .from("coffee_beans")
+      .insert(coffeeData)
+      .select()
+      .single();
+    if (error) {
+      throw new Error(error.message || "Failed to add coffee");
+    }
+    const newCoffee = inserted;
 
     // Show success notification and reset form
     showNotification('Coffee added successfully!', 'success');
