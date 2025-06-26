@@ -316,6 +316,9 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
 
     // If we replaced a container, clear the previous coffee's container in DB and UI FIRST
     if (confirmContainerReplacement && previousCoffeeInContainer && previousCoffeeInContainer.id) {
+      console.log("Attempting to clear container for coffee:", previousCoffeeInContainer);
+      console.log("Type of previousCoffeeInContainer.id:", typeof previousCoffeeInContainer.id, previousCoffeeInContainer.id);
+      console.log("All coffee IDs:", allCoffees.map(c => ({ id: c.id, type: typeof c.id, name: c.name, container: c.container })));
       const { error: updateError, data: updateData } = await supabase
         .from("coffee_beans")
         .update({ container: null })
