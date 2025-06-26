@@ -331,6 +331,13 @@ async function submitNewCoffee(event, confirmContainerReplacement = false) {
     // Show success notification and reset form
     showNotification('Coffee added successfully!', 'success');
     resetAddCoffeeForm();
+    // Reload coffee data and update UI
+    loadCoffeeData().then((coffees) => {
+      setAllCoffees(coffees);
+      setFilteredCoffees([...coffees]);
+      populateFilters(coffees);
+      applyFilters();
+    });
   } catch (error) {
     console.error("Error adding coffee:", error);
 

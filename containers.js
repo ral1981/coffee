@@ -1,7 +1,8 @@
 import { supabase } from "./supabase.js";
 import { getIsAuthorized, getCurrentUser, logout } from "./auth.js";
-import { allCoffees, filteredCoffees } from "./coffees.js";
+import { allCoffees, filteredCoffees, submitNewCoffee } from "./coffees.js";
 import { showNotification, renderCoffeeCards } from "./ui.js";
+import { loadCoffeeData, populateFilters, applyFilters } from "./filters.js";
 
 // Function to show container replacement confirmation dialog
 function showContainerReplacementDialog(result, originalEvent) {
