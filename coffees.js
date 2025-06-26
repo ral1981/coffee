@@ -173,6 +173,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (shopUrlInput) {
     // Replace the existing oninput with the debounced version
     shopUrlInput.removeAttribute("oninput");
+    shopUrlInput.addEventListener("blur", ensureHttps);
     shopUrlInput.addEventListener("input", debouncedUpdateFavicon);
 
     // Also update on paste events
