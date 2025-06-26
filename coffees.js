@@ -316,10 +316,19 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
 
     // If we replaced a container, clear the previous coffee's container in DB and UI FIRST
     if (confirmContainerReplacement && previousCoffeeInContainer && previousCoffeeInContainer.id) {
-      await supabase
+      const { error: updateError, data: updateData } = await supabase
         .from("coffee_beans")
         .update({ container: null })
-        .eq("id", previousCoffeeInContainer.id);
+        .eq("id", previousCoffeeInContainer.id)
+        .select();
+      if (updateError) {
+        console.error("Failed to clear previous coffee's container:", updateError);
+        showNotification("Failed to clear previous coffee's container. Please check your database column name.", "error");
+        // Optionally, abort here
+        // return;
+      } else {
+        console.log("Cleared previous coffee's container:", updateData);
+      }
       allCoffees = allCoffees.map(c =>
         c.id === previousCoffeeInContainer.id ? { ...c, container: null } : c
       );
@@ -342,13 +351,14 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
     // Show success notification and reset form
     showNotification('Coffee added successfully!', 'success');
     resetAddCoffeeForm();
+    // Wait a short moment to ensure DB is up-to-date
+    await new Promise(res => setTimeout(res, 150));
     // Reload coffee data and update UI
-    loadCoffeeData().then((coffees) => {
-      setAllCoffees(coffees);
-      setFilteredCoffees([...coffees]);
-      populateFilters(coffees);
-      applyFilters();
-    });
+    const coffees = await loadCoffeeData();
+    setAllCoffees(coffees);
+    setFilteredCoffees([...coffees]);
+    populateFilters(coffees);
+    applyFilters();
   } catch (error) {
     console.error("Error adding coffee:", error);
 
