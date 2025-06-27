@@ -153,18 +153,16 @@ function showContainerModal(message, onConfirm, onCancel) {
   `;
   document.body.appendChild(modal);
 
-  // Store callbacks for the modal buttons
-  window.containerModalOnConfirm = onConfirm;
-  window.containerModalOnCancel = onCancel;
-
   // Bind buttons
   modal
     .querySelector(".modal-btn-cancel")
-    .addEventListener("click", closeContainerModal);
+    .addEventListener("click", function() {
+      closeContainerModal();
+      if (onCancel) onCancel();
+    });
   modal
     .querySelector(".modal-btn-confirm")
     .addEventListener("click", function() {
-      // Always call onConfirm as async and close modal after
       Promise.resolve(onConfirm()).then(closeContainerModal);
     });
 
@@ -176,96 +174,13 @@ function showContainerModal(message, onConfirm, onCancel) {
     }
   }
   document.addEventListener("keydown", handleEscape);
-
-  // Save callbacks
-  window.containerModalOnConfirm = onConfirm;
-  window.containerModalOnCancel = onCancel;
 }
-
-// Add modal styles
-const style = document.createElement("style");
-style.textContent = `
-document.head.appendChild(style);
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-    }
-    #container-modal .modal-content {
-        background: white;
-        padding: 24px;
-        border-radius: 12px;
-        max-width: 400px;
-        width: 90%;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    }
-    #container-modal .modal-content h3 {
-        margin: 0 0 16px 0;
-        color: #1f2937;
-        font-size: 18px;
-        font-weight: 600;
-    }
-    #container-modal .modal-content p {
-        margin: 0 0 24px 0;
-        color: #6b7280;
-        line-height: 1.5;
-    }
-    #container-modal .modal-actions {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-    }
-    #container-modal .modal-btn {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 6px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    #container-modal .modal-btn-cancel {
-        background: #f3f4f6;
-        color: #374151;
-    }
-    #container-modal .modal-btn-cancel:hover {
-        background: #e5e7eb;
-    }
-    #container-modal .modal-btn-confirm {
-        background: #3b82f6;
-        color: white;
-    }
-    #container-modal .modal-btn-confirm:hover {
-        background: #2563eb;
-    }
-`;
-document.head.appendChild(style);
 
 function closeContainerModal() {
   const modal = document.getElementById("container-modal");
   if (modal) {
     modal.remove();
   }
-  if (window.containerModalOnCancel) {
-    window.containerModalOnCancel();
-  }
-}
-
-function confirmContainerAction() {
-  if (window.containerModalOnConfirm) {
-    // If the callback is async, await it before closing the modal
-    const result = window.containerModalOnConfirm();
-    if (result && typeof result.then === "function") {
-      result.then(() => closeContainerModal());
-      return;
-    }
-  }
-  closeContainerModal();
 }
 
 async function updateContainer(coffeeIndex, newContainerType) {
