@@ -80,35 +80,36 @@ async function toggleContainer(coffeeIndex, containerType) {
   }
 
   const coffee = filteredCoffees[coffeeIndex];
-  const currentContainer = getContainerType(coffee.container);
+  let containerLabel = null;
+  if (containerType === "green") containerLabel = "in_green_container";
+  if (containerType === "grey") containerLabel = "in_grey_container";
+  if (!containerLabel) return;
 
-  if (currentContainer === containerType) {
-    // Coffee is already in this container - confirm removal
+  // Toggling OFF (removal)
+  if (coffee[containerLabel]) {
     showContainerModal(
-      `Remove ${coffee.name} from ${containerType} container?`,
-      () => updateContainer(coffeeIndex, ""),
-      () => {},
+      `Remove ${coffee.name} from the ${containerType} container?`,
+      () => updateContainer(coffeeIndex, containerType),
+      () => {}
     );
-  } else {
-    // Check if another coffee is in this container
-    const coffeeInContainer = allCoffees.find(
-      (c) => getContainerType(c.container) === containerType,
-    );
-
-    if (coffeeInContainer) {
-      showContainerModal(
-        `Move ${coffee.name} to ${containerType} container? This will remove ${coffeeInContainer.name} from the container.`,
-        () => updateContainer(coffeeIndex, containerType),
-        () => {},
-      );
-    } else {
-      showContainerModal(
-        `Move ${coffee.name} to ${containerType} container?`,
-        () => updateContainer(coffeeIndex, containerType),
-        () => {},
-      );
-    }
+    return;
   }
+
+  // Toggling ON (assignment)
+  const otherCoffee = allCoffees.find(
+    (c) => c.id !== coffee.id && c[containerLabel]
+  );
+  if (otherCoffee) {
+    showContainerModal(
+      `The ${containerType} container is already in use by ${otherCoffee.name}. This will remove it from that coffee. Continue?`,
+      () => updateContainer(coffeeIndex, containerType),
+      () => {}
+    );
+    return;
+  }
+
+  // No conflict, just assign
+  updateContainer(coffeeIndex, containerType);
 }
 
 function getContainerType(containerValue) {
