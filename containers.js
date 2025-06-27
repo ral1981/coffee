@@ -255,7 +255,12 @@ function closeContainerModal() {
 
 function confirmContainerAction() {
   if (window.containerModalOnConfirm) {
-    window.containerModalOnConfirm();
+    // If the callback is async, await it before closing the modal
+    const result = window.containerModalOnConfirm();
+    if (result && typeof result.then === "function") {
+      result.then(() => closeContainerModal());
+      return;
+    }
   }
   closeContainerModal();
 }
