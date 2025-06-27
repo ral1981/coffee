@@ -350,6 +350,5 @@ export {
   getContainerType,
   toggleContainer,
   showContainerModal,
-  updateContainer,
-  setCoffeeContainerExclusive
+  updateContainer
 };
