@@ -17,7 +17,7 @@ import { loadCoffeeData,
 	 toggleFilters,
 	 updateFilterStates
 	} from "./filters.js";
-import { getContainerType, showContainerModal, updateContainer } from "./containers.js";
+import { getContainerType, showContainerModal, setCoffeeContainerExclusive } from "./containers.js";
 
 function getDomainFromUrl(url) {
   try {
@@ -426,11 +426,29 @@ async function toggleContainer(coffeeIndex, containerType) {
   if (containerType === "grey") containerLabel = "in_grey_container";
   if (!containerLabel) return;
 
+  // Helper to reload data and UI after DB update
+  async function refreshCoffees() {
+    const coffees = await loadCoffeeData();
+    setAllCoffees(coffees);
+    setFilteredCoffees([...coffees]);
+    renderCoffeeCards(filteredCoffees);
+    populateFilters(coffees);
+    applyFilters();
+  }
+
   // Toggling OFF (removal)
   if (coffee[containerLabel]) {
     showContainerModal(
       `Remove ${coffee.name} from the ${containerType} container?`,
-      () => updateContainer(coffeeIndex, containerType),
+      async () => {
+        const result = await setCoffeeContainerExclusive(coffee.id, containerType, false);
+        if (!result.success) {
+          showNotification("Failed to update container.", "error");
+          return;
+        }
+        await refreshCoffees();
+        showNotification(`${coffee.name} removed from ${containerType} container!`, "success");
+      },
       () => {}
     );
     return;
@@ -443,14 +461,28 @@ async function toggleContainer(coffeeIndex, containerType) {
   if (otherCoffee) {
     showContainerModal(
       `The ${containerType} container is already in use by ${otherCoffee.name}. This will remove it from that coffee. Continue?`,
-      () => updateContainer(coffeeIndex, containerType),
+      async () => {
+        const result = await setCoffeeContainerExclusive(coffee.id, containerType, true);
+        if (!result.success) {
+          showNotification("Failed to update container.", "error");
+          return;
+        }
+        await refreshCoffees();
+        showNotification(`${coffee.name} assigned to ${containerType} container!`, "success");
+      },
       () => {}
     );
     return;
   }
 
   // No conflict, just assign
-  updateContainer(coffeeIndex, containerType);
+  const result = await setCoffeeContainerExclusive(coffee.id, containerType, true);
+  if (!result.success) {
+    showNotification("Failed to update container.", "error");
+    return;
+  }
+  await refreshCoffees();
+  showNotification(`${coffee.name} assigned to ${containerType} container!`, "success");
 }
 
 export {
