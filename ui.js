@@ -3,7 +3,8 @@ import { clearAllFilters } from "./filters.js";
 import { allCoffees,
 	 filteredCoffees,
          setAllCoffees,
-         setFilteredCoffees
+         setFilteredCoffees,
+         submitNewCoffee
        } from "./coffees.js";
 import { editNotes } from "./notes.js";
 import { loadCoffeeData,
