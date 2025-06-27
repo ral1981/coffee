@@ -154,7 +154,14 @@ function showContainerModal(message, onConfirm, onCancel) {
   document.body.appendChild(modal);
 
   // Store callbacks for the modal buttons
-  window.containerModalOnConfirm = onConfirm;
+  window.containerModalOnConfirm = async () => {
+    // Always close the modal after the async callback
+    try {
+      await onConfirm();
+    } finally {
+      closeContainerModal();
+    }
+  };
   window.containerModalOnCancel = onCancel;
 
   // Bind buttons
@@ -175,7 +182,7 @@ function showContainerModal(message, onConfirm, onCancel) {
   document.addEventListener("keydown", handleEscape);
 
   // Save callbacks
-  window.containerModalOnConfirm = onConfirm;
+  window.containerModalOnConfirm = window.containerModalOnConfirm;
   window.containerModalOnCancel = onCancel;
 }
 
