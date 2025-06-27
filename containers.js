@@ -291,13 +291,15 @@ async function updateContainer(coffeeIndex, newContainerType) {
         );
         if (filteredOtherIndex !== -1) {
           filteredCoffees[filteredOtherIndex].container = "";
-        }		
-	await supabase
-	  .from("coffee_beans")
-	  .update({ container: "" })
-	  .eq("id", otherCoffee.id);
-	}
+        }
+        // Fix: define otherCoffee and update DB
+        const otherCoffee = allCoffees[otherCoffeeIndex];
+        await supabase
+          .from("coffee_beans")
+          .update({ container: "" })
+          .eq("id", otherCoffee.id);
       }
+    }
 
     // Update the current coffee
     coffee.container = containerValue;
