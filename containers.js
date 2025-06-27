@@ -266,19 +266,81 @@ async function updateContainer(coffeeIndex, newContainerType) {
   if (newContainerType === "green") containerLabel = "in_green_container";
   if (newContainerType === "grey") containerLabel = "in_grey_container";
 
+  // Helper to reload data and UI after DB update
+  async function refreshCoffees() {
+    const coffees = await loadCoffeeData();
+    allCoffees.length = 0; allCoffees.push(...coffees);
+    filteredCoffees.length = 0; filteredCoffees.push(...coffees);
+    renderCoffeeCards(filteredCoffees);
+    populateFilters(coffees);
+    applyFilters();
+  }
+
   if (!containerLabel) {
     // Remove from all containers
     updateObj = { in_green_container: false, in_grey_container: false };
-  } else {
-    // Check if another coffee is already in this container
-    const otherCoffee = allCoffees.find(
-      (c) => c.id !== coffee.id && c[containerLabel]
+    try {
+      showNotification("Updating container...", "info");
+      const { error } = await supabase
+        .from("coffee_beans")
+        .update(updateObj)
+        .eq("id", coffee.id);
+      if (error) throw error;
+      Object.assign(coffee, updateObj);
+      const coffeeInAll = allCoffees.find((c) => c.id === coffee.id);
+      if (coffeeInAll) Object.assign(coffeeInAll, updateObj);
+      await refreshCoffees();
+      showNotification(`Removed from all containers!`, "success");
+    } catch (error) {
+      console.error("Error updating container:", error);
+      if (error.message.includes("Unauthorized")) {
+        showNotification("Session expired. Please log in again.", "warning");
+        logout();
+      } else {
+        showNotification(
+          "Failed to update container. Please try again.",
+          "error"
+        );
+      }
+    }
+    return;
+  }
+
+  // Toggling OFF (removal)
+  if (coffee[containerLabel]) {
+    showContainerModal(
+      `Remove ${coffee.name} from the ${newContainerType} container?`,
+      async () => {
+        try {
+          const { error } = await supabase
+            .from("coffee_beans")
+            .update({ [containerLabel]: false })
+            .eq("id", coffee.id);
+          if (error) throw error;
+          coffee[containerLabel] = false;
+          const coffeeInAll = allCoffees.find((c) => c.id === coffee.id);
+          if (coffeeInAll) coffeeInAll[containerLabel] = false;
+          await refreshCoffees();
+          showNotification(`${coffee.name} removed from ${newContainerType} container!`, "success");
+        } catch (error) {
+          console.error("Error updating container:", error);
+          showNotification("Failed to update container. Please try again.", "error");
+        }
+      },
+      () => {}
     );
-    if (otherCoffee) {
-      // Prompt for confirmation
-      showContainerModal(
-        `This will remove ${otherCoffee.name} from the ${newContainerType} container. Continue?`,
-        async () => {
+    return;
+  }
+
+  // Toggling ON (assignment)
+  const otherCoffee = allCoffees.find(
+    (c) => c.id !== coffee.id && c[containerLabel]
+  );
+  if (otherCoffee) {
+    showContainerModal(
+      `The ${newContainerType} container is already in use by ${otherCoffee.name}. This will remove it from that coffee. Continue?`,
+      async () => {
+        try {
           // Remove other coffee from this container
           await supabase
             .from("coffee_beans")
@@ -288,21 +350,25 @@ async function updateContainer(coffeeIndex, newContainerType) {
           // Assign this coffee to the container
           await supabase
             .from("coffee_beans")
-            .update({ [containerLabel]: !coffee[containerLabel] })
+            .update({ [containerLabel]: true })
             .eq("id", coffee.id);
-          coffee[containerLabel] = !coffee[containerLabel];
-          renderCoffeeCards(filteredCoffees);
-          showNotification(`${coffee.name} container(s) updated!`, "success");
-        },
-        () => {}
-      );
-      return;
-    } else {
-      // Toggle this coffee's container assignment
-      updateObj[containerLabel] = !coffee[containerLabel];
-    }
+          coffee[containerLabel] = true;
+          const coffeeInAll = allCoffees.find((c) => c.id === coffee.id);
+          if (coffeeInAll) coffeeInAll[containerLabel] = true;
+          await refreshCoffees();
+          showNotification(`${coffee.name} assigned to ${newContainerType} container!`, "success");
+        } catch (error) {
+          console.error("Error updating container:", error);
+          showNotification("Failed to update container. Please try again.", "error");
+        }
+      },
+      () => {}
+    );
+    return;
   }
 
+  // No conflict, just assign
+  updateObj[containerLabel] = true;
   try {
     showNotification("Updating container...", "info");
     const { error } = await supabase
@@ -310,12 +376,11 @@ async function updateContainer(coffeeIndex, newContainerType) {
       .update(updateObj)
       .eq("id", coffee.id);
     if (error) throw error;
-    // Update the current coffee in both lists
-    Object.assign(coffee, updateObj);
+    coffee[containerLabel] = true;
     const coffeeInAll = allCoffees.find((c) => c.id === coffee.id);
-    if (coffeeInAll) Object.assign(coffeeInAll, updateObj);
-    renderCoffeeCards(filteredCoffees);
-    showNotification(`Container(s) updated!`, "success");
+    if (coffeeInAll) coffeeInAll[containerLabel] = true;
+    await refreshCoffees();
+    showNotification(`${coffee.name} assigned to ${newContainerType} container!`, "success");
   } catch (error) {
     console.error("Error updating container:", error);
     if (error.message.includes("Unauthorized")) {
