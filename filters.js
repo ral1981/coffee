@@ -14,9 +14,8 @@ function toggleFilters() {
 }
 
 function populateFilters(coffees) {
-  const containers = [...new Set(coffees.map(c => c.container || "N/A"))]
-    .filter(c => c !== "N/A")
-    .sort();
+  // Only show Green and Grey as options
+  const containers = ["Green", "Grey"];
   const shops = [...new Set(coffees.map((coffee) => coffee.shop_name || "N/A"))]
     .filter((shop) => shop !== "N/A")
     .sort();
@@ -28,7 +27,7 @@ function populateFilters(coffees) {
   containers.forEach(container => {
     const option = document.createElement("option");
     option.value = container.toLowerCase();
-    option.textContent = container;
+    option.textContent = container + " Container";
     containerFilter.appendChild(option);
   });
   const shopFilter = document.getElementById("shop-filter");
@@ -137,12 +136,8 @@ function applyFilters() {
   const shopFilter = document.getElementById("shop-filter").value;
   const originFilter = document.getElementById("origin-filter").value;
   const filtered = allCoffees.filter((coffee) => {
-    if (
-      containerFilter &&
-      (coffee.container || "").toLowerCase() !== containerFilter.toLowerCase()
-    ) {
-      return false;
-    }
+    if (containerFilter === "green" && !coffee.in_green_container) return false;
+    if (containerFilter === "grey" && !coffee.in_grey_container) return false;
     if (shopFilter && (coffee.shop_name || "N/A") !== shopFilter) return false;
     if (originFilter && (coffee.origin || "N/A") !== originFilter) return false;
     return true;

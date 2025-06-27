@@ -193,25 +193,14 @@ function renderCoffeeCards(coffees) {
   const grid = document.getElementById("coffee-grid");
   grid.innerHTML = "";
 
-  coffees.forEach((coffee, index) => {	  
-    const containerValue = coffee.container || "";
-    const currentContainerType = getContainerType(containerValue);
+  coffees.forEach((coffee, index) => {
+    // Determine container status from booleans
+    const inGreen = coffee.in_green_container;
+    const inGrey = coffee.in_grey_container;
     let containerClass = "";
-
-    if (containerValue) {
-      const lower = containerValue.toLowerCase();
-      if (lower.includes("green") || lower.includes("container_01")) {
-        containerClass = "in-container-green";
-      } else if (lower.includes("grey") || lower.includes("gray") || lower.includes("container_02")) {
-        containerClass = "in-container-grey";
-      }
-    }
-
-    const hasRecipe =
-      coffee["recipe_in_grams"] !== null &&
-      coffee["recipe_out_grams"] !== null &&
-      coffee["recipe_in_grams"] !== undefined &&
-      coffee["recipe_out_grams"] !== undefined;	  
+    if (inGreen && inGrey) containerClass = "in-container-both";
+    else if (inGreen) containerClass = "in-container-green";
+    else if (inGrey) containerClass = "in-container-grey";
 
     const card = document.createElement("div");
     card.className = `coffee-card ${containerClass}`;
@@ -219,12 +208,12 @@ function renderCoffeeCards(coffees) {
 
     card.innerHTML = `
       <div class="container-icons-top">
-        <button class="container-icon green ${currentContainerType === "green" ? "active" : ""}" 
+        <button class="container-icon green ${inGreen ? "active" : ""}"
                 data-container-type="green" data-index="${index}" title="Green Container"
                 ${!getIsAuthorized() ? "disabled" : ""}>
           <i data-lucide="archive"></i>
         </button>
-        <button class="container-icon grey ${currentContainerType === "grey" ? "active" : ""}" 
+        <button class="container-icon grey ${inGrey ? "active" : ""}"
                 data-container-type="grey" data-index="${index}" title="Grey Container"
                 ${!getIsAuthorized() ? "disabled" : ""}>
           <i data-lucide="archive"></i>
@@ -266,7 +255,7 @@ function renderCoffeeCards(coffees) {
       <div class="recipe">
         <h4>Espresso Recipe</h4>
         <div class="recipe-grid" data-state="2">
-          ${hasRecipe ? `
+          ${coffee["recipe_in_grams"] !== null && coffee["recipe_out_grams"] !== null && coffee["recipe_in_grams"] !== undefined && coffee["recipe_out_grams"] !== undefined ? `
             <div class="shot-toggle">
               <img src="2shot.svg" alt="Shot icon" class="shot-icon" />
               <div class="slide-switch" data-id="${coffee.id}" data-state="double">
@@ -276,7 +265,6 @@ function renderCoffeeCards(coffees) {
               </div>
             </div>` : ""
           }
-
           ${createRecipeItem("Ratio", coffee["recipe_ratio"] || "1:2")}
           ${createRecipeItem("In (g)", coffee["recipe_in_grams"] || "18", "in-val")}
           ${createRecipeItem("Out (g)", coffee["recipe_out_grams"] || "36", "out-val")}

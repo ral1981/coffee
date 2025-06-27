@@ -182,7 +182,7 @@ function calculateRatio() {
   }
 }
 
-async function submitNewCoffee(eventOrData, confirmContainerReplacement = false, previousCoffeeInContainer = null) {
+async function submitNewCoffee(eventOrData, confirmContainerReplacement = false, previousConflicts = null) {
   let formDataObj;
   let event = null;
   if (eventOrData instanceof Event) {
@@ -195,6 +195,9 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
     for (const [key, value] of formData.entries()) {
       formDataObj[key] = value;
     }
+    // Checkboxes: add booleans for containers
+    formDataObj.in_green_container = formData.get("in_green_container") === "true";
+    formDataObj.in_grey_container = formData.get("in_grey_container") === "true";
   } else {
     // Called with formDataObj (from confirmation)
     formDataObj = eventOrData;
@@ -220,7 +223,6 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
     // Use formDataObj instead of FormData
     const coffeeData = {};
     const fieldMapping = {
-      container: "container",
       name: "name",
       shop_name: "shop_name",
       shop_url: "shop_url",
@@ -238,34 +240,29 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
       recipe_out_gr: "recipe_out_grams",
       recipe_time_s: "recipe_time_seconds",
       recipe_temperature_c: "recipe_temperature_c",
+      in_green_container: "in_green_container",
+      in_grey_container: "in_grey_container"
     };
     for (const [formField, dbField] of Object.entries(fieldMapping)) {
       const value = formDataObj[formField];
       if (value !== null && value !== undefined) {
-        const trimmedValue = value.toString().trim();
-        if (trimmedValue) {
-          if (formField === "container") {
-            // Support multiple containers: comma-separated string from checkboxes or multi-select
-            // Accept both array and string from formDataObj
-            let containers = [];
-            if (Array.isArray(value)) {
-              containers = value.map(v => v === "green" ? "Green Container" : v === "grey" ? "Grey Container" : v).filter(Boolean);
-            } else if (typeof value === "string") {
-              // If comma-separated or single value
-              containers = value.split(',').map(v => v.trim()).filter(Boolean).map(v => v === "green" ? "Green Container" : v === "grey" ? "Grey Container" : v);
+        if (formField === "in_green_container" || formField === "in_grey_container") {
+          coffeeData[dbField] = !!value;
+        } else {
+          const trimmedValue = value.toString().trim();
+          if (trimmedValue) {
+            if (
+              formField.includes("height_m") ||
+              formField.includes("sca") ||
+              formField.includes("recipe_in_gr") ||
+              formField.includes("recipe_out_gr") ||
+              formField.includes("recipe_temperature_c")
+            ) {
+              const numValue = parseFloat(trimmedValue);
+              coffeeData[dbField] = isNaN(numValue) ? null : numValue;
+            } else {
+              coffeeData[dbField] = trimmedValue;
             }
-            coffeeData[dbField] = containers.join(',');
-          } else if (
-            formField.includes("height_m") ||
-            formField.includes("sca") ||
-            formField.includes("recipe_in_gr") ||
-            formField.includes("recipe_out_gr") ||
-            formField.includes("recipe_temperature_c")
-          ) {
-            const numValue = parseFloat(trimmedValue);
-            coffeeData[dbField] = isNaN(numValue) ? null : numValue;
-          } else {
-            coffeeData[dbField] = trimmedValue;
           }
         }
       }
@@ -293,6 +290,45 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
     );
     if (existingCoffee) {
       throw new Error("A coffee with this name already exists");
+    }
+
+    // Check for container conflicts if not already confirmed
+    if (!confirmContainerReplacement) {
+      const conflicts = [];
+      if (coffeeData.in_green_container) {
+        const otherGreen = allCoffees.find(c => c.in_green_container);
+        if (otherGreen) conflicts.push({ container: "green", coffee: otherGreen });
+      }
+      if (coffeeData.in_grey_container) {
+        const otherGrey = allCoffees.find(c => c.in_grey_container);
+        if (otherGrey) conflicts.push({ container: "grey", coffee: otherGrey });
+      }
+      if (conflicts.length > 0) {
+        let msg = conflicts.map(c => `The ${c.container} container is already in use by ${c.coffee.name}.`).join("\n");
+        msg += "\nDo you want to replace?";
+        showContainerModal(
+          msg,
+          () => {
+            // On confirm, call submitNewCoffee with confirmation and pass conflicts
+            submitNewCoffee({ ...formDataObj }, true, conflicts);
+          },
+          () => {}
+        );
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        return;
+      }
+    }
+
+    // If we replaced a container, clear the previous coffee's container in DB and UI FIRST
+    if (confirmContainerReplacement && previousConflicts && Array.isArray(previousConflicts)) {
+      for (const conflict of previousConflicts) {
+        await supabase
+          .from("coffee_beans")
+          .update({ [conflict.container === "green" ? "in_green_container" : "in_grey_container"]: false })
+          .eq("id", conflict.coffee.id);
+        conflict.coffee[conflict.container === "green" ? "in_green_container" : "in_grey_container"] = false;
+      }
     }
 
     // Now insert the new coffee

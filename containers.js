@@ -261,48 +261,61 @@ function confirmContainerAction() {
 
 async function updateContainer(coffeeIndex, newContainerType) {
   const coffee = filteredCoffees[coffeeIndex];
-  let containers = coffee.container ? coffee.container.split(',').map(c => c.trim()).filter(Boolean) : [];
+  let updateObj = {};
+  let containerLabel = null;
+  if (newContainerType === "green") containerLabel = "in_green_container";
+  if (newContainerType === "grey") containerLabel = "in_grey_container";
 
-  if (newContainerType) {
-    const containerLabel = newContainerType === "green" ? "Green Container" : "Grey Container";
-    if (containers.includes(containerLabel)) {
-      // Remove the container if already present (toggle off)
-      containers = containers.filter(c => c !== containerLabel);
-    } else {
-      // Add the container if not present (toggle on)
-      containers.push(containerLabel);
-    }
+  if (!containerLabel) {
+    // Remove from all containers
+    updateObj = { in_green_container: false, in_grey_container: false };
   } else {
-    // If newContainerType is empty, remove all containers
-    containers = [];
+    // Check if another coffee is already in this container
+    const otherCoffee = allCoffees.find(
+      (c) => c.id !== coffee.id && c[containerLabel]
+    );
+    if (otherCoffee) {
+      // Prompt for confirmation
+      showContainerModal(
+        `This will remove ${otherCoffee.name} from the ${newContainerType} container. Continue?`,
+        async () => {
+          // Remove other coffee from this container
+          await supabase
+            .from("coffee_beans")
+            .update({ [containerLabel]: false })
+            .eq("id", otherCoffee.id);
+          otherCoffee[containerLabel] = false;
+          // Assign this coffee to the container
+          await supabase
+            .from("coffee_beans")
+            .update({ [containerLabel]: !coffee[containerLabel] })
+            .eq("id", coffee.id);
+          coffee[containerLabel] = !coffee[containerLabel];
+          renderCoffeeCards(filteredCoffees);
+          showNotification(`${coffee.name} container(s) updated!`, "success");
+        },
+        () => {}
+      );
+      return;
+    } else {
+      // Toggle this coffee's container assignment
+      updateObj[containerLabel] = !coffee[containerLabel];
+    }
   }
-
-  const updatedContainerValue = containers.join(',');
 
   try {
     showNotification("Updating container...", "info");
-
     const { error } = await supabase
       .from("coffee_beans")
-      .update({ container: updatedContainerValue })
+      .update(updateObj)
       .eq("id", coffee.id);
-
     if (error) throw error;
-
     // Update the current coffee in both lists
-    coffee.container = updatedContainerValue;
+    Object.assign(coffee, updateObj);
     const coffeeInAll = allCoffees.find((c) => c.id === coffee.id);
-    if (coffeeInAll) {
-      coffeeInAll.container = updatedContainerValue;
-    }
-
+    if (coffeeInAll) Object.assign(coffeeInAll, updateObj);
     renderCoffeeCards(filteredCoffees);
-    showNotification(
-      newContainerType
-        ? `${coffee.name} container(s) updated!`
-        : `${coffee.name} removed from all containers!`,
-      "success"
-    );
+    showNotification(`Container(s) updated!`, "success");
   } catch (error) {
     console.error("Error updating container:", error);
     if (error.message.includes("Unauthorized")) {
