@@ -461,5 +461,6 @@ export {
   addLogoutButton,
   toggleAddCoffee,
   renderCoffeeCards,
-  createShopLogoElement
+  createShopLogoElement,
+  toggleContainer
 };
