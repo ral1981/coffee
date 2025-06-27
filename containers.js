@@ -166,10 +166,11 @@ function showContainerModal(message, onConfirm, onCancel) {
       Promise.resolve(onConfirm()).then(closeContainerModal);
     });
 
-  // Add ESC key listener
+  // Add ESC key listener, call onCancel if provided
   function handleEscape(e) {
     if (e.key === "Escape") {
       closeContainerModal();
+      if (onCancel) onCancel();
       document.removeEventListener("keydown", handleEscape);
     }
   }
