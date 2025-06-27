@@ -16,7 +16,7 @@ import { loadCoffeeData,
 	 toggleFilters,
 	 updateFilterStates
 	} from "./filters.js";
-import { getContainerType } from "./containers.js";
+import { getContainerType, showContainerModal } from "./containers.js";
 
 function getDomainFromUrl(url) {
   try {
