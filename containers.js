@@ -163,9 +163,9 @@ function showContainerModal(message, onConfirm, onCancel) {
     .addEventListener("click", closeContainerModal);
   modal
     .querySelector(".modal-btn-confirm")
-    .addEventListener("click", async () => {
-      await onConfirm();
-      closeContainerModal();
+    .addEventListener("click", function() {
+      // Always call onConfirm as async and close modal after
+      Promise.resolve(onConfirm()).then(closeContainerModal);
     });
 
   // Add ESC key listener
