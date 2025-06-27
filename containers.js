@@ -23,7 +23,7 @@ function showContainerReplacementDialog(result, originalEvent) {
 					Cancel
 				  </button>
 				  <button class="btn-confirm">
-					<i data-lucide="check" style="width: 16px; height: 16px;"></i>
+					<i data-lucide="check" style="width: 16px, height: 16px;"></i>
 					Continue
 				  </button>
 				</div>
@@ -184,9 +184,49 @@ function closeContainerModal() {
   }
 }
 
+/**
+ * Set a coffee as the only one in a given container, removing any other coffee from that container.
+ * @param {string|number} coffeeId - The id of the coffee to assign.
+ * @param {"green"|"grey"} containerType - The container type to assign ("green" or "grey").
+ * @param {boolean} assign - true to assign, false to remove from container
+ * @returns {Promise<{success: boolean, error?: any}>}
+ */
+export async function setCoffeeContainerExclusive(coffeeId, containerType, assign = true) {
+  let containerLabel = null;
+  if (containerType === "green") containerLabel = "in_green_container";
+  if (containerType === "grey") containerLabel = "in_grey_container";
+  if (!containerLabel) return { success: false, error: "Invalid container type" };
+
+  try {
+    // Remove any other coffee from this container if assigning
+    if (assign) {
+      const { data: others, error: findErr } = await supabase
+        .from("coffee_beans")
+        .select("id")
+        .eq(containerLabel, true)
+        .neq("id", coffeeId);
+      if (findErr) throw findErr;
+      if (others && others.length > 0) {
+        const otherIds = others.map(c => c.id);
+        await supabase
+          .from("coffee_beans")
+          .update({ [containerLabel]: false })
+          .in("id", otherIds);
+      }
+    }
+    // Assign or remove this coffee
+    await supabase
+      .from("coffee_beans")
+      .update({ [containerLabel]: assign })
+      .eq("id", coffeeId);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error };
+  }
+}
+
 async function updateContainer(coffeeIndex, newContainerType) {
   const coffee = filteredCoffees[coffeeIndex];
-  let updateObj = {};
   let containerLabel = null;
   if (newContainerType === "green") containerLabel = "in_green_container";
   if (newContainerType === "grey") containerLabel = "in_grey_container";
@@ -203,7 +243,7 @@ async function updateContainer(coffeeIndex, newContainerType) {
 
   if (!containerLabel) {
     // Remove from all containers
-    updateObj = { in_green_container: false, in_grey_container: false };
+    const updateObj = { in_green_container: false, in_grey_container: false };
     try {
       showNotification("Updating container...", "info");
       const { error } = await supabase
@@ -218,7 +258,7 @@ async function updateContainer(coffeeIndex, newContainerType) {
       showNotification(`Removed from all containers!`, "success");
     } catch (error) {
       console.error("Error updating container:", error);
-      if (error.message.includes("Unauthorized")) {
+      if (error.message && error.message.includes("Unauthorized")) {
         showNotification("Session expired. Please log in again.", "warning");
         logout();
       } else {
@@ -237,11 +277,8 @@ async function updateContainer(coffeeIndex, newContainerType) {
       `Remove ${coffee.name} from the ${newContainerType} container?`,
       async () => {
         try {
-          const { error } = await supabase
-            .from("coffee_beans")
-            .update({ [containerLabel]: false })
-            .eq("id", coffee.id);
-          if (error) throw error;
+          const result = await setCoffeeContainerExclusive(coffee.id, newContainerType, false);
+          if (!result.success) throw result.error;
           coffee[containerLabel] = false;
           const coffeeInAll = allCoffees.find((c) => c.id === coffee.id);
           if (coffeeInAll) coffeeInAll[containerLabel] = false;
@@ -266,17 +303,8 @@ async function updateContainer(coffeeIndex, newContainerType) {
       `The ${newContainerType} container is already in use by ${otherCoffee.name}. This will remove it from that coffee. Continue?`,
       async () => {
         try {
-          // Remove other coffee from this container
-          await supabase
-            .from("coffee_beans")
-            .update({ [containerLabel]: false })
-            .eq("id", otherCoffee.id);
-          otherCoffee[containerLabel] = false;
-          // Assign this coffee to the container
-          await supabase
-            .from("coffee_beans")
-            .update({ [containerLabel]: true })
-            .eq("id", coffee.id);
+          const result = await setCoffeeContainerExclusive(coffee.id, newContainerType, true);
+          if (!result.success) throw result.error;
           coffee[containerLabel] = true;
           const coffeeInAll = allCoffees.find((c) => c.id === coffee.id);
           if (coffeeInAll) coffeeInAll[containerLabel] = true;
@@ -293,14 +321,10 @@ async function updateContainer(coffeeIndex, newContainerType) {
   }
 
   // No conflict, just assign
-  updateObj[containerLabel] = true;
   try {
     showNotification("Updating container...", "info");
-    const { error } = await supabase
-      .from("coffee_beans")
-      .update(updateObj)
-      .eq("id", coffee.id);
-    if (error) throw error;
+    const result = await setCoffeeContainerExclusive(coffee.id, newContainerType, true);
+    if (!result.success) throw result.error;
     coffee[containerLabel] = true;
     const coffeeInAll = allCoffees.find((c) => c.id === coffee.id);
     if (coffeeInAll) coffeeInAll[containerLabel] = true;
@@ -308,7 +332,7 @@ async function updateContainer(coffeeIndex, newContainerType) {
     showNotification(`${coffee.name} assigned to ${newContainerType} container!`, "success");
   } catch (error) {
     console.error("Error updating container:", error);
-    if (error.message.includes("Unauthorized")) {
+    if (error.message && error.message.includes("Unauthorized")) {
       showNotification("Session expired. Please log in again.", "warning");
       logout();
     } else {

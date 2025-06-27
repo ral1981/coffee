@@ -4,7 +4,7 @@ import { supabase } from "./supabase.js";
 import { getIsAuthorized, logout } from "./auth.js";
 import { showNotification } from "./ui.js";
 import { populateFilters, applyFilters, loadCoffeeData } from "./filters.js";
-import { showContainerModal } from "./containers.js";
+import { showContainerModal, setCoffeeContainerExclusive } from "./containers.js";
 
 let allCoffees = [];
 let filteredCoffees = [];
@@ -323,10 +323,7 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
     // If we replaced a container, clear the previous coffee's container in DB and UI FIRST
     if (confirmContainerReplacement && previousConflicts && Array.isArray(previousConflicts)) {
       for (const conflict of previousConflicts) {
-        await supabase
-          .from("coffee_beans")
-          .update({ [conflict.container === "green" ? "in_green_container" : "in_grey_container"]: false })
-          .eq("id", conflict.coffee.id);
+        await setCoffeeContainerExclusive(conflict.coffee.id, conflict.container, false);
         conflict.coffee[conflict.container === "green" ? "in_green_container" : "in_grey_container"] = false;
       }
     }
