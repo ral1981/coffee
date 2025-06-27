@@ -261,58 +261,46 @@ function confirmContainerAction() {
 
 async function updateContainer(coffeeIndex, newContainerType) {
   const coffee = filteredCoffees[coffeeIndex];
-  const containerValue = newContainerType
-    ? newContainerType === "green"
-      ? "Green Container"
-      : "Grey Container"
-    : "";
+  let containers = coffee.container ? coffee.container.split(',').map(c => c.trim()).filter(Boolean) : [];
+
+  if (newContainerType) {
+    const containerLabel = newContainerType === "green" ? "Green Container" : "Grey Container";
+    if (containers.includes(containerLabel)) {
+      // Remove the container if already present (toggle off)
+      containers = containers.filter(c => c !== containerLabel);
+    } else {
+      // Add the container if not present (toggle on)
+      containers.push(containerLabel);
+    }
+  } else {
+    // If newContainerType is empty, remove all containers
+    containers = [];
+  }
+
+  const updatedContainerValue = containers.join(',');
 
   try {
     showNotification("Updating container...", "info");
 
     const { error } = await supabase
       .from("coffee_beans")
-      .update({ container: containerValue })
-      .eq("id", coffee.id) // Use the coffee's unique ID;
+      .update({ container: updatedContainerValue })
+      .eq("id", coffee.id);
 
     if (error) throw error;
 
-    // Remove any other coffee in the same container
-    if (newContainerType) {
-      const otherCoffeeIndex = allCoffees.findIndex(
-        (c) =>
-          c.id !== coffee.id &&
-          getContainerType(c.container) === newContainerType
-      );
-      if (otherCoffeeIndex !== -1) {
-        allCoffees[otherCoffeeIndex].container = "";
-        const filteredOtherIndex = filteredCoffees.findIndex(
-          (c) => c.id === allCoffees[otherCoffeeIndex].id
-        );
-        if (filteredOtherIndex !== -1) {
-          filteredCoffees[filteredOtherIndex].container = "";
-        }
-        // Fix: define otherCoffee and update DB
-        const otherCoffee = allCoffees[otherCoffeeIndex];
-        await supabase
-          .from("coffee_beans")
-          .update({ container: "" })
-          .eq("id", otherCoffee.id);
-      }
-    }
-
-    // Update the current coffee
-    coffee.container = containerValue;
+    // Update the current coffee in both lists
+    coffee.container = updatedContainerValue;
     const coffeeInAll = allCoffees.find((c) => c.id === coffee.id);
     if (coffeeInAll) {
-      coffeeInAll.container = containerValue;
+      coffeeInAll.container = updatedContainerValue;
     }
 
     renderCoffeeCards(filteredCoffees);
     showNotification(
       newContainerType
-        ? `${coffee.name} moved to ${newContainerType} container!`
-        : `${coffee.name} removed from container!`,
+        ? `${coffee.name} container(s) updated!`
+        : `${coffee.name} removed from all containers!`,
       "success"
     );
   } catch (error) {

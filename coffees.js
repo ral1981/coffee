@@ -245,12 +245,16 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
         const trimmedValue = value.toString().trim();
         if (trimmedValue) {
           if (formField === "container") {
-            coffeeData[dbField] =
-              value === "green"
-                ? "Green Container"
-                : value === "grey"
-                  ? "Grey Container"
-                  : "";
+            // Support multiple containers: comma-separated string from checkboxes or multi-select
+            // Accept both array and string from formDataObj
+            let containers = [];
+            if (Array.isArray(value)) {
+              containers = value.map(v => v === "green" ? "Green Container" : v === "grey" ? "Grey Container" : v).filter(Boolean);
+            } else if (typeof value === "string") {
+              // If comma-separated or single value
+              containers = value.split(',').map(v => v.trim()).filter(Boolean).map(v => v === "green" ? "Green Container" : v === "grey" ? "Grey Container" : v);
+            }
+            coffeeData[dbField] = containers.join(',');
           } else if (
             formField.includes("height_m") ||
             formField.includes("sca") ||
@@ -289,46 +293,6 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
     );
     if (existingCoffee) {
       throw new Error("A coffee with this name already exists");
-    }
-    // Check for container conflict if a container is selected and not already confirmed
-    if (coffeeData.container && !confirmContainerReplacement) {
-      const selectedContainerType = coffeeData.container.toLowerCase().includes('green') ? 'green' : coffeeData.container.toLowerCase().includes('grey') ? 'grey' : null;
-      if (selectedContainerType) {
-        const coffeeInContainer = allCoffees.find(
-          (c) => c.container && c.container.toLowerCase().includes(selectedContainerType)
-        );
-        if (coffeeInContainer) {
-          // Use the shared showContainerModal for confirmation
-          showContainerModal(
-            `The ${selectedContainerType} container is already in use by ${coffeeInContainer.name}. Do you want to replace it?`,
-            () => submitNewCoffee({ ...formDataObj }, true, coffeeInContainer),
-            () => {} // no-op on cancel
-          );
-          submitBtn.innerHTML = originalText;
-          submitBtn.disabled = false;
-          return;
-        }
-      }
-    }
-
-    // If we replaced a container, clear the previous coffee's container in DB and UI FIRST
-    if (confirmContainerReplacement && previousCoffeeInContainer && previousCoffeeInContainer.id) {
-      const { error: updateError } = await supabase
-        .from("coffee_beans")
-        .update({ container: null })
-        .eq("id", previousCoffeeInContainer.id)
-        .select();
-      if (updateError) {
-        showNotification("Failed to clear previous coffee's container. Please check your database column name.", "error");
-        // Optionally, abort here
-        // return;
-      }
-      allCoffees = allCoffees.map(c =>
-        c.id === previousCoffeeInContainer.id ? { ...c, container: null } : c
-      );
-      filteredCoffees = filteredCoffees.map(c =>
-        c.id === previousCoffeeInContainer.id ? { ...c, container: null } : c
-      );
     }
 
     // Now insert the new coffee
