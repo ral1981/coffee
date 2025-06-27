@@ -413,6 +413,80 @@ if (addCoffeeBtn) {
   lucide.createIcons();
 });
 
+async function toggleContainer(coffeeIndex, containerType) {
+  if (!getIsAuthorized()) {
+    showNotification("Login required to add or edit content.", "info");
+    return;
+  }
+
+  const coffee = filteredCoffees[coffeeIndex];
+  let containerLabel = null;
+  if (containerType === "green") containerLabel = "in_green_container";
+  if (containerType === "grey") containerLabel = "in_grey_container";
+  if (!containerLabel) return;
+
+  // Prepare a synthetic event for submitNewCoffee
+  function makeSyntheticEvent(newState) {
+    return {
+      preventDefault: () => {},
+      target: {
+        elements: {
+          // ...existing code for other fields if needed...
+          'coffee-id': { value: coffee.id },
+          'coffee-name': { value: coffee.name },
+          'container-green': { checked: newState.in_green_container },
+          'container-grey': { checked: newState.in_grey_container },
+          // ...add other fields as needed for submitNewCoffee...
+        }
+      }
+    };
+  }
+
+  // Toggling OFF (removal)
+  if (coffee[containerLabel]) {
+    showContainerModal(
+      `Remove ${coffee.name} from the ${containerType} container?`,
+      () => {
+        // Remove only this container
+        const newState = {
+          in_green_container: containerType === "green" ? false : coffee.in_green_container,
+          in_grey_container: containerType === "grey" ? false : coffee.in_grey_container
+        };
+        return submitNewCoffee(makeSyntheticEvent(newState), true);
+      },
+      () => {}
+    );
+    return;
+  }
+
+  // Toggling ON (assignment)
+  const otherCoffee = allCoffees.find(
+    (c) => c.id !== coffee.id && c[containerLabel]
+  );
+  if (otherCoffee) {
+    showContainerModal(
+      `The ${containerType} container is already in use by ${otherCoffee.name}. This will remove it from that coffee. Continue?`,
+      () => {
+        // Assign this coffee, remove from other
+        const newState = {
+          in_green_container: containerType === "green", // only this one true
+          in_grey_container: containerType === "grey"
+        };
+        return submitNewCoffee(makeSyntheticEvent(newState), true);
+      },
+      () => {}
+    );
+    return;
+  }
+
+  // No conflict, just assign
+  const newState = {
+    in_green_container: containerType === "green" ? true : coffee.in_green_container,
+    in_grey_container: containerType === "grey" ? true : coffee.in_grey_container
+  };
+  submitNewCoffee(makeSyntheticEvent(newState), true);
+}
+
 export {
   updateUIForAuthorizedUser,
   updateUIForUnauthorizedUser,
