@@ -17,7 +17,7 @@ import { loadCoffeeData,
 	 toggleFilters,
 	 updateFilterStates
 	} from "./filters.js";
-import { getContainerType, showContainerModal, setCoffeeContainerExclusive } from "./containers.js";
+import { toggleContainer } from "./containers.js";
 
 function getDomainFromUrl(url) {
   try {
@@ -75,6 +75,7 @@ function updateUIForUnauthorizedUser() {
   addLoginButton();
   renderCoffeeCards(filteredCoffees);
 }
+
 function addLoginButton() {
   const existingBtn = document.getElementById("auth-btn");
   if (existingBtn) existingBtn.remove();
@@ -291,7 +292,7 @@ function renderCoffeeCards(coffees) {
     shopContainer.appendChild(link);
     card.querySelector(".coffee-header").appendChild(shopContainer);
 
-    // Bind events
+    // Bind events - using the unified container system
     const greenBtn = card.querySelector(".container-icon.green");
     greenBtn?.addEventListener("click", () => toggleContainer(index, "green"));
 
@@ -414,77 +415,6 @@ if (addCoffeeBtn) {
   lucide.createIcons();
 });
 
-async function toggleContainer(coffeeIndex, containerType) {
-  if (!getIsAuthorized()) {
-    showNotification("Login required to add or edit content.", "info");
-    return;
-  }
-
-  const coffee = filteredCoffees[coffeeIndex];
-  let containerLabel = null;
-  if (containerType === "green") containerLabel = "in_green_container";
-  if (containerType === "grey") containerLabel = "in_grey_container";
-  if (!containerLabel) return;
-
-  // Helper to reload data and UI after DB update
-  async function refreshCoffees() {
-    const coffees = await loadCoffeeData();
-    setAllCoffees(coffees);
-    setFilteredCoffees([...coffees]);
-    renderCoffeeCards(filteredCoffees);
-    populateFilters(coffees);
-    applyFilters();
-  }
-
-  // Toggling OFF (removal)
-  if (coffee[containerLabel]) {
-    showContainerModal(
-      `Remove ${coffee.name} from the ${containerType} container?`,
-      async () => {
-        const result = await setCoffeeContainerExclusive(coffee.id, containerType, false);
-        if (!result.success) {
-          showNotification("Failed to update container.", "error");
-          return;
-        }
-        await refreshCoffees();
-        showNotification(`${coffee.name} removed from ${containerType} container!`, "success");
-      },
-      () => {}
-    );
-    return;
-  }
-
-  // Toggling ON (assignment)
-  const otherCoffee = allCoffees.find(
-    (c) => c.id !== coffee.id && c[containerLabel]
-  );
-  if (otherCoffee) {
-    showContainerModal(
-      `The ${containerType} container is already in use by ${otherCoffee.name}. This will remove it from that coffee. Continue?`,
-      async () => {
-        const result = await setCoffeeContainerExclusive(coffee.id, containerType, true);
-        if (!result.success) {
-          showNotification("Failed to update container.", "error");
-          return;
-        }
-        await refreshCoffees();
-        showNotification(`${coffee.name} assigned to ${containerType} container!`, "success");
-      },
-      () => {}
-    );
-    return;
-  }
-
-  // No conflict, just assign
-  const result = await setCoffeeContainerExclusive(coffee.id, containerType, true);
-  if (!result.success) {
-    showNotification("Failed to update container.", "error");
-    return;
-  }
-  await refreshCoffees();
-  showNotification(`${coffee.name} assigned to ${containerType} container!`, "success");
-}
-
 export {
   updateUIForAuthorizedUser,
   updateUIForUnauthorizedUser,
@@ -493,6 +423,5 @@ export {
   addLogoutButton,
   toggleAddCoffee,
   renderCoffeeCards,
-  createShopLogoElement,
-  toggleContainer
+  createShopLogoElement
 };
