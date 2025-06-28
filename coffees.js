@@ -304,16 +304,16 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
         if (otherGrey) conflicts.push({ container: "grey", coffee: otherGrey });
       }
       if (conflicts.length > 0) {
-        let msg = conflicts.map(c => `The ${c.container} container is already in use by ${c.coffee.name}.`).join("\n");
-        msg += "\nDo you want to replace?";
-        showContainerModal(
-          msg,
-          () => {
-            // On confirm, call submitNewCoffee with confirmation and pass conflicts
-            submitNewCoffee({ ...formDataObj }, true, conflicts);
-          },
-          () => {}
-        );
+        const msg = conflicts
+          .map(c => `The ${c.container} container is already in use by ${c.coffee.name}.`)
+          .join("\n")
+          + "\nDo you want to replace?";
+        showContainerModal({
+          message: msg,
+          onConfirm: () => submitNewCoffee({ ...formDataObj }, true, conflicts),
+          onCancel: () => {
+          }
+        });
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
         return;
