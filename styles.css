@@ -269,7 +269,7 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
+    z-index: 999999;
     animation: fadeIn 0.2s ease-out;
 }
 
@@ -282,6 +282,8 @@ h1 {
     max-height: 90vh;
     overflow: hidden;
     animation: slideUp 0.3s ease-out;
+    position: relative;
+    z-index: 1000000;
 }
 
 .confirmation-header {
