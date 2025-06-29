@@ -444,7 +444,10 @@ async function handleDeleteCoffee(index) {
       renderCoffeeCards(filteredCoffees);
       showNotification("Coffee deleted.", "success");
     },
-    onCancel: () => {}
+    onCancel: () => {},
+    title: 'Delete Coffee',
+    icon: 'trash-2',
+    iconColor: '#ef4444'
   }, {
     title: 'Delete Coffee',
     icon: 'trash-2',

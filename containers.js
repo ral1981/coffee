@@ -172,7 +172,10 @@ export async function handleContainerRemoval(coffeeId, coffeeName, containerType
       },
       onCancel: () => {
         resolve({ success: false, cancelled: true });
-      }
+      },
+      title: "Remove Coffee Container",
+      icon: "trash-2",
+      iconColor: "#dc2626"
     });
   });
 }
@@ -223,7 +226,7 @@ export async function handleNewCoffeeContainers(coffeeData, selectedContainers) 
 /**
  * Universal container conflict dialog
  */
-function showContainerConflictDialog({ message, onConfirm, onCancel }) {
+function showContainerConflictDialog({ message, onConfirm, onCancel, title = "Container Conflict", icon = "alert-triangle", iconColor = "#f59e0b" }) {
   // Remove existing dialog if any
   const existingDialog = document.querySelector(".container-conflict-dialog-overlay");
   if (existingDialog) {
@@ -235,8 +238,8 @@ function showContainerConflictDialog({ message, onConfirm, onCancel }) {
   dialog.innerHTML = `
     <div class="container-conflict-dialog">
       <div class="dialog-header">
-        <i data-lucide="alert-triangle" style="color: #f59e0b; width: 24px; height: 24px;"></i>
-        <h3>Container Conflict</h3>
+        <i data-lucide="${icon}" style="color: ${iconColor}; width: 24px; height: 24px;"></i>
+        <h3>${title}</h3>
       </div>
       <div class="dialog-message">
         <p>${message}</p>
