@@ -18,7 +18,7 @@ import { loadCoffeeData,
 	 toggleFilters,
 	 updateFilterStates
 	} from "./filters.js";
-import { toggleContainer } from "./containers.js";
+import { toggleContainer, showContainerModal } from "./containers.js";
 
 function getDomainFromUrl(url) {
   try {
