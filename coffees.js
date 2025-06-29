@@ -379,7 +379,7 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
  */
 export async function deleteCoffeeById(id) {
   const { error } = await supabase
-    .from('coffees')
+    .from('coffee_beans')
     .delete()
     .eq('id', id);
   return { error };
