@@ -425,24 +425,31 @@ if (addCoffeeBtn) {
 
 async function handleDeleteCoffee(index) {
   if (!getIsAuthorized()) return;
-  if (!confirm("Are you sure you want to delete this coffee entry?")) return;
   const coffee = filteredCoffees[index];
   if (!coffee || !coffee.id) {
     showNotification("Could not find coffee id for deletion.", "error");
     return;
   }
-  // Delete from backend
-  const { error } = await deleteCoffeeById(coffee.id);
-  if (error) {
-    showNotification("Failed to delete coffee from backend.", "error");
-    return;
-  }
-  // Remove from arrays
-  const allIdx = allCoffees.findIndex(c => c.id === coffee.id);
-  if (allIdx !== -1) allCoffees.splice(allIdx, 1);
-  filteredCoffees.splice(index, 1);
-  renderCoffeeCards(filteredCoffees);
-  showNotification("Coffee deleted.", "success");
+  showContainerModal({
+    message: `Are you sure you want to delete <b>${coffee.name}</b>? This action cannot be undone.`,
+    onConfirm: async () => {
+      const { error } = await deleteCoffeeById(coffee.id);
+      if (error) {
+        showNotification("Failed to delete coffee from backend.", "error");
+        return;
+      }
+      const allIdx = allCoffees.findIndex(c => c.id === coffee.id);
+      if (allIdx !== -1) allCoffees.splice(allIdx, 1);
+      filteredCoffees.splice(index, 1);
+      renderCoffeeCards(filteredCoffees);
+      showNotification("Coffee deleted.", "success");
+    },
+    onCancel: () => {}
+  }, {
+    title: 'Delete Coffee',
+    icon: 'trash-2',
+    iconColor: '#ef4444'
+  });
 }
 
 export {
