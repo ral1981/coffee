@@ -385,6 +385,20 @@ export async function deleteCoffeeById(id) {
   return { error };
 }
 
+/**
+ * Update a coffee entry in Supabase by id
+ * @param {string|number} id - The id of the coffee to update
+ * @param {object} updates - The fields to update
+ * @returns {Promise<{error: any}>}
+ */
+export async function updateCoffeeById(id, updates) {
+  const { error } = await supabase
+    .from('coffee_beans')
+    .update(updates)
+    .eq('id', id);
+  return { error };
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // Shop URL input handling
   const shopUrlInput = document.getElementById("add-shop-url");

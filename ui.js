@@ -5,7 +5,8 @@ import { allCoffees,
          setAllCoffees,
          setFilteredCoffees,
          submitNewCoffee,
-         deleteCoffeeById
+         deleteCoffeeById,
+         updateCoffeeById
        } from "./coffees.js";
 import { editNotes } from "./notes.js";
 import { loadCoffeeData,
@@ -192,6 +193,8 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
   return logoContainer;
 }
 
+let editingCoffeeIndex = null;
+
 function renderCoffeeCards(coffees) {
   const grid = document.getElementById("coffee-grid");
   grid.innerHTML = "";
@@ -209,73 +212,95 @@ function renderCoffeeCards(coffees) {
     card.className = `coffee-card ${containerClass}`;
     card.dataset.coffeeIndex = index;
 
+    const isEditing = editingCoffeeIndex === index;
+
     card.innerHTML = `
-      <div class="container-icons-top">
-        <button class="container-icon green ${inGreen ? "active" : ""}"
-                data-container-type="green" data-index="${index}" title="Green Container"
-                ${!getIsAuthorized() ? "disabled" : ""}>
-          <i data-lucide="archive"></i>
-        </button>
-        <button class="container-icon grey ${inGrey ? "active" : ""}"
-                data-container-type="grey" data-index="${index}" title="Grey Container"
-                ${!getIsAuthorized() ? "disabled" : ""}>
-          <i data-lucide="archive"></i>
-        </button>
-        <button class="delete-coffee-btn" data-index="${index}" title="Delete Coffee" ${!getIsAuthorized() ? "disabled" : ""}>
-          <i data-lucide="trash-2"></i>
-        </button>
+      <div class="container-icons-top" style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div class="container-icons-left" style="display: flex; gap: 4px;">
+          <button class="container-icon green ${inGreen ? "active" : ""}"
+                  data-container-type="green" data-index="${index}" title="Green Container"
+                  ${!getIsAuthorized() ? "disabled" : ""}>
+            <i data-lucide="archive"></i>
+          </button>
+          <button class="container-icon grey ${inGrey ? "active" : ""}"
+                  data-container-type="grey" data-index="${index}" title="Grey Container"
+                  ${!getIsAuthorized() ? "disabled" : ""}>
+            <i data-lucide="archive"></i>
+          </button>
+        </div>
+        <div class="container-icons-right" style="display: flex; gap: 4px;">
+          <button class="delete-coffee-btn" data-index="${index}" title="Delete Coffee" ${!getIsAuthorized() ? "disabled" : ""}>
+            <i data-lucide="trash-2"></i>
+          </button>
+          ${isEditing
+            ? `<button class="save-coffee-btn" data-index="${index}" title="Save"><i data-lucide="check"></i></button>
+               <button class="cancel-edit-coffee-btn" data-index="${index}" title="Cancel"><i data-lucide="x"></i></button>`
+            : `<button class="edit-coffee-btn" data-index="${index}" title="Edit Coffee" ${!getIsAuthorized() ? "disabled" : ""}><i data-lucide="square-pen"></i></button>`}
+        </div>
       </div>
 
       <div class="coffee-header">
-        <div class="coffee-name">${coffee.name}</div>
+        ${isEditing
+          ? `<input class="edit-input" name="name" value="${coffee.name || ''}" placeholder="Coffee Name">`
+          : `<div class="coffee-name">${coffee.name}</div>`}
       </div>
 
       <div class="coffee-details">
-        ${createDetail("Origin", coffee.origin)}
-        ${createDetail("Region", coffee.region)}
-        ${createDetail("Height (m)", coffee.height_m)}
-        ${createDetail("Variety", coffee.botanic_variety)}
-        ${createDetail("Farm/Producer", coffee["farm_/_producer"])}
-        ${createDetail("Processing", coffee.processing_method)}
-        ${createDetail("SCA Score", coffee.sca)}
+        ${isEditing
+          ? `
+            <input class="edit-input" name="origin" value="${coffee.origin || ''}" placeholder="Origin">
+            <input class="edit-input" name="region" value="${coffee.region || ''}" placeholder="Region">
+            <input class="edit-input" name="height_meters" value="${coffee.height_meters || ''}" placeholder="Height (m)" type="number">
+            <input class="edit-input" name="botanic_variety" value="${coffee.botanic_variety || ''}" placeholder="Variety">
+            <input class="edit-input" name="farm_producer" value="${coffee.farm_producer || ''}" placeholder="Farm/Producer">
+            <input class="edit-input" name="processing_method" value="${coffee.processing_method || ''}" placeholder="Processing">
+            <input class="edit-input" name="sca" value="${coffee.sca || ''}" placeholder="SCA Score" type="number">
+          `
+          : `
+            ${createDetail("Origin", coffee.origin)}
+            ${createDetail("Region", coffee.region)}
+            ${createDetail("Height (m)", coffee.height_meters)}
+            ${createDetail("Variety", coffee.botanic_variety)}
+            ${createDetail("Farm/Producer", coffee.farm_producer)}
+            ${createDetail("Processing", coffee.processing_method)}
+            ${createDetail("SCA Score", coffee.sca)}
+          `}
       </div>
 
       <div class="flavor-notes">
         <h4>Flavor Profile</h4>
-        <p>${coffee.flavor || "N/A"}</p>
+        ${isEditing
+          ? `<input class="edit-input" name="flavor" value="${coffee.flavor || ''}" placeholder="Flavor Profile">`
+          : `<p>${coffee.flavor || "N/A"}</p>`}
       </div>
 
       <div class="notes-section" id="notes-${index}">
         <h4><i data-lucide="sticky-note"></i>Notes</h4>
         <div class="notes-content ${coffee.notes ? "" : "empty"}" id="notes-content-${index}">
-          ${coffee.notes || "No notes yet."}
-        </div>
-        <div class="notes-actions">
-          <button class="notes-btn notes-btn-edit ${!getIsAuthorized() ? "disabled" : ""}" 
-                  data-index="${index}" ${!getIsAuthorized() ? "disabled" : ""}>
-            <i data-lucide="square-pen"></i>Edit
-          </button>
+          ${isEditing
+            ? `<textarea class="edit-input" name="notes" placeholder="Notes">${coffee.notes || ''}</textarea>`
+            : (coffee.notes || "No notes yet.")}
         </div>
       </div>
 
       <div class="recipe">
         <h4>Espresso Recipe</h4>
         <div class="recipe-grid" data-state="2">
-          ${coffee["recipe_in_grams"] !== null && coffee["recipe_out_grams"] !== null && coffee["recipe_in_grams"] !== undefined && coffee["recipe_out_grams"] !== undefined ? `
-            <div class="shot-toggle">
-              <img src="2shot.svg" alt="Shot icon" class="shot-icon" />
-              <div class="slide-switch" data-id="${coffee.id}" data-state="double">
-                <span class="label single">Single</span>
-                <span class="label double">Double</span>
-                <div class="thumb"></div>
-              </div>
-            </div>` : ""
-          }
-          ${createRecipeItem("Ratio", coffee["recipe_ratio"] || "1:2")}
-          ${createRecipeItem("In (g)", coffee["recipe_in_grams"] || "18", "in-val")}
-          ${createRecipeItem("Out (g)", coffee["recipe_out_grams"] || "36", "out-val")}
-          ${createRecipeItem("Time (s)", coffee["recipe_time_seconds"] || "28")}
-          ${createRecipeItem("Temp (°C)", coffee["recipe_temperature_c"] || "93")}
+          ${isEditing
+            ? `
+              <input class="edit-input" name="recipe_ratio" value="${coffee.recipe_ratio || ''}" placeholder="Ratio">
+              <input class="edit-input" name="recipe_in_grams" value="${coffee.recipe_in_grams || ''}" placeholder="In (g)" type="number">
+              <input class="edit-input" name="recipe_out_grams" value="${coffee.recipe_out_grams || ''}" placeholder="Out (g)" type="number">
+              <input class="edit-input" name="recipe_time_seconds" value="${coffee.recipe_time_seconds || ''}" placeholder="Time (s)" type="number">
+              <input class="edit-input" name="recipe_temperature_c" value="${coffee.recipe_temperature_c || ''}" placeholder="Temp (°C)" type="number">
+            `
+            : `
+              ${createRecipeItem("Ratio", coffee["recipe_ratio"] || "1:2")}
+              ${createRecipeItem("In (g)", coffee["recipe_in_grams"] || "18", "in-val")}
+              ${createRecipeItem("Out (g)", coffee["recipe_out_grams"] || "36", "out-val")}
+              ${createRecipeItem("Time (s)", coffee["recipe_time_seconds"] || "28")}
+              ${createRecipeItem("Temp (°C)", coffee["recipe_temperature_c"] || "93")}
+            `}
         </div>
       </div>
     `;
@@ -296,26 +321,60 @@ function renderCoffeeCards(coffees) {
     shopContainer.appendChild(link);
     card.querySelector(".coffee-header").appendChild(shopContainer);
 
-    // Bind events - using the unified container system
+    // Bind events
     const greenBtn = card.querySelector(".container-icon.green");
     greenBtn?.addEventListener("click", () => toggleContainer(index, "green"));
 
     const greyBtn = card.querySelector(".container-icon.grey");
     greyBtn?.addEventListener("click", () => toggleContainer(index, "grey"));
 
-    const editBtn = card.querySelector(".notes-btn-edit");
-    editBtn?.addEventListener("click", () => editNotes(index));
-
+    const editBtn = card.querySelector(".edit-coffee-btn");
+    if (editBtn) {
+      editBtn.addEventListener("click", () => {
+        editingCoffeeIndex = index;
+        renderCoffeeCards(filteredCoffees);
+      });
+    }
+    const saveBtn = card.querySelector(".save-coffee-btn");
+    if (saveBtn) {
+      saveBtn.addEventListener("click", () => saveEditCoffee(index));
+    }
+    const cancelBtn = card.querySelector(".cancel-edit-coffee-btn");
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => {
+        editingCoffeeIndex = null;
+        renderCoffeeCards(filteredCoffees);
+      });
+    }
     // Delete coffee event
     const deleteBtn = card.querySelector(".delete-coffee-btn");
     deleteBtn?.addEventListener("click", () => handleDeleteCoffee(index));
-
     const switchEl = card.querySelector(".slide-switch");
     switchEl?.addEventListener("click", () => toggleSlide(switchEl));
-
     lucide.createIcons();
     grid.appendChild(card);
   });
+}
+
+async function saveEditCoffee(index) {
+  const card = document.querySelector(`.coffee-card[data-coffee-index='${index}']`);
+  if (!card) return;
+  const inputs = card.querySelectorAll('.edit-input');
+  const updated = {};
+  inputs.forEach(input => {
+    updated[input.name] = input.value;
+  });
+  const coffee = filteredCoffees[index];
+  // Backend update
+  const { error } = await updateCoffeeById(coffee.id, updated);
+  if (error) {
+    showNotification("Failed to update coffee.", "error");
+    return;
+  }
+  Object.assign(coffee, updated);
+  editingCoffeeIndex = null;
+  renderCoffeeCards(filteredCoffees);
+  showNotification("Coffee updated.", "success");
 }
 
 function createDetail(label, value) {
