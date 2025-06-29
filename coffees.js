@@ -372,6 +372,19 @@ async function submitNewCoffee(eventOrData, confirmContainerReplacement = false,
   }
 }
 
+/**
+ * Delete a coffee entry from Supabase by id
+ * @param {string|number} id - The id of the coffee to delete
+ * @returns {Promise<{error: any}>}
+ */
+export async function deleteCoffeeById(id) {
+  const { error } = await supabase
+    .from('coffees')
+    .delete()
+    .eq('id', id);
+  return { error };
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // Shop URL input handling
   const shopUrlInput = document.getElementById("add-shop-url");

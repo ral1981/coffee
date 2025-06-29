@@ -4,7 +4,8 @@ import { allCoffees,
 	 filteredCoffees,
          setAllCoffees,
          setFilteredCoffees,
-         submitNewCoffee
+         submitNewCoffee,
+         deleteCoffeeById
        } from "./coffees.js";
 import { editNotes } from "./notes.js";
 import { loadCoffeeData,
@@ -220,6 +221,9 @@ function renderCoffeeCards(coffees) {
                 ${!getIsAuthorized() ? "disabled" : ""}>
           <i data-lucide="archive"></i>
         </button>
+        <button class="delete-coffee-btn" data-index="${index}" title="Delete Coffee" ${!getIsAuthorized() ? "disabled" : ""}>
+          <i data-lucide="trash-2"></i>
+        </button>
       </div>
 
       <div class="coffee-header">
@@ -301,6 +305,10 @@ function renderCoffeeCards(coffees) {
 
     const editBtn = card.querySelector(".notes-btn-edit");
     editBtn?.addEventListener("click", () => editNotes(index));
+
+    // Delete coffee event
+    const deleteBtn = card.querySelector(".delete-coffee-btn");
+    deleteBtn?.addEventListener("click", () => handleDeleteCoffee(index));
 
     const switchEl = card.querySelector(".slide-switch");
     switchEl?.addEventListener("click", () => toggleSlide(switchEl));
@@ -414,6 +422,28 @@ if (addCoffeeBtn) {
 
   lucide.createIcons();
 });
+
+async function handleDeleteCoffee(index) {
+  if (!getIsAuthorized()) return;
+  if (!confirm("Are you sure you want to delete this coffee entry?")) return;
+  const coffee = filteredCoffees[index];
+  if (!coffee || !coffee.id) {
+    showNotification("Could not find coffee id for deletion.", "error");
+    return;
+  }
+  // Delete from backend
+  const { error } = await deleteCoffeeById(coffee.id);
+  if (error) {
+    showNotification("Failed to delete coffee from backend.", "error");
+    return;
+  }
+  // Remove from arrays
+  const allIdx = allCoffees.findIndex(c => c.id === coffee.id);
+  if (allIdx !== -1) allCoffees.splice(allIdx, 1);
+  filteredCoffees.splice(index, 1);
+  renderCoffeeCards(filteredCoffees);
+  showNotification("Coffee deleted.", "success");
+}
 
 export {
   updateUIForAuthorizedUser,
