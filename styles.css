@@ -1575,3 +1575,21 @@ h1 {
 .coffee-card-details.collapsed {
   display: none;
 }
+
+.coffee-card.collapsed-card {
+  min-height: 220px;
+  max-height: 220px;
+  overflow: hidden;
+  transition: max-height 0.2s cubic-bezier(.4,0,.2,1);
+}
+
+.coffee-card.expanded-card {
+  min-height: 220px;
+  max-height: 1200px;
+  transition: max-height 0.2s cubic-bezier(.4,0,.2,1);
+  overflow: visible;
+}
+
+.coffee-card {
+  transition: box-shadow 0.2s, border 0.2s, max-height 0.2s;
+}

@@ -199,8 +199,11 @@ function renderCoffeeCards(coffees) {
   const grid = document.getElementById("coffee-grid");
   grid.innerHTML = "";
 
-  // Track collapsed state for each card
+  // Track collapsed state for each card (default: all collapsed)
   if (!window.coffeeCardCollapsed) window.coffeeCardCollapsed = {};
+  coffees.forEach((_, idx) => {
+    if (window.coffeeCardCollapsed[idx] === undefined) window.coffeeCardCollapsed[idx] = true;
+  });
 
   coffees.forEach((coffee, index) => {
     // Determine container status from booleans
@@ -211,12 +214,13 @@ function renderCoffeeCards(coffees) {
     else if (inGreen) containerClass = "in-container-green";
     else if (inGrey) containerClass = "in-container-grey";
 
-    const card = document.createElement("div");
-    card.className = `coffee-card ${containerClass}`;
-    card.dataset.coffeeIndex = index;
-
     const isEditing = editingCoffeeIndex === index;
     const isCollapsed = window.coffeeCardCollapsed[index] === true;
+
+    // Add a class to the card for collapsed/expanded outline
+    const card = document.createElement("div");
+    card.className = `coffee-card ${containerClass} ${isCollapsed ? 'collapsed-card' : 'expanded-card'}`;
+    card.dataset.coffeeIndex = index;
 
     card.innerHTML = `
       <div class="container-icons-top" style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -362,7 +366,11 @@ function renderCoffeeCards(coffees) {
     const collapseBtn = card.querySelector(".collapse-toggle-btn");
     if (collapseBtn) {
       collapseBtn.addEventListener("click", () => {
-        window.coffeeCardCollapsed[index] = !window.coffeeCardCollapsed[index];
+        // Collapse all cards except this one
+        Object.keys(window.coffeeCardCollapsed).forEach(idx => {
+          window.coffeeCardCollapsed[idx] = true;
+        });
+        window.coffeeCardCollapsed[index] = !isCollapsed;
         renderCoffeeCards(filteredCoffees);
       });
     }
