@@ -1570,3 +1570,8 @@ h1 {
 #container-modal .modal-btn-confirm:hover {
   background: #2563eb;
 }
+
+/* Collapsed state for coffee card details */
+.coffee-card-details.collapsed {
+  display: none;
+}

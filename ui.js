@@ -199,6 +199,9 @@ function renderCoffeeCards(coffees) {
   const grid = document.getElementById("coffee-grid");
   grid.innerHTML = "";
 
+  // Track collapsed state for each card
+  if (!window.coffeeCardCollapsed) window.coffeeCardCollapsed = {};
+
   coffees.forEach((coffee, index) => {
     // Determine container status from booleans
     const inGreen = coffee.in_green_container;
@@ -213,6 +216,7 @@ function renderCoffeeCards(coffees) {
     card.dataset.coffeeIndex = index;
 
     const isEditing = editingCoffeeIndex === index;
+    const isCollapsed = window.coffeeCardCollapsed[index] === true;
 
     card.innerHTML = `
       <div class="container-icons-top" style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -238,69 +242,71 @@ function renderCoffeeCards(coffees) {
           </button>
         </div>
       </div>
-
-      <div class="coffee-header">
-        ${isEditing
-          ? `<input class="edit-input" name="name" value="${coffee.name || ''}" placeholder="Coffee Name">`
-          : `<div class="coffee-name">${coffee.name}</div>`}
-      </div>
-
-      <div class="coffee-details">
-        ${isEditing
-          ? `
-            <input class="edit-input" name="origin" value="${coffee.origin || ''}" placeholder="Origin">
-            <input class="edit-input" name="region" value="${coffee.region || ''}" placeholder="Region">
-            <input class="edit-input" name="height_meters" value="${coffee.height_meters || ''}" placeholder="Height (m)" type="number">
-            <input class="edit-input" name="botanic_variety" value="${coffee.botanic_variety || ''}" placeholder="Variety">
-            <input class="edit-input" name="farm_producer" value="${coffee.farm_producer || ''}" placeholder="Farm/Producer">
-            <input class="edit-input" name="processing_method" value="${coffee.processing_method || ''}" placeholder="Processing">
-            <input class="edit-input" name="sca" value="${coffee.sca || ''}" placeholder="SCA Score" type="number">
-          `
-          : `
-            ${createDetail("Origin", coffee.origin)}
-            ${createDetail("Region", coffee.region)}
-            ${createDetail("Height (m)", coffee.height_meters)}
-            ${createDetail("Variety", coffee.botanic_variety)}
-            ${createDetail("Farm/Producer", coffee.farm_producer)}
-            ${createDetail("Processing", coffee.processing_method)}
-            ${createDetail("SCA Score", coffee.sca)}
-          `}
-      </div>
-
-      <div class="flavor-notes">
-        <h4>Flavor Profile</h4>
-        ${isEditing
-          ? `<input class="edit-input" name="flavor" value="${coffee.flavor || ''}" placeholder="Flavor Profile">`
-          : `<p>${coffee.flavor || "N/A"}</p>`}
-      </div>
-
-      <div class="notes-section" id="notes-${index}">
-        <h4><i data-lucide="sticky-note"></i>Notes</h4>
-        <div class="notes-content ${coffee.notes ? "" : "empty"}" id="notes-content-${index}">
+      <div class="coffee-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
           ${isEditing
-            ? `<textarea class="edit-input" name="notes" placeholder="Notes">${coffee.notes || ''}</textarea>`
-            : (coffee.notes || "No notes yet.")}
+            ? `<input class="edit-input" name="name" value="${coffee.name || ''}" placeholder="Coffee Name">`
+            : `<div class="coffee-name">${coffee.name}</div>`}
         </div>
+        <button class="collapse-toggle-btn" data-index="${index}" title="${isCollapsed ? 'Expand' : 'Collapse'}" style="background: none; border: none; cursor: pointer; padding: 4px;">
+          <i data-lucide="chevron-${isCollapsed ? 'down' : 'up'}"></i>
+        </button>
       </div>
-
-      <div class="recipe">
-        <h4>Espresso Recipe</h4>
-        <div class="recipe-grid" data-state="2">
+      <div class="coffee-card-details${isCollapsed ? ' collapsed' : ''}">
+        <div class="coffee-details">
           ${isEditing
             ? `
-              <input class="edit-input" name="recipe_ratio" value="${coffee.recipe_ratio || ''}" placeholder="Ratio">
-              <input class="edit-input" name="recipe_in_grams" value="${coffee.recipe_in_grams || ''}" placeholder="In (g)" type="number">
-              <input class="edit-input" name="recipe_out_grams" value="${coffee.recipe_out_grams || ''}" placeholder="Out (g)" type="number">
-              <input class="edit-input" name="recipe_time_seconds" value="${coffee.recipe_time_seconds || ''}" placeholder="Time (s)" type="number">
-              <input class="edit-input" name="recipe_temperature_c" value="${coffee.recipe_temperature_c || ''}" placeholder="Temp (°C)" type="number">
+              <input class="edit-input" name="origin" value="${coffee.origin || ''}" placeholder="Origin">
+              <input class="edit-input" name="region" value="${coffee.region || ''}" placeholder="Region">
+              <input class="edit-input" name="height_meters" value="${coffee.height_meters || ''}" placeholder="Height (m)" type="number">
+              <input class="edit-input" name="botanic_variety" value="${coffee.botanic_variety || ''}" placeholder="Variety">
+              <input class="edit-input" name="farm_producer" value="${coffee.farm_producer || ''}" placeholder="Farm/Producer">
+              <input class="edit-input" name="processing_method" value="${coffee.processing_method || ''}" placeholder="Processing">
+              <input class="edit-input" name="sca" value="${coffee.sca || ''}" placeholder="SCA Score" type="number">
             `
             : `
-              ${createRecipeItem("Ratio", coffee["recipe_ratio"] || "1:2")}
-              ${createRecipeItem("In (g)", coffee["recipe_in_grams"] || "18", "in-val")}
-              ${createRecipeItem("Out (g)", coffee["recipe_out_grams"] || "36", "out-val")}
-              ${createRecipeItem("Time (s)", coffee["recipe_time_seconds"] || "28")}
-              ${createRecipeItem("Temp (°C)", coffee["recipe_temperature_c"] || "93")}
+              ${createDetail("Origin", coffee.origin)}
+              ${createDetail("Region", coffee.region)}
+              ${createDetail("Height (m)", coffee.height_meters)}
+              ${createDetail("Variety", coffee.botanic_variety)}
+              ${createDetail("Farm/Producer", coffee.farm_producer)}
+              ${createDetail("Processing", coffee.processing_method)}
+              ${createDetail("SCA Score", coffee.sca)}
             `}
+        </div>
+        <div class="flavor-notes">
+          <h4>Flavor Profile</h4>
+          ${isEditing
+            ? `<input class="edit-input" name="flavor" value="${coffee.flavor || ''}" placeholder="Flavor Profile">`
+            : `<p>${coffee.flavor || "N/A"}</p>`}
+        </div>
+        <div class="notes-section" id="notes-${index}">
+          <h4><i data-lucide="sticky-note"></i>Notes</h4>
+          <div class="notes-content ${coffee.notes ? "" : "empty"}" id="notes-content-${index}">
+            ${isEditing
+              ? `<textarea class="edit-input" name="notes" placeholder="Notes">${coffee.notes || ''}</textarea>`
+              : (coffee.notes || "No notes yet.")}
+          </div>
+        </div>
+        <div class="recipe">
+          <h4>Espresso Recipe</h4>
+          <div class="recipe-grid" data-state="2">
+            ${isEditing
+              ? `
+                <input class="edit-input" name="recipe_ratio" value="${coffee.recipe_ratio || ''}" placeholder="Ratio">
+                <input class="edit-input" name="recipe_in_grams" value="${coffee.recipe_in_grams || ''}" placeholder="In (g)" type="number">
+                <input class="edit-input" name="recipe_out_grams" value="${coffee.recipe_out_grams || ''}" placeholder="Out (g)" type="number">
+                <input class="edit-input" name="recipe_time_seconds" value="${coffee.recipe_time_seconds || ''}" placeholder="Time (s)" type="number">
+                <input class="edit-input" name="recipe_temperature_c" value="${coffee.recipe_temperature_c || ''}" placeholder="Temp (°C)" type="number">
+              `
+              : `
+                ${createRecipeItem("Ratio", coffee["recipe_ratio"] || "1:2")}
+                ${createRecipeItem("In (g)", coffee["recipe_in_grams"] || "18", "in-val")}
+                ${createRecipeItem("Out (g)", coffee["recipe_out_grams"] || "36", "out-val")}
+                ${createRecipeItem("Time (s)", coffee["recipe_time_seconds"] || "28")}
+                ${createRecipeItem("Temp (°C)", coffee["recipe_temperature_c"] || "93")}
+              `}
+          </div>
         </div>
       </div>
     `;
@@ -351,6 +357,16 @@ function renderCoffeeCards(coffees) {
     deleteBtn?.addEventListener("click", () => handleDeleteCoffee(index));
     const switchEl = card.querySelector(".slide-switch");
     switchEl?.addEventListener("click", () => toggleSlide(switchEl));
+
+    // Collapse/expand event
+    const collapseBtn = card.querySelector(".collapse-toggle-btn");
+    if (collapseBtn) {
+      collapseBtn.addEventListener("click", () => {
+        window.coffeeCardCollapsed[index] = !window.coffeeCardCollapsed[index];
+        renderCoffeeCards(filteredCoffees);
+      });
+    }
+
     lucide.createIcons();
     grid.appendChild(card);
   });
