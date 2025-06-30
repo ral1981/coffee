@@ -229,13 +229,13 @@ function renderCoffeeCards(coffees) {
           </button>
         </div>
         <div class="container-icons-right" style="display: flex; gap: 4px;">
-          <button class="delete-coffee-btn" data-index="${index}" title="Delete Coffee" ${!getIsAuthorized() ? "disabled" : ""}>
-            <i data-lucide="trash-2"></i>
-          </button>
           ${isEditing
             ? `<button class="save-coffee-btn" data-index="${index}" title="Save"><i data-lucide="check"></i></button>
                <button class="cancel-edit-coffee-btn" data-index="${index}" title="Cancel"><i data-lucide="x"></i></button>`
             : `<button class="edit-coffee-btn" data-index="${index}" title="Edit Coffee" ${!getIsAuthorized() ? "disabled" : ""}><i data-lucide="square-pen"></i></button>`}
+          <button class="delete-coffee-btn" data-index="${index}" title="Delete Coffee" ${!getIsAuthorized() ? "disabled" : ""}>
+            <i data-lucide="trash-2"></i>
+          </button>
         </div>
       </div>
 
