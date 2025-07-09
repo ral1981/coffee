@@ -246,15 +246,19 @@ function renderCoffeeCards(coffees) {
           </button>
         </div>
       </div>
-      <div class="coffee-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="coffee-header" style="display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin-bottom: 0.5rem;">
+        <div style="display: flex; align-items: center; width: 100%;">
           ${isEditing
             ? `<input class="edit-input" name="name" value="${coffee.name || ''}" placeholder="Coffee Name">`
             : `<div class="coffee-name">${coffee.name}</div>`}
         </div>
-        <button class="collapse-toggle-btn" data-index="${index}" title="${isCollapsed ? 'Expand' : 'Collapse'}" style="background: none; border: none; cursor: pointer; padding: 4px;">
-          <i data-lucide="chevron-${isCollapsed ? 'down' : 'up'}"></i>
-        </button>
+        <div class="shop-row" style="display: flex; align-items: center; width: 100%; position: relative; padding-right: 0;">
+          <span class="shop-info" style="margin-left: 0; display: flex; align-items: center; gap: 0.5em;"></span>
+          <button class="collapse-toggle-btn shop-align" data-index="${index}" title="${isCollapsed ? 'Expand' : 'Collapse'}" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: 1.5px solid #d1d5db; border-radius: 50%; cursor: pointer; padding: 4px; z-index: 2; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="chevron-${isCollapsed ? 'down' : 'up'}"></i>
+          </button>
+        </div>
+        <hr class="shop-divider" style="margin: 0.5em 0 0.2em 0; border: none; border-bottom: 1px solid #e5e7eb;" />
       </div>
       <div class="coffee-card-details${isCollapsed ? ' collapsed' : ''}">
         <div class="coffee-details">
@@ -315,21 +319,21 @@ function renderCoffeeCards(coffees) {
       </div>
     `;
 
-    // Insert shop link dynamically
-    const shopContainer = document.createElement("div");
-    shopContainer.className = "coffee-shop";
-    const link = document.createElement("a");
-    link.href = coffee.shop_url && coffee.shop_url !== "N/A" ? coffee.shop_url : "#";
-    link.target = "_blank";
-    link.className = "shop-link";
-    const logo = createShopLogoElement(coffee.shop_logo || "", coffee.shop_url || "#", coffee.shop_name || "N/A");
-    link.appendChild(logo.firstChild);
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "shop-name";
-    nameSpan.textContent = coffee.shop_name || "N/A";
-    link.appendChild(nameSpan);
-    shopContainer.appendChild(link);
-    card.querySelector(".coffee-header").appendChild(shopContainer);
+    // Insert shop link dynamically into the .shop-info span
+    const shopInfoSpan = card.querySelector(".shop-info");
+    if (shopInfoSpan) {
+      const link = document.createElement("a");
+      link.href = coffee.shop_url && coffee.shop_url !== "N/A" ? coffee.shop_url : "#";
+      link.target = "_blank";
+      link.className = "shop-link";
+      const logo = createShopLogoElement(coffee.shop_logo || "", coffee.shop_url || "#", coffee.shop_name || "N/A");
+      link.appendChild(logo.firstChild);
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "shop-name";
+      nameSpan.textContent = coffee.shop_name || "N/A";
+      link.appendChild(nameSpan);
+      shopInfoSpan.appendChild(link);
+    }
 
     // Bind events
     const greenBtn = card.querySelector(".container-icon.green");
@@ -361,19 +365,6 @@ function renderCoffeeCards(coffees) {
     deleteBtn?.addEventListener("click", () => handleDeleteCoffee(index));
     const switchEl = card.querySelector(".slide-switch");
     switchEl?.addEventListener("click", () => toggleSlide(switchEl));
-
-    // Collapse/expand event
-    const collapseBtn = card.querySelector(".collapse-toggle-btn");
-    if (collapseBtn) {
-      collapseBtn.addEventListener("click", () => {
-        // Collapse all cards except this one
-        Object.keys(window.coffeeCardCollapsed).forEach(idx => {
-          window.coffeeCardCollapsed[idx] = true;
-        });
-        window.coffeeCardCollapsed[index] = !isCollapsed;
-        renderCoffeeCards(filteredCoffees);
-      });
-    }
 
     lucide.createIcons();
     grid.appendChild(card);
