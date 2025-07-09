@@ -120,6 +120,7 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    align-items: start; /* Prevent cards from stretching to tallest in row */
 }
 
 .add-coffee-info {
@@ -636,6 +637,7 @@ h1 {
     gap: 24px;
     max-width: 1400px;
     margin: 0 auto;
+    align-items: start; /* Prevent cards from stretching to tallest in row */
 }
 
 .coffee-card {
@@ -646,6 +648,7 @@ h1 {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     transition: all 0.2s ease;
     position: relative;
+    box-sizing: border-box;
 }
 
 .coffee-card:hover {
@@ -1578,20 +1581,28 @@ h1 {
 
 .coffee-card.collapsed-card {
   /* Remove min/max height so header and shop info are always visible */
-  overflow: visible;
-  padding-bottom: 16px;
+  min-height: 88px; /* Ensure header is always visible */
+  height: auto;
+  /* Remove overflow: hidden here */
+  transition: box-shadow 0.3s cubic-bezier(0.4,0,0.2,1);
 }
 
-.coffee-card.expanded-card {
-  min-height: 220px;
-  max-height: 1200px;
-  transition: max-height 0.2s cubic-bezier(.4,0,.2,1);
+.coffee-card .coffee-card-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+.coffee-card.expanded-card .coffee-card-body {
+  max-height: 2000px; /* Large enough to show all content */
   overflow: visible;
+  transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1);
 }
 
 .coffee-card {
   transition: box-shadow 0.2s, border 0.2s, max-height 0.2s;
   padding-bottom: 0;
+  box-sizing: border-box;
 }
 
 .coffee-header {
