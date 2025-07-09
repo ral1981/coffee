@@ -1563,9 +1563,18 @@ h1 {
 }
 
 .coffee-card.collapsed-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   min-height: 88px;
   height: auto;
+  overflow: hidden;
   transition: box-shadow 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+.coffee-card.collapsed-card .coffee-card-body {
+  max-height: 0;
+  overflow: hidden;
 }
 
 .coffee-card .coffee-card-body {
@@ -1605,6 +1614,7 @@ h1 {
 
 .coffee-header > div:last-child .coffee-name {
   flex: 1;
+  max-width: 80%;
   padding-right: 0;
 }
 
@@ -1615,9 +1625,9 @@ h1 {
   line-height: 1.2;
   margin-bottom: 0.1em;
   letter-spacing: -0.01em;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: initial;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: block;
   padding-right: 48px;
 }
