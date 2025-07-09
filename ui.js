@@ -247,18 +247,18 @@ function renderCoffeeCards(coffees) {
         </div>
       </div>
       <div class="coffee-header" style="display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin-bottom: 0.5rem;">
-        <div style="display: flex; align-items: center; width: 100%;">
-          ${isEditing
-            ? `<input class="edit-input" name="name" value="${coffee.name || ''}" placeholder="Coffee Name">`
-            : `<div class="coffee-name">${coffee.name}</div>`}
-        </div>
         <div class="shop-row" style="display: flex; align-items: center; width: 100%; position: relative; padding-right: 0;">
-          <span class="shop-info" style="margin-left: 0; display: flex; align-items: center; gap: 0.5em;"></span>
-          <button class="collapse-toggle-btn shop-align" data-index="${index}" title="${isCollapsed ? 'Expand' : 'Collapse'}" style="position: absolute; right: 24px; top: 50%; transform: translateY(-50%); background: none; border: 1.5px solid #d1d5db; border-radius: 50%; cursor: pointer; padding: 4px; z-index: 2; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-            <i data-lucide="chevron-${isCollapsed ? 'down' : 'up'}"></i>
-          </button>
+          <span class="shop-info" style="margin-left: 0; display: flex; align-items: center; gap: 0.5em;"></span>          
         </div>
-        <hr class="shop-divider" style="margin: 0.5em 0 0.2em 0; border: none; border-bottom: 1px solid #e5e7eb;" />
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; position: relative;">
+      <div class="coffee-name">${coffee.name}</div>
+        <button class="collapse-toggle-btn far-right"
+              data-index="${index}"
+              title="${isCollapsed ? 'Expand' : 'Collapse'}">
+          <i data-lucide="chevron-${isCollapsed ? 'down' : 'up'}"></i>
+        </button>
+      </div>        
+      <hr class="shop-divider" style="margin: 0.5em 0 0.2em 0; border: none; border-bottom: 1px solid #e5e7eb;" />
       </div>
       <div class="coffee-card-details${isCollapsed ? ' collapsed' : ''}">
         <div class="coffee-details">
@@ -367,7 +367,7 @@ function renderCoffeeCards(coffees) {
     switchEl?.addEventListener("click", () => toggleSlide(switchEl));
 
     // Collapse/expand event
-    const collapseBtn = card.querySelector(".collapse-toggle-btn.shop-align");
+    const collapseBtn = card.querySelector(".collapse-toggle-btn.far-right");
     if (collapseBtn) {
       collapseBtn.addEventListener("click", (e) => {
         e.stopPropagation();
