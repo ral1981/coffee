@@ -141,8 +141,9 @@ function toggleAddCoffee() {
 }
 
 function getAddButtonHTML() {
-  return `<button id="add-coffee-toggle" class="add-coffee-btn"><i data-lucide="plus"></i>Add Coffee</button>`;
+  return `<button id="add-coffee-toggle" class="add-coffee-btn add-coffee-toggle"><i data-lucide="plus"></i>Add Coffee</button>`;
 }
+
 
 function getFaviconUrl(url) {
   const domain = getDomainFromUrl(url);
