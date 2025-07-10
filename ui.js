@@ -21,6 +21,8 @@ import { loadCoffeeData,
 	} from "./filters.js";
 import { toggleContainer, showContainerModal } from "./containers.js";
 
+let isAddCardActive = false;
+
 function getDomainFromUrl(url) {
   try {
     if (!/^https?:\/\//i.test(url)) url = "https://" + url;
@@ -130,19 +132,13 @@ function showNotification(message, type = "info") {
 }
 
 function toggleAddCoffee() {
-  const toggle = document.getElementById("add-coffee-toggle");
-  const content = document.getElementById("add-coffee-content");
-
   if (!getIsAuthorized()) {
     showNotification("Please log in to add coffee entries.", "warning");
     return;
   }
-
-  const isExpanded = toggle.getAttribute("aria-expanded") === "true";
-  toggle.setAttribute("aria-expanded", !isExpanded);
-
-  content.classList.toggle("collapsed", isExpanded);
-  content.classList.toggle("expanded", !isExpanded);
+  document.querySelector('.add-coffee-section').style.display = 'none';
+  isAddCardActive = true;
+  renderCoffeeCards(filteredCoffees);
 }
 
 function getFaviconUrl(url) {
@@ -198,6 +194,97 @@ let editingCoffeeIndex = null;
 function renderCoffeeCards(coffees) {
   const grid = document.getElementById("coffee-grid");
   grid.innerHTML = "";
+
+  if (isAddCardActive) {
+    const emptyCoffee = {
+      name: '',
+      shop_name: '',
+      shop_logo: '',
+      shop_url: '',
+      origin: '',
+      region: '',
+      height_meters: '',
+      botanic_variety: '',
+      farm_producer: '',
+      processing_method: '',
+      sca: '',
+      flavor: '',
+      notes: '',
+      recipe_ratio: '',
+      recipe_in_grams: '',
+      recipe_out_grams: '',
+      recipe_time_seconds: '',
+      recipe_temperature_c: '',
+      in_green_container: false,
+      in_grey_container: false,
+    };
+    const addCard = document.createElement("div");
+    addCard.className = "coffee-card add-card expanded-card";
+    addCard.innerHTML = `
+      <div class="coffee-header" style="display: flex; flex-direction: column; align-items: flex-start;">
+        <div class="shop-row" style="display: flex; align-items: center; width: 100%;">
+          <input class="edit-input" name="shop_name" value="" placeholder="Shop Name">
+          <input class="edit-input" name="shop_url" value="" placeholder="Shop URL">
+          <input class="edit-input" name="shop_logo" value="" placeholder="Shop Logo URL">
+        </div>
+        <div class="coffee-name-row" style="width: 100%;">
+          <input class="edit-input" name="name" value="" placeholder="Coffee Name" style="width: 100%;">
+        </div>
+        <hr class="shop-divider" style="margin: 0.5em 0 0.2em 0; border: none; border-bottom: 1px solid #e5e7eb;" />
+      </div>
+      <div class="coffee-card-details">
+        <div class="coffee-details">
+          <input class="edit-input" name="origin" value="" placeholder="Origin">
+          <input class="edit-input" name="region" value="" placeholder="Region">
+          <input class="edit-input" name="height_meters" value="" placeholder="Height (m)" type="number" step="0.1">
+          <input class="edit-input" name="botanic_variety" value="" placeholder="Variety">
+          <input class="edit-input" name="farm_producer" value="" placeholder="Farm/Producer">
+          <input class="edit-input" name="processing_method" value="" placeholder="Processing">
+          <input class="edit-input" name="sca" value="" placeholder="SCA Score" type="number" step="0.1">
+        </div>
+        <div class="flavor-notes">
+          <h4>Flavor Profile</h4>
+          <input class="edit-input" name="flavor" value="" placeholder="Flavor Profile">
+        </div>
+        <div class="notes-section">
+          <h4><i data-lucide="sticky-note"></i>Notes</h4>
+          <textarea class="edit-input" name="notes" placeholder="Notes"></textarea>
+        </div>
+        <div class="recipe">
+          <h4>Espresso Recipe</h4>
+          <div class="recipe-grid">
+            <input class="edit-input" name="recipe_ratio" value="" placeholder="Ratio">
+            <input class="edit-input" name="recipe_in_grams" value="" placeholder="In (g)" type="number" step="0.1">
+            <input class="edit-input" name="recipe_out_grams" value="" placeholder="Out (g)" type="number" step="0.1">
+            <input class="edit-input" name="recipe_time_seconds" value="" placeholder="Time (s)" type="number" step="0.1">
+            <input class="edit-input" name="recipe_temperature_c" value="" placeholder="Temp (°C)" type="number" step="0.1">
+          </div>
+        </div>
+        <div class="add-card-actions" style="margin-top: 1em; display: flex; gap: 1em;">
+          <button class="btn-submit">Save</button>
+          <button class="btn-cancel">Cancel</button>
+        </div>
+      </div>
+    `;
+    // Save handler
+    addCard.querySelector('.btn-submit').onclick = async () => {
+      const newCoffee = {};
+      addCard.querySelectorAll('.edit-input').forEach(input => {
+        newCoffee[input.name] = input.value;
+      });
+      await submitNewCoffee(newCoffee);
+      isAddCardActive = false;
+      document.querySelector('.add-coffee-section').style.display = '';
+      renderCoffeeCards(filteredCoffees);
+    };
+    // Cancel handler
+    addCard.querySelector('.btn-cancel').onclick = () => {
+      isAddCardActive = false;
+      document.querySelector('.add-coffee-section').style.display = '';
+      renderCoffeeCards(filteredCoffees);
+    };
+    grid.appendChild(addCard);
+  }
 
   // Track collapsed state for each card (default: all collapsed)
   if (!window.coffeeCardCollapsed) window.coffeeCardCollapsed = {};
