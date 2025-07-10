@@ -253,8 +253,8 @@ function renderAddCoffeeCard() {
           <input class="edit-input" name="recipe_temperature_c" value="" placeholder="Temp (°C)" type="number" step="0.1">
         </div>
       </div>
-      <div class="add-card-actions" style="margin-top: 1em; display: flex; gap: 1em;">
-        <button class="btn-submit" type="button">Save</button>
+      <div class="add-card-actions">
+        <button class="btn-submit" type="button">Add</button>
         <button class="btn-cancel" type="button">Cancel</button>
       </div>
     </div>
