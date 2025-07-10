@@ -192,13 +192,27 @@ function createShopLogoElement(shopLogo, shopUrl, shopName) {
   return logoContainer;
 }
 
+let editingCoffeeIndex = null;
+
 function renderAddCoffeeCard() {
   const section = document.querySelector('.add-coffee-section');
   section.innerHTML = ''; // Clear previous content
 
+  // State for container selection
+  let inGreen = false;
+  let inGrey = false;
+
   const addCard = document.createElement("div");
   addCard.className = "coffee-card add-card expanded-card";
   addCard.innerHTML = `
+    <div class="container-icons-top" style="display: flex; justify-content: flex-start; align-items: flex-start; gap: 8px;">
+      <button class="container-icon green" data-container-type="green" title="Green Container" type="button">
+        <i data-lucide="archive"></i>
+      </button>
+      <button class="container-icon grey" data-container-type="grey" title="Grey Container" type="button">
+        <i data-lucide="archive"></i>
+      </button>
+    </div>
     <div class="coffee-header" style="display: flex; flex-direction: column; align-items: flex-start;">
       <div class="shop-row" style="display: flex; align-items: center; width: 100%;">
         <input class="edit-input" name="shop_name" value="" placeholder="Shop Name">
@@ -214,7 +228,7 @@ function renderAddCoffeeCard() {
       <div class="coffee-details">
         <input class="edit-input" name="origin" value="" placeholder="Origin">
         <input class="edit-input" name="region" value="" placeholder="Region">
-        <input class="edit-input" name="height_meters" value="" placeholder="Height (m)" type="number" step="0.1">
+        <input class="edit-input" name="height_m" value="" placeholder="Height (m)" type="number" step="0.1">
         <input class="edit-input" name="botanic_variety" value="" placeholder="Variety">
         <input class="edit-input" name="farm_producer" value="" placeholder="Farm/Producer">
         <input class="edit-input" name="processing_method" value="" placeholder="Processing">
@@ -232,317 +246,98 @@ function renderAddCoffeeCard() {
         <h4>Espresso Recipe</h4>
         <div class="recipe-grid">
           <input class="edit-input" name="recipe_ratio" value="" placeholder="Ratio">
-          <input class="edit-input" name="recipe_in_grams" value="" placeholder="In (g)" type="number" step="0.1">
-          <input class="edit-input" name="recipe_out_grams" value="" placeholder="Out (g)" type="number" step="0.1">
-          <input class="edit-input" name="recipe_time_seconds" value="" placeholder="Time (s)" type="number" step="0.1">
+          <input class="edit-input" name="recipe_in_gr" value="" placeholder="In (g)" type="number" step="0.1">
+          <input class="edit-input" name="recipe_out_gr" value="" placeholder="Out (g)" type="number" step="0.1">
+          <input class="edit-input" name="recipe_time_s" value="" placeholder="Time (s)" type="number" step="0.1">
           <input class="edit-input" name="recipe_temperature_c" value="" placeholder="Temp (°C)" type="number" step="0.1">
         </div>
       </div>
       <div class="add-card-actions" style="margin-top: 1em; display: flex; gap: 1em;">
-        <button class="btn-submit">Save</button>
-        <button class="btn-cancel">Cancel</button>
+        <button class="btn-submit" type="button">Save</button>
+        <button class="btn-cancel" type="button">Cancel</button>
       </div>
     </div>
   `;
+
+  // Container icon logic
+  const greenBtn = addCard.querySelector('.container-icon.green');
+  const greyBtn = addCard.querySelector('.container-icon.grey');
+
+  function updateContainerIcons() {
+    greenBtn.classList.toggle('active', inGreen);
+    greyBtn.classList.toggle('active', inGrey);
+  }
+
+  greenBtn.addEventListener('click', () => {
+    inGreen = !inGreen;
+    updateContainerIcons();
+  });
+
+  greyBtn.addEventListener('click', () => {
+    inGrey = !inGrey;
+    updateContainerIcons();
+  });
+
+  updateContainerIcons();
+
   // Save handler
   addCard.querySelector('.btn-submit').onclick = async () => {
     const newCoffee = {};
     addCard.querySelectorAll('.edit-input').forEach(input => {
       newCoffee[input.name] = input.value;
     });
+    newCoffee.in_green_container = inGreen;
+    newCoffee.in_grey_container = inGrey;
+
+    // --- Container conflict check (reuse logic from submitNewCoffee) ---
+    const conflicts = [];
+    if (inGreen) {
+      const otherGreen = allCoffees.find(c => c.in_green_container);
+      if (otherGreen) conflicts.push({ container: "green", coffee: otherGreen });
+    }
+    if (inGrey) {
+      const otherGrey = allCoffees.find(c => c.in_grey_container);
+      if (otherGrey) conflicts.push({ container: "grey", coffee: otherGrey });
+    }
+    if (conflicts.length > 0) {
+      const msg = conflicts
+        .map(c => `The ${c.container} container is already in use by ${c.coffee.name}.`)
+        .join("\n")
+        + "\nDo you want to replace?";
+      showContainerModal({
+        message: msg,
+        onConfirm: () => submitNewCoffee(newCoffee, true, conflicts).then(() => {
+          isAddCardActive = false;
+          section.innerHTML = getAddButtonHTML();
+          section.querySelector('#add-coffee-toggle').addEventListener('click', toggleAddCoffee);
+          renderCoffeeCards(filteredCoffees);
+        }),
+        onCancel: () => {}
+      });
+      return;
+    }
+    // --- End container conflict check ---
+
     await submitNewCoffee(newCoffee);
     isAddCardActive = false;
     section.innerHTML = getAddButtonHTML();
     section.querySelector('#add-coffee-toggle').addEventListener('click', toggleAddCoffee);
     renderCoffeeCards(filteredCoffees);
   };
+
   // Cancel handler
   addCard.querySelector('.btn-cancel').onclick = () => {
     isAddCardActive = false;
     section.innerHTML = getAddButtonHTML();
     section.querySelector('#add-coffee-toggle').addEventListener('click', toggleAddCoffee);
   };
+
   section.appendChild(addCard);
-}
 
-let editingCoffeeIndex = null;
-
-function renderCoffeeCards(coffees) {
-  const grid = document.getElementById("coffee-grid");
-  grid.innerHTML = "";
-
-  if (isAddCardActive) {
-    const emptyCoffee = {
-      name: '',
-      shop_name: '',
-      shop_logo: '',
-      shop_url: '',
-      origin: '',
-      region: '',
-      height_meters: '',
-      botanic_variety: '',
-      farm_producer: '',
-      processing_method: '',
-      sca: '',
-      flavor: '',
-      notes: '',
-      recipe_ratio: '',
-      recipe_in_grams: '',
-      recipe_out_grams: '',
-      recipe_time_seconds: '',
-      recipe_temperature_c: '',
-      in_green_container: false,
-      in_grey_container: false,
-    };
-    const addCard = document.createElement("div");
-    addCard.className = "coffee-card add-card expanded-card";
-    addCard.innerHTML = `
-      <div class="coffee-header" style="display: flex; flex-direction: column; align-items: flex-start;">
-        <div class="shop-row" style="display: flex; align-items: center; width: 100%;">
-          <input class="edit-input" name="shop_name" value="" placeholder="Shop Name">
-          <input class="edit-input" name="shop_url" value="" placeholder="Shop URL">
-          <input class="edit-input" name="shop_logo" value="" placeholder="Shop Logo URL">
-        </div>
-        <div class="coffee-name-row" style="width: 100%;">
-          <input class="edit-input" name="name" value="" placeholder="Coffee Name" style="width: 100%;">
-        </div>
-        <hr class="shop-divider" style="margin: 0.5em 0 0.2em 0; border: none; border-bottom: 1px solid #e5e7eb;" />
-      </div>
-      <div class="coffee-card-details">
-        <div class="coffee-details">
-          <input class="edit-input" name="origin" value="" placeholder="Origin">
-          <input class="edit-input" name="region" value="" placeholder="Region">
-          <input class="edit-input" name="height_meters" value="" placeholder="Height (m)" type="number" step="0.1">
-          <input class="edit-input" name="botanic_variety" value="" placeholder="Variety">
-          <input class="edit-input" name="farm_producer" value="" placeholder="Farm/Producer">
-          <input class="edit-input" name="processing_method" value="" placeholder="Processing">
-          <input class="edit-input" name="sca" value="" placeholder="SCA Score" type="number" step="0.1">
-        </div>
-        <div class="flavor-notes">
-          <h4>Flavor Profile</h4>
-          <input class="edit-input" name="flavor" value="" placeholder="Flavor Profile">
-        </div>
-        <div class="notes-section">
-          <h4><i data-lucide="sticky-note"></i>Notes</h4>
-          <textarea class="edit-input" name="notes" placeholder="Notes"></textarea>
-        </div>
-        <div class="recipe">
-          <h4>Espresso Recipe</h4>
-          <div class="recipe-grid">
-            <input class="edit-input" name="recipe_ratio" value="" placeholder="Ratio">
-            <input class="edit-input" name="recipe_in_grams" value="" placeholder="In (g)" type="number" step="0.1">
-            <input class="edit-input" name="recipe_out_grams" value="" placeholder="Out (g)" type="number" step="0.1">
-            <input class="edit-input" name="recipe_time_seconds" value="" placeholder="Time (s)" type="number" step="0.1">
-            <input class="edit-input" name="recipe_temperature_c" value="" placeholder="Temp (°C)" type="number" step="0.1">
-          </div>
-        </div>
-        <div class="add-card-actions" style="margin-top: 1em; display: flex; gap: 1em;">
-          <button class="btn-submit">Save</button>
-          <button class="btn-cancel">Cancel</button>
-        </div>
-      </div>
-    `;
-    // Save handler
-    addCard.querySelector('.btn-submit').onclick = async () => {
-      const newCoffee = {};
-      addCard.querySelectorAll('.edit-input').forEach(input => {
-        newCoffee[input.name] = input.value;
-      });
-      await submitNewCoffee(newCoffee);
-      isAddCardActive = false;
-      document.querySelector('.add-coffee-section').style.display = '';
-      renderCoffeeCards(filteredCoffees);
-    };
-    // Cancel handler
-    addCard.querySelector('.btn-cancel').onclick = () => {
-      isAddCardActive = false;
-      document.querySelector('.add-coffee-section').style.display = '';
-      renderCoffeeCards(filteredCoffees);
-    };
-    grid.appendChild(addCard);
-  }
-
-  // Track collapsed state for each card (default: all collapsed)
-  if (!window.coffeeCardCollapsed) window.coffeeCardCollapsed = {};
-  coffees.forEach((_, idx) => {
-    if (window.coffeeCardCollapsed[idx] === undefined) window.coffeeCardCollapsed[idx] = true;
-  });
-
-  coffees.forEach((coffee, index) => {
-    // Determine container status from booleans
-    const inGreen = coffee.in_green_container;
-    const inGrey = coffee.in_grey_container;
-    let containerClass = "";
-    if (inGreen && inGrey) containerClass = "in-container-both";
-    else if (inGreen) containerClass = "in-container-green";
-    else if (inGrey) containerClass = "in-container-grey";
-
-    const isEditing = editingCoffeeIndex === index;
-    const isCollapsed = window.coffeeCardCollapsed[index] === true;
-
-    // Add a class to the card for collapsed/expanded outline
-    const card = document.createElement("div");
-    card.className = `coffee-card ${containerClass} ${isCollapsed ? 'collapsed-card' : 'expanded-card'}`;
-    card.dataset.coffeeIndex = index;
-
-    card.innerHTML = `
-      <div class="container-icons-top" style="display: flex; justify-content: space-between; align-items: flex-start;">
-        <div class="container-icons-left" style="display: flex; gap: 4px;">
-          <button class="container-icon green ${inGreen ? "active" : ""}"
-                  data-container-type="green" data-index="${index}" title="Green Container"
-                  ${!getIsAuthorized() ? "disabled" : ""}>
-            <i data-lucide="archive"></i>
-          </button>
-          <button class="container-icon grey ${inGrey ? "active" : ""}"
-                  data-container-type="grey" data-index="${index}" title="Grey Container"
-                  ${!getIsAuthorized() ? "disabled" : ""}>
-            <i data-lucide="archive"></i>
-          </button>
-        </div>
-        <div class="container-icons-right" style="display: flex; gap: 4px;">
-          ${isEditing
-            ? `<button class="save-coffee-btn" data-index="${index}" title="Save"><i data-lucide="check"></i></button>
-               <button class="cancel-edit-coffee-btn" data-index="${index}" title="Cancel"><i data-lucide="x"></i></button>`
-            : `<button class="edit-coffee-btn" data-index="${index}" title="Edit Coffee" ${!getIsAuthorized() ? "disabled" : ""}><i data-lucide="square-pen"></i></button>`}
-          <button class="delete-coffee-btn" data-index="${index}" title="Delete Coffee" ${!getIsAuthorized() ? "disabled" : ""}>
-            <i data-lucide="trash-2"></i>
-          </button>
-        </div>
-      </div>
-      <div class="coffee-header" style="display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin-bottom: 0.5rem;">
-        <div class="shop-row" style="display: flex; align-items: center; width: 100%; position: relative; padding-right: 0;">
-          <span class="shop-info" style="margin-left: 0; display: flex; align-items: center; gap: 0.5em;"></span>          
-        </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; position: relative;">
-      <div class="coffee-name">${coffee.name}</div>
-        <button class="collapse-toggle-btn far-right"
-              data-index="${index}"
-              title="${isCollapsed ? 'Expand' : 'Collapse'}">
-          <i data-lucide="chevron-${isCollapsed ? 'down' : 'up'}"></i>
-        </button>
-      </div>        
-      <hr class="shop-divider" style="margin: 0.5em 0 0.2em 0; border: none; border-bottom: 1px solid #e5e7eb;" />
-      </div>
-      <div class="coffee-card-details${isCollapsed ? ' collapsed' : ''}">
-        <div class="coffee-details">
-          ${isEditing
-            ? `
-              <input class="edit-input" name="origin" value="${coffee.origin || ''}" placeholder="Origin">
-              <input class="edit-input" name="region" value="${coffee.region || ''}" placeholder="Region">
-              <input class="edit-input" name="height_meters" value="${coffee.height_meters || ''}" placeholder="Height (m)" type="number">
-              <input class="edit-input" name="botanic_variety" value="${coffee.botanic_variety || ''}" placeholder="Variety">
-              <input class="edit-input" name="farm_producer" value="${coffee.farm_producer || ''}" placeholder="Farm/Producer">
-              <input class="edit-input" name="processing_method" value="${coffee.processing_method || ''}" placeholder="Processing">
-              <input class="edit-input" name="sca" value="${coffee.sca || ''}" placeholder="SCA Score" type="number">
-            `
-            : `
-              ${createDetail("Origin", coffee.origin)}
-              ${createDetail("Region", coffee.region)}
-              ${createDetail("Height (m)", coffee.height_meters)}
-              ${createDetail("Variety", coffee.botanic_variety)}
-              ${createDetail("Farm/Producer", coffee.farm_producer)}
-              ${createDetail("Processing", coffee.processing_method)}
-              ${createDetail("SCA Score", coffee.sca)}
-            `}
-        </div>
-        <div class="flavor-notes">
-          <h4>Flavor Profile</h4>
-          ${isEditing
-            ? `<input class="edit-input" name="flavor" value="${coffee.flavor || ''}" placeholder="Flavor Profile">`
-            : `<p>${coffee.flavor || "N/A"}</p>`}
-        </div>
-        <div class="notes-section" id="notes-${index}">
-          <h4><i data-lucide="sticky-note"></i>Notes</h4>
-          <div class="notes-content ${coffee.notes ? "" : "empty"}" id="notes-content-${index}">
-            ${isEditing
-              ? `<textarea class="edit-input" name="notes" placeholder="Notes">${coffee.notes || ''}</textarea>`
-              : (coffee.notes || "No notes yet.")}
-          </div>
-        </div>
-        <div class="recipe">
-          <h4>Espresso Recipe</h4>
-          <div class="recipe-grid" data-state="2">
-            ${isEditing
-              ? `
-                <input class="edit-input" name="recipe_ratio" value="${coffee.recipe_ratio || ''}" placeholder="Ratio">
-                <input class="edit-input" name="recipe_in_grams" value="${coffee.recipe_in_grams || ''}" placeholder="In (g)" type="number">
-                <input class="edit-input" name="recipe_out_grams" value="${coffee.recipe_out_grams || ''}" placeholder="Out (g)" type="number">
-                <input class="edit-input" name="recipe_time_seconds" value="${coffee.recipe_time_seconds || ''}" placeholder="Time (s)" type="number">
-                <input class="edit-input" name="recipe_temperature_c" value="${coffee.recipe_temperature_c || ''}" placeholder="Temp (°C)" type="number">
-              `
-              : `
-                ${createRecipeItem("Ratio", coffee["recipe_ratio"] || "1:2")}
-                ${createRecipeItem("In (g)", coffee["recipe_in_grams"] || "18", "in-val")}
-                ${createRecipeItem("Out (g)", coffee["recipe_out_grams"] || "36", "out-val")}
-                ${createRecipeItem("Time (s)", coffee["recipe_time_seconds"] || "28")}
-                ${createRecipeItem("Temp (°C)", coffee["recipe_temperature_c"] || "93")}
-              `}
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Insert shop link dynamically into the .shop-info span
-    const shopInfoSpan = card.querySelector(".shop-info");
-    if (shopInfoSpan) {
-      const link = document.createElement("a");
-      link.href = coffee.shop_url && coffee.shop_url !== "N/A" ? coffee.shop_url : "#";
-      link.target = "_blank";
-      link.className = "shop-link";
-      const logo = createShopLogoElement(coffee.shop_logo || "", coffee.shop_url || "#", coffee.shop_name || "N/A");
-      link.appendChild(logo.firstChild);
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "shop-name";
-      nameSpan.textContent = coffee.shop_name || "N/A";
-      link.appendChild(nameSpan);
-      shopInfoSpan.appendChild(link);
-    }
-
-    // Bind events
-    const greenBtn = card.querySelector(".container-icon.green");
-    greenBtn?.addEventListener("click", () => toggleContainer(index, "green"));
-
-    const greyBtn = card.querySelector(".container-icon.grey");
-    greyBtn?.addEventListener("click", () => toggleContainer(index, "grey"));
-
-    const editBtn = card.querySelector(".edit-coffee-btn");
-    if (editBtn) {
-      editBtn.addEventListener("click", () => {
-        editingCoffeeIndex = index;
-        renderCoffeeCards(filteredCoffees);
-      });
-    }
-    const saveBtn = card.querySelector(".save-coffee-btn");
-    if (saveBtn) {
-      saveBtn.addEventListener("click", () => saveEditCoffee(index));
-    }
-    const cancelBtn = card.querySelector(".cancel-edit-coffee-btn");
-    if (cancelBtn) {
-      cancelBtn.addEventListener("click", () => {
-        editingCoffeeIndex = null;
-        renderCoffeeCards(filteredCoffees);
-      });
-    }
-    // Delete coffee event
-    const deleteBtn = card.querySelector(".delete-coffee-btn");
-    deleteBtn?.addEventListener("click", () => handleDeleteCoffee(index));
-    const switchEl = card.querySelector(".slide-switch");
-    switchEl?.addEventListener("click", () => toggleSlide(switchEl));
-
-    // Collapse/expand event
-    const collapseBtn = card.querySelector(".collapse-toggle-btn.far-right");
-    if (collapseBtn) {
-      collapseBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        // Only expand/collapse this card
-        window.coffeeCardCollapsed[index] = !isCollapsed;
-        renderCoffeeCards(filteredCoffees);
-      });
-    }
-
+  // Re-render Lucide icons if needed
+  if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
     lucide.createIcons();
-    grid.appendChild(card);
-  });
+  }
 }
 
 async function saveEditCoffee(index) {
@@ -701,6 +496,121 @@ async function handleDeleteCoffee(index) {
     icon: 'trash-2',
     iconColor: '#ef4444'
   });
+}
+
+function renderCoffeeCards(coffees) {
+  const grid = document.getElementById("coffee-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  coffees.forEach((coffee, index) => {
+    const card = document.createElement("div");
+    card.className = "coffee-card";
+    card.setAttribute("data-coffee-index", index);
+
+    // Shop favicon logic
+    let faviconUrl = "";
+    if (coffee.shop_url) {
+      try {
+        const domain = new URL(coffee.shop_url).hostname.replace(/^www\./, "");
+        faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+      } catch {}
+    }
+    const shopLogo = coffee.shop_logo
+      ? `<img src="${coffee.shop_logo}" alt="Logo" class="shop-logo" style="height: 20px; width: 20px; border-radius: 4px; margin-right: 6px;" onerror="this.style.display='none'">`
+      : (faviconUrl
+        ? `<img src="${faviconUrl}" alt="Favicon" class="shop-logo" style="height: 20px; width: 20px; border-radius: 4px; margin-right: 6px;" onerror="this.style.display='none'">`
+        : `<span class="shop-logo" style="display:inline-block;width:20px;height:20px;background:#eee;border-radius:4px;margin-right:6px;text-align:center;line-height:20px;">?</span>`);
+
+    // Shop name as link if URL present
+    const shopName = coffee.shop_url
+      ? `<a href="${coffee.shop_url}" target="_blank" rel="noopener" class="shop-name">${coffee.shop_name || ""}</a>`
+      : `<span class="shop-name">${coffee.shop_name || ""}</span>`;
+
+    // Card HTML with favicon and shop name on first row, coffee name on second row
+    card.innerHTML = `
+      <div class="coffee-header" style="display: flex; flex-direction: column; align-items: flex-start;">
+        <div class="shop-row" style="display: flex; align-items: center; width: 100%;">
+          ${shopLogo}
+          ${shopName}
+        </div>
+        <div class="coffee-name-row" style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
+          <span class="coffee-name" style="font-weight: 600;">${coffee.name || ""}</span>
+          <button class="expand-toggle" aria-label="Expand/Collapse" style="margin-left: auto; background: none; border: none; cursor: pointer;">
+            <i data-lucide="chevron-down"></i>
+          </button>
+        </div>
+        <hr class="shop-divider" style="margin: 0.5em 0 0.2em 0; border: none; border-bottom: 1px solid #e5e7eb;" />
+      </div>
+      <div class="coffee-card-details" style="display: none;">
+        <div class="coffee-details">
+          <span>${coffee.origin || ""}</span>
+          <span>${coffee.region || ""}</span>
+          <span>${coffee.height_meters !== undefined ? coffee.height_meters : ""}</span>
+          <span>${coffee.botanic_variety || ""}</span>
+          <span>${coffee.farm_producer || ""}</span>
+          <span>${coffee.processing_method || ""}</span>
+          <span>${coffee.sca !== undefined ? coffee.sca : ""}</span>
+        </div>
+        <div class="flavor-notes">
+          <h4>Flavor Profile</h4>
+          <span>${coffee.flavor || ""}</span>
+        </div>
+        <div class="notes-section">
+          <h4><i data-lucide="sticky-note"></i>Notes</h4>
+          <span>${coffee.notes || ""}</span>
+        </div>
+        <div class="recipe">
+          <h4>Espresso Recipe</h4>
+          <div class="recipe-grid">
+            <span>${coffee.recipe_ratio || ""}</span>
+            <span>${coffee.recipe_in_grams !== undefined ? coffee.recipe_in_grams : ""}</span>
+            <span>${coffee.recipe_out_grams !== undefined ? coffee.recipe_out_grams : ""}</span>
+            <span>${coffee.recipe_time_seconds !== undefined ? coffee.recipe_time_seconds : ""}</span>
+            <span>${coffee.recipe_temperature_c !== undefined ? coffee.recipe_temperature_c : ""}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Expand/collapse logic
+    const details = card.querySelector(".coffee-card-details");
+    const toggleBtn = card.querySelector(".expand-toggle");
+    let expanded = false;
+    toggleBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      expanded = !expanded;
+      details.style.display = expanded ? "block" : "none";
+      card.classList.toggle("expanded-card", expanded);
+      toggleBtn.innerHTML = expanded
+        ? `<i data-lucide="chevron-up"></i>`
+        : `<i data-lucide="chevron-down"></i>`;
+      if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
+        lucide.createIcons();
+      }
+    });
+
+    // Optionally: expand card on header click (not just button)
+    card.querySelector(".coffee-header").addEventListener("click", (e) => {
+      if (e.target.closest(".expand-toggle")) return;
+      expanded = !expanded;
+      details.style.display = expanded ? "block" : "none";
+      card.classList.toggle("expanded-card", expanded);
+      toggleBtn.innerHTML = expanded
+        ? `<i data-lucide="chevron-up"></i>`
+        : `<i data-lucide="chevron-down"></i>`;
+      if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
+        lucide.createIcons();
+      }
+    });
+
+    grid.appendChild(card);
+  });
+
+  // Render Lucide icons for all cards
+  if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
+    lucide.createIcons();
+  }
 }
 
 export {
