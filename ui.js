@@ -523,12 +523,10 @@ function renderCoffeeCards(coffees) {
         ? `<img src="${faviconUrl}" alt="Favicon" class="shop-logo" style="height: 20px; width: 20px; border-radius: 4px; margin-right: 6px;" onerror="this.style.display='none'">`
         : `<span class="shop-logo" style="display:inline-block;width:20px;height:20px;background:#eee;border-radius:4px;margin-right:6px;text-align:center;line-height:20px;">?</span>`);
 
-    // Shop name as link if URL present
     const shopName = coffee.shop_url
       ? `<a href="${coffee.shop_url}" target="_blank" rel="noopener" class="shop-name">${coffee.shop_name || ""}</a>`
       : `<span class="shop-name">${coffee.shop_name || ""}</span>`;
 
-    // Card HTML with favicon and shop name on first row, coffee name on second row
     card.innerHTML = `
       <div class="coffee-header" style="display: flex; flex-direction: column; align-items: flex-start;">
         <div class="shop-row" style="display: flex; align-items: center; width: 100%;">
@@ -537,9 +535,13 @@ function renderCoffeeCards(coffees) {
         </div>
         <div class="coffee-name-row" style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
           <span class="coffee-name" style="font-weight: 600;">${coffee.name || ""}</span>
-          <button class="expand-toggle" aria-label="Expand/Collapse" style="margin-left: auto; background: none; border: none; cursor: pointer;">
-            <i data-lucide="chevron-down"></i>
-          </button>
+          <div class="container-icons-top" style="display: flex; gap: 8px; margin-left: auto;">
+            <button class="container-icon green edit-btn" title="Edit"><i data-lucide="pencil"></i></button>
+            <button class="container-icon grey delete-btn" title="Delete"><i data-lucide="trash-2"></i></button>
+            <button class="expand-toggle" aria-label="Expand/Collapse">
+              <i data-lucide="chevron-down"></i>
+            </button>
+          </div>
         </div>
         <hr class="shop-divider" style="margin: 0.5em 0 0.2em 0; border: none; border-bottom: 1px solid #e5e7eb;" />
       </div>
@@ -578,7 +580,7 @@ function renderCoffeeCards(coffees) {
     const details = card.querySelector(".coffee-card-details");
     const toggleBtn = card.querySelector(".expand-toggle");
     let expanded = false;
-    toggleBtn.addEventListener("click", (e) => {
+    toggleBtn?.addEventListener("click", (e) => {
       e.stopPropagation();
       expanded = !expanded;
       details.style.display = expanded ? "block" : "none";
@@ -586,12 +588,9 @@ function renderCoffeeCards(coffees) {
       toggleBtn.innerHTML = expanded
         ? `<i data-lucide="chevron-up"></i>`
         : `<i data-lucide="chevron-down"></i>`;
-      if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
-        lucide.createIcons();
-      }
+      lucide?.createIcons?.();
     });
 
-    // Optionally: expand card on header click (not just button)
     card.querySelector(".coffee-header").addEventListener("click", (e) => {
       if (e.target.closest(".expand-toggle")) return;
       expanded = !expanded;
@@ -600,18 +599,23 @@ function renderCoffeeCards(coffees) {
       toggleBtn.innerHTML = expanded
         ? `<i data-lucide="chevron-up"></i>`
         : `<i data-lucide="chevron-down"></i>`;
-      if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
-        lucide.createIcons();
-      }
+      lucide?.createIcons?.();
+    });
+
+    // Edit/Delete button logic
+    card.querySelector(".edit-btn")?.addEventListener("click", () => {
+      editingCoffeeIndex = index;
+      renderEditForm(coffee); // Assuming this exists
+    });
+
+    card.querySelector(".delete-btn")?.addEventListener("click", () => {
+      handleDeleteCoffee(index); // Assuming this exists
     });
 
     grid.appendChild(card);
   });
 
-  // Render Lucide icons for all cards
-  if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
-    lucide.createIcons();
-  }
+  lucide?.createIcons?.();
 }
 
 export {
