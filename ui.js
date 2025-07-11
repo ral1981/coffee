@@ -535,7 +535,17 @@ function renderCoffeeCards(coffees) {
         </div>
         <div class="coffee-name-row" style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
           <span class="coffee-name" style="font-weight: 600;">${coffee.name || ""}</span>
-          <div class="container-icons-top" style="display: flex; gap: 8px; margin-left: auto;">
+          <div class="container-icons-top">
+            <div class="container-icons-top">
+              <div class="container-icon-wrapper">
+                <button class="container-icon green ${coffee.in_green_container ? 'active' : ''}" data-container="green" title="Green Container">
+                  <i data-lucide="archive"></i>
+                </button>
+                <button class="container-icon grey ${coffee.in_grey_container ? 'active' : ''}" data-container="grey" title="Grey Container">
+                  <i data-lucide="archive"></i>
+                </button>
+              </div>
+            </div>
             <button class="container-icon green edit-btn" title="Edit"><i data-lucide="pencil"></i></button>
             <button class="container-icon grey delete-btn" title="Delete"><i data-lucide="trash-2"></i></button>
             <button class="expand-toggle" aria-label="Expand/Collapse">
@@ -575,6 +585,31 @@ function renderCoffeeCards(coffees) {
         </div>
       </div>
     `;
+
+    const greenBtn = card.querySelector('.container-icon.green');
+    const greyBtn = card.querySelector('.container-icon.grey');
+
+    greenBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const isActivating = !greenBtn.classList.contains('active');
+      if (isActivating) {
+        const conflict = await checkContainerConflict(index, 'green');
+        if (conflict) return showConflictDialog();
+      }
+      coffee.in_green_container = isActivating;
+      greenBtn.classList.toggle('active', isActivating);
+    });
+
+    greyBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const isActivating = !greyBtn.classList.contains('active');
+      if (isActivating) {
+        const conflict = await checkContainerConflict(index, 'grey');
+        if (conflict) return showConflictDialog();
+      }
+      coffee.in_grey_container = isActivating;
+      greyBtn.classList.toggle('active', isActivating);
+    });
 
     // Expand/collapse logic
     const details = card.querySelector(".coffee-card-details");
