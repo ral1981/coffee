@@ -527,6 +527,10 @@ function renderCoffeeCards(coffees) {
       ? `<a href="${coffee.shop_url}" target="_blank" rel="noopener" class="shop-name">${coffee.shop_name || ""}</a>`
       : `<span class="shop-name">${coffee.shop_name || ""}</span>`;
 
+    // Track container state
+    let inGreen = coffee.in_green_container || false;
+    let inGrey = coffee.in_grey_container || false;
+
     card.innerHTML = `
       <div class="coffee-header" style="display: flex; flex-direction: column; align-items: flex-start;">
         <div class="shop-row" style="display: flex; align-items: center; width: 100%;">
@@ -536,15 +540,13 @@ function renderCoffeeCards(coffees) {
         <div class="coffee-name-row" style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
           <span class="coffee-name" style="font-weight: 600;">${coffee.name || ""}</span>
           <div class="container-icons-top">
-            <div class="container-icons-top">
-              <div class="container-icon-wrapper">
-                <button class="container-icon green ${coffee.in_green_container ? 'active' : ''}" data-container="green" title="Green Container">
-                  <i data-lucide="archive"></i>
-                </button>
-                <button class="container-icon grey ${coffee.in_grey_container ? 'active' : ''}" data-container="grey" title="Grey Container">
-                  <i data-lucide="archive"></i>
-                </button>
-              </div>
+            <div class="container-icon-wrapper">
+              <button class="container-icon green ${inGreen ? 'active' : ''}" data-container="green" title="Green Container">
+                <i data-lucide="archive"></i>
+              </button>
+              <button class="container-icon grey ${inGrey ? 'active' : ''}" data-container="grey" title="Grey Container">
+                <i data-lucide="archive"></i>
+              </button>
             </div>
             <button class="container-icon green edit-btn" title="Edit"><i data-lucide="pencil"></i></button>
             <button class="container-icon grey delete-btn" title="Delete"><i data-lucide="trash-2"></i></button>
@@ -586,30 +588,42 @@ function renderCoffeeCards(coffees) {
       </div>
     `;
 
+    // Container icon logic
     const greenBtn = card.querySelector('.container-icon.green');
     const greyBtn = card.querySelector('.container-icon.grey');
 
+    function updateContainerIcons() {
+      greenBtn.classList.toggle('active', inGreen);
+      greyBtn.classList.toggle('active', inGrey);
+    }
+
     greenBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const isActivating = !greenBtn.classList.contains('active');
+      const isActivating = !inGreen;
       if (isActivating) {
         const conflict = await checkContainerConflict(index, 'green');
         if (conflict) return showConflictDialog();
       }
-      coffee.in_green_container = isActivating;
-      greenBtn.classList.toggle('active', isActivating);
+      inGreen = isActivating;
+      coffee.in_green_container = inGreen;
+      updateContainerIcons();
+      await updateCoffeeById(coffee.id, { in_green_container: inGreen });
     });
 
     greyBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const isActivating = !greyBtn.classList.contains('active');
+      const isActivating = !inGrey;
       if (isActivating) {
         const conflict = await checkContainerConflict(index, 'grey');
         if (conflict) return showConflictDialog();
       }
-      coffee.in_grey_container = isActivating;
-      greyBtn.classList.toggle('active', isActivating);
+      inGrey = isActivating;
+      coffee.in_grey_container = inGrey;
+      updateContainerIcons();
+      await updateCoffeeById(coffee.id, { in_grey_container: inGrey });
     });
+
+    updateContainerIcons();
 
     // Expand/collapse logic
     const details = card.querySelector(".coffee-card-details");
