@@ -600,10 +600,24 @@ function renderCoffeeCards(coffees) {
     greenBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const isActivating = !inGreen;
+
       if (isActivating) {
         const conflict = await checkContainerConflict(index, 'green');
-        if (conflict) return showConflictDialog();
+        if (conflict) {
+          showContainerModal({
+            message: `The green container is already in use by ${conflict.name}. Do you want to replace it?`,
+            onConfirm: async () => {
+              inGreen = true;
+              coffee.in_green_container = true;
+              updateContainerIcons();
+              await updateCoffeeById(coffee.id, { in_green_container: true });
+            },
+            onCancel: () => {}
+          });
+          return;
+        }
       }
+
       inGreen = isActivating;
       coffee.in_green_container = inGreen;
       updateContainerIcons();
@@ -613,10 +627,24 @@ function renderCoffeeCards(coffees) {
     greyBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const isActivating = !inGrey;
+
       if (isActivating) {
         const conflict = await checkContainerConflict(index, 'grey');
-        if (conflict) return showConflictDialog();
+        if (conflict) {
+          showContainerModal({
+            message: `The grey container is already in use by ${conflict.name}. Do you want to replace it?`,
+            onConfirm: async () => {
+              inGrey = true;
+              coffee.in_grey_container = true;
+              updateContainerIcons();
+              await updateCoffeeById(coffee.id, { in_grey_container: true });
+            },
+            onCancel: () => {}
+          });
+          return;
+        }
       }
+
       inGrey = isActivating;
       coffee.in_grey_container = inGrey;
       updateContainerIcons();
