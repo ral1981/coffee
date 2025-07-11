@@ -618,6 +618,127 @@ function renderCoffeeCards(coffees) {
   lucide?.createIcons?.();
 }
 
+function renderInlineEditCard(coffee, index) {
+  const card = document.querySelector(`.coffee-card[data-coffee-index='${index}']`);
+  if (!card) return;
+
+  // Clear existing content
+  card.innerHTML = "";
+
+  // Container state
+  let inGreen = coffee.in_green_container || false;
+  let inGrey = coffee.in_grey_container || false;
+
+  card.classList.add("expanded-card");
+
+  card.innerHTML = `
+    <div class="container-icons-top" style="display: flex; justify-content: flex-start; align-items: flex-start; gap: 8px;">
+      <button class="container-icon green" data-container-type="green" title="Green Container" type="button">
+        <i data-lucide="archive"></i>
+      </button>
+      <button class="container-icon grey" data-container-type="grey" title="Grey Container" type="button">
+        <i data-lucide="archive"></i>
+      </button>
+    </div>
+    <div class="coffee-header" style="display: flex; flex-direction: column; align-items: flex-start;">
+      <div class="shop-row" style="display: flex; align-items: center; width: 100%;">
+        <input class="edit-input" name="shop_name" value="${coffee.shop_name || ""}" placeholder="Shop Name">
+        <input class="edit-input" name="shop_url" value="${coffee.shop_url || ""}" placeholder="Shop URL">
+        <input class="edit-input" name="shop_logo" value="${coffee.shop_logo || ""}" placeholder="Shop Logo URL">
+      </div>
+      <div class="coffee-name-row" style="width: 100%;">
+        <input class="edit-input" name="name" value="${coffee.name || ""}" placeholder="Coffee Name" style="width: 100%;">
+      </div>
+      <hr class="shop-divider" style="margin: 0.5em 0 0.2em 0; border: none; border-bottom: 1px solid #e5e7eb;" />
+    </div>
+    <div class="coffee-card-details">
+      <div class="coffee-details">
+        <input class="edit-input" name="origin" value="${coffee.origin || ""}" placeholder="Origin">
+        <input class="edit-input" name="region" value="${coffee.region || ""}" placeholder="Region">
+        <input class="edit-input" name="height_m" value="${coffee.height_meters ?? ""}" placeholder="Height (m)" type="number" step="0.1">
+        <input class="edit-input" name="botanic_variety" value="${coffee.botanic_variety || ""}" placeholder="Variety">
+        <input class="edit-input" name="farm_producer" value="${coffee.farm_producer || ""}" placeholder="Farm/Producer">
+        <input class="edit-input" name="processing_method" value="${coffee.processing_method || ""}" placeholder="Processing">
+        <input class="edit-input" name="sca" value="${coffee.sca ?? ""}" placeholder="SCA Score" type="number" step="0.1">
+      </div>
+      <div class="flavor-notes">
+        <h4>Flavor Profile</h4>
+        <input class="edit-input" name="flavor" value="${coffee.flavor || ""}" placeholder="Flavor Profile">
+      </div>
+      <div class="notes-section">
+        <h4><i data-lucide="sticky-note"></i>Notes</h4>
+        <textarea class="edit-input" name="notes" placeholder="Notes">${coffee.notes || ""}</textarea>
+      </div>
+      <div class="recipe">
+        <h4>Espresso Recipe</h4>
+        <div class="recipe-grid">
+          <input class="edit-input" name="recipe_ratio" value="${coffee.recipe_ratio || ""}" placeholder="Ratio">
+          <input class="edit-input" name="recipe_in_gr" value="${coffee.recipe_in_grams ?? ""}" placeholder="In (g)" type="number" step="0.1">
+          <input class="edit-input" name="recipe_out_gr" value="${coffee.recipe_out_grams ?? ""}" placeholder="Out (g)" type="number" step="0.1">
+          <input class="edit-input" name="recipe_time_s" value="${coffee.recipe_time_seconds ?? ""}" placeholder="Time (s)" type="number" step="0.1">
+          <input class="edit-input" name="recipe_temperature_c" value="${coffee.recipe_temperature_c ?? ""}" placeholder="Temp (°C)" type="number" step="0.1">
+        </div>
+      </div>
+      <div class="add-card-actions">
+        <button class="btn-submit" type="button">Save</button>
+        <button class="btn-cancel" type="button">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  // Container icon logic
+  const greenBtn = card.querySelector('.container-icon.green');
+  const greyBtn = card.querySelector('.container-icon.grey');
+
+  function updateContainerIcons() {
+    greenBtn.classList.toggle('active', inGreen);
+    greyBtn.classList.toggle('active', inGrey);
+  }
+
+  greenBtn.addEventListener('click', () => {
+    inGreen = !inGreen;
+    updateContainerIcons();
+  });
+
+  greyBtn.addEventListener('click', () => {
+    inGrey = !inGrey;
+    updateContainerIcons();
+  });
+
+  updateContainerIcons();
+
+  // Save handler
+  card.querySelector('.btn-submit').onclick = () => {
+    const inputs = card.querySelectorAll('.edit-input');
+    const updated = {};
+    inputs.forEach(input => {
+      updated[input.name] = input.value;
+    });
+    updated.in_green_container = inGreen;
+    updated.in_grey_container = inGrey;
+
+    updateCoffeeById(coffee.id, updated).then(({ error }) => {
+      if (error) {
+        showNotification("Failed to update coffee.", "error");
+        return;
+      }
+      Object.assign(filteredCoffees[index], updated);
+      editingCoffeeIndex = null;
+      renderCoffeeCards(filteredCoffees);
+      showNotification("Coffee updated.", "success");
+    });
+  };
+
+  // Cancel handler
+  card.querySelector('.btn-cancel').onclick = () => {
+    editingCoffeeIndex = null;
+    renderCoffeeCards(filteredCoffees);
+  };
+
+  // Re-render Lucide icons
+  lucide?.createIcons?.();
+}
+
 export {
   updateUIForAuthorizedUser,
   updateUIForUnauthorizedUser,
