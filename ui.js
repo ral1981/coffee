@@ -603,13 +603,15 @@ function renderCoffeeCards(coffees) {
     });
 
     // Edit/Delete button logic
-    card.querySelector(".edit-btn")?.addEventListener("click", () => {
+    card.querySelector(".edit-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation();
       editingCoffeeIndex = index;
-      renderEditForm(coffee); // Assuming this exists
+      renderInlineEditCard(coffee, index);
     });
 
-    card.querySelector(".delete-btn")?.addEventListener("click", () => {
-      handleDeleteCoffee(index); // Assuming this exists
+    card.querySelector(".delete-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      handleDeleteCoffee(index);
     });
 
     grid.appendChild(card);
