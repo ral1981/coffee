@@ -318,35 +318,11 @@ function renderCoffeeCards(coffees) {
     body.querySelectorAll(".edit-input").forEach(input => {
       updated[input.name] = input.value;
     });
-    updated.in_green_container = coffee.in_green_container;
-    updated.in_grey_container = coffee.in_grey_container;
-
-    const { error } = await updateCoffeeById(coffee.id, updated);
-    if (error) {
-      showNotification("Failed to update coffee.", "error");
-      return;
-    }
-    Object.assign(filteredCoffees[index], updated);
-    renderCoffeeCards(filteredCoffees);
-    showNotification("Coffee updated.", "success");
-  });
 
   card.querySelector(".btn-cancel").addEventListener("click", () => {
     renderCoffeeCards(filteredCoffees);
   });
 });
-    updated.in_green_container = coffee.in_green_container;
-    updated.in_grey_container = coffee.in_grey_container;
-
-    const { error } = await updateCoffeeById(coffee.id, updated);
-    if (error) {
-      showNotification("Failed to update coffee.", "error");
-      return;
-    }
-    Object.assign(filteredCoffees[index], updated);
-    renderCoffeeCards(filteredCoffees);
-    showNotification("Coffee updated.", "success");
-  });
 
   card.querySelector(".btn-cancel").addEventListener("click", () => {
     renderCoffeeCards(filteredCoffees);
