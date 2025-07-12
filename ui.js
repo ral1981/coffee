@@ -331,20 +331,17 @@ function renderCoffeeCards(coffees) {
         showNotification("Coffee updated.", "success");
       });
 
-      card.querySelector(".btn-cancel").addEventListener("click", () => {
-        renderCoffeeCards(filteredCoffees);
-      });
     });
 
-    card.querySelector(".btn-cancel").addEventListener("click", () => {
-      renderCoffeeCards(filteredCoffees);
-    });
   });
 
   card.querySelector(".delete-btn").addEventListener("click", () => {
     handleDeleteCoffee(index);
   });
 
+    card.querySelector(".delete-btn").addEventListener("click", () => {
+      handleDeleteCoffee(index);
+    });
   grid.appendChild(card);
 
   lucide.createIcons();
