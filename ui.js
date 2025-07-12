@@ -536,9 +536,6 @@ function renderCoffeeCards(coffees) {
         <div class="shop-row" style="display: flex; align-items: center; width: 100%;">
           ${shopLogo}
           ${shopName}
-        </div>
-        <div class="coffee-name-row" style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
-          <span class="coffee-name" style="font-weight: 600;">${coffee.name || ""}</span>
           <div class="container-icons-top">
             <div class="container-icon-wrapper">
               <button class="container-icon green ${inGreen ? 'active' : ''}" data-container="green" title="Green Container">
@@ -550,6 +547,11 @@ function renderCoffeeCards(coffees) {
             </div>
             <button class="container-icon green edit-btn" title="Edit"><i data-lucide="pencil"></i></button>
             <button class="container-icon grey delete-btn" title="Delete"><i data-lucide="trash-2"></i></button>
+          </div>
+        </div>
+        <div class="coffee-name-row" style="display: flex; align-items: center; width: 100%; margin-top: 2px;">
+          <span class="coffee-name" style="font-weight: 600;">${coffee.name || ""}</span>
+          <div class="container-icons-top">
             <button class="expand-toggle" aria-label="Expand/Collapse">
               <i data-lucide="chevron-down"></i>
             </button>
