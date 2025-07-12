@@ -335,10 +335,11 @@ function renderCoffeeCards(coffees) {
 
   });
 
-  card.querySelector(".delete-btn").addEventListener("click", () => {
     handleDeleteCoffee(index);
   });
 
+      handleDeleteCoffee(index);
+    });
     card.querySelector(".delete-btn").addEventListener("click", () => {
       handleDeleteCoffee(index);
     });
@@ -404,12 +405,10 @@ function toggleAddCoffee() {
   greenBtn.addEventListener("click", () => {
     inGreen = !inGreen;
     updateContainerUI();
-  });
 
   greyBtn.addEventListener("click", () => {
     inGrey = !inGrey;
     updateContainerUI();
-  });
 
   updateContainerUI();
 
@@ -421,7 +420,6 @@ function toggleAddCoffee() {
     };
     inputs.forEach((input) => {
       newCoffee[input.name] = input.value;
-    });
 
     const conflicts = [];
     if (inGreen) {
@@ -443,21 +441,17 @@ function toggleAddCoffee() {
           addSection.remove();
           renderCoffeeCards(filteredCoffees);
         },
-      });
       return;
     }
 
     await submitNewCoffee(newCoffee);
     addSection.remove();
     renderCoffeeCards(filteredCoffees);
-  });
 
   form.querySelector(".btn-cancel").addEventListener("click", () => {
     addSection.remove();
-  });
 }
 
-function handleDeleteCoffee(index) {
   const coffee = filteredCoffees[index];
   if (!coffee || !coffee.id) {
     showNotification("Unable to delete: coffee entry not found.", "error");
@@ -483,7 +477,6 @@ function handleDeleteCoffee(index) {
     title: "Delete Coffee",
     icon: "trash-2",
     iconColor: "#ef4444",
-  });
 }
 
 // Add event listeners for filters and load data on DOMContentLoaded
@@ -522,7 +515,6 @@ function initializeApp() {
     }
 
     updateFilterStates();
-  });
 
   updateUIForUnauthorizedUser();
   setTimeout(() => {
@@ -535,10 +527,8 @@ function initializeApp() {
   if (backToTopBtn) {
     window.addEventListener("scroll", () => {
       backToTopBtn.classList.toggle("visible", window.pageYOffset > 300);
-    });
     backToTopBtn.addEventListener("click", () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
-    });
   }
 }
 
