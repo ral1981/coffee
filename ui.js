@@ -1,11 +1,5 @@
-import {
-  getIsAuthorized,
-  logout,
-  promptForEmail
-} from "./auth.js";
-import {
-  clearAllFilters
-} from "./filters.js";
+import { getIsAuthorized, logout, promptForEmail } from "./auth.js";
+import { clearAllFilters } from "./filters.js";
 import {
   allCoffees,
   filteredCoffees,
@@ -13,7 +7,7 @@ import {
   setFilteredCoffees,
   submitNewCoffee,
   deleteCoffeeById,
-  updateCoffeeById
+  updateCoffeeById,
 } from "./coffees.js";
 import { editNotes } from "./notes.js";
 import {
@@ -25,12 +19,9 @@ import {
   clearUrlParameters,
   updateResultsCount,
   toggleFilters,
-  updateFilterStates
+  updateFilterStates,
 } from "./filters.js";
-import {
-  toggleContainer,
-  showContainerModal
-} from "./containers.js";
+import { toggleContainer, showContainerModal } from "./containers.js";
 
 let editingCoffeeIndex = null;
 
@@ -128,7 +119,7 @@ function showNotification(message, type = "info") {
     success: "#10b981",
     error: "#ef4444",
     info: "#3b82f6",
-    warning: "#f59e0b"
+    warning: "#f59e0b",
   };
   notification.style.cssText = `position: fixed; top: 80px; right: 20px; padding: 12px 20px; border-radius: 8px; color: white; font-weight: 500; z-index: 9999; transform: translateX(100%); transition: transform 0.3s ease; max-width: 300px; background: ${colors[type] || colors.info}; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);`;
   document.body.appendChild(notification);
@@ -211,8 +202,8 @@ function renderCoffeeCards(coffees) {
           <span class="shop-name">${shopName}</span>
         </div>
         <div class="header-right">
-          <button class="container-icon green ${inGreen ? 'active' : ''}" title="Green Container"><i data-lucide="archive"></i></button>
-          <button class="container-icon grey ${inGrey ? 'active' : ''}" title="Grey Container"><i data-lucide="archive"></i></button>
+          <button class="container-icon green ${inGreen ? "active" : ""}" title="Green Container"><i data-lucide="archive"></i></button>
+          <button class="container-icon grey ${inGrey ? "active" : ""}" title="Grey Container"><i data-lucide="archive"></i></button>
           <button class="edit-btn" title="Edit"><i data-lucide="pencil"></i></button>
           <button class="delete-btn" title="Delete"><i data-lucide="trash-2"></i></button>
         </div>
@@ -243,7 +234,9 @@ function renderCoffeeCards(coffees) {
 
     greenBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      const conflict = allCoffees.find((c, i) => i !== index && c.in_green_container);
+      const conflict = allCoffees.find(
+        (c, i) => i !== index && c.in_green_container,
+      );
       if (conflict && !inGreen) {
         showContainerModal({
           message: `Green container in use by ${conflict.name}. Replace?`,
@@ -251,18 +244,22 @@ function renderCoffeeCards(coffees) {
             coffee.in_green_container = true;
             await updateCoffeeById(coffee.id, { in_green_container: true });
             renderCoffeeCards(filteredCoffees);
-          }
+          },
         });
         return;
       }
       coffee.in_green_container = !inGreen;
-      await updateCoffeeById(coffee.id, { in_green_container: coffee.in_green_container });
+      await updateCoffeeById(coffee.id, {
+        in_green_container: coffee.in_green_container,
+      });
       renderCoffeeCards(filteredCoffees);
     });
 
     greyBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
-      const conflict = allCoffees.find((c, i) => i !== index && c.in_grey_container);
+      const conflict = allCoffees.find(
+        (c, i) => i !== index && c.in_grey_container,
+      );
       if (conflict && !inGrey) {
         showContainerModal({
           message: `Grey container in use by ${conflict.name}. Replace?`,
@@ -270,12 +267,14 @@ function renderCoffeeCards(coffees) {
             coffee.in_grey_container = true;
             await updateCoffeeById(coffee.id, { in_grey_container: true });
             renderCoffeeCards(filteredCoffees);
-          }
+          },
         });
         return;
       }
       coffee.in_grey_container = !inGrey;
-      await updateCoffeeById(coffee.id, { in_grey_container: coffee.in_grey_container });
+      await updateCoffeeById(coffee.id, {
+        in_grey_container: coffee.in_grey_container,
+      });
       renderCoffeeCards(filteredCoffees);
     });
 
@@ -290,22 +289,22 @@ function renderCoffeeCards(coffees) {
     });
 
     card.querySelector(".edit-btn").addEventListener("click", () => {
-  const body = card.querySelector(".card-body");
-  body.innerHTML = `
+      const body = card.querySelector(".card-body");
+      body.innerHTML = `
     <div class="edit-fields">
-      <input name="shop_name" value="${coffee.shop_name || ''}" class="edit-input" placeholder="Shop Name">
-      <input name="shop_url" value="${coffee.shop_url || ''}" class="edit-input" placeholder="Shop URL">
-      <input name="shop_logo" value="${coffee.shop_logo || ''}" class="edit-input" placeholder="Logo URL">
-      <input name="name" value="${coffee.name || ''}" class="edit-input" placeholder="Coffee Name">
-      <input name="origin" value="${coffee.origin || ''}" class="edit-input" placeholder="Origin">
-      <input name="region" value="${coffee.region || ''}" class="edit-input" placeholder="Region">
-      <input name="height_meters" value="${coffee.height_meters || ''}" class="edit-input" placeholder="Height (m)">
-      <input name="botanic_variety" value="${coffee.botanic_variety || ''}" class="edit-input" placeholder="Variety">
-      <input name="farm_producer" value="${coffee.farm_producer || ''}" class="edit-input" placeholder="Producer">
-      <input name="processing_method" value="${coffee.processing_method || ''}" class="edit-input" placeholder="Processing">
-      <input name="sca" value="${coffee.sca || ''}" class="edit-input" placeholder="SCA Score">
-      <input name="flavor" value="${coffee.flavor || ''}" class="edit-input" placeholder="Flavor Profile">
-      <textarea name="notes" class="edit-input" placeholder="Notes">${coffee.notes || ''}</textarea>
+      <input name="shop_name" value="${coffee.shop_name || ""}" class="edit-input" placeholder="Shop Name">
+      <input name="shop_url" value="${coffee.shop_url || ""}" class="edit-input" placeholder="Shop URL">
+      <input name="shop_logo" value="${coffee.shop_logo || ""}" class="edit-input" placeholder="Logo URL">
+      <input name="name" value="${coffee.name || ""}" class="edit-input" placeholder="Coffee Name">
+      <input name="origin" value="${coffee.origin || ""}" class="edit-input" placeholder="Origin">
+      <input name="region" value="${coffee.region || ""}" class="edit-input" placeholder="Region">
+      <input name="height_meters" value="${coffee.height_meters || ""}" class="edit-input" placeholder="Height (m)">
+      <input name="botanic_variety" value="${coffee.botanic_variety || ""}" class="edit-input" placeholder="Variety">
+      <input name="farm_producer" value="${coffee.farm_producer || ""}" class="edit-input" placeholder="Producer">
+      <input name="processing_method" value="${coffee.processing_method || ""}" class="edit-input" placeholder="Processing">
+      <input name="sca" value="${coffee.sca || ""}" class="edit-input" placeholder="SCA Score">
+      <input name="flavor" value="${coffee.flavor || ""}" class="edit-input" placeholder="Flavor Profile">
+      <textarea name="notes" class="edit-input" placeholder="Notes">${coffee.notes || ""}</textarea>
       <div class="actions">
         <button class="btn-submit">Save</button>
         <button class="btn-cancel">Cancel</button>
@@ -313,30 +312,40 @@ function renderCoffeeCards(coffees) {
     </div>
   `;
 
-  card.querySelector(".btn-submit").addEventListener("click", async () => {
-    const updated = {};
-    body.querySelectorAll(".edit-input").forEach(input => {
-      updated[input.name] = input.value;
+      card.querySelector(".btn-submit").addEventListener("click", async () => {
+        const updated = {};
+        body.querySelectorAll(".edit-input").forEach((input) => {
+          updated[input.name] = input.value;
+        });
+
+        updated.in_green_container = coffee.in_green_container;
+        updated.in_grey_container = coffee.in_grey_container;
+
+        const { error } = await updateCoffeeById(coffee.id, updated);
+        if (error) {
+          showNotification("Failed to update coffee.", "error");
+          return;
+        }
+        Object.assign(filteredCoffees[index], updated);
+        renderCoffeeCards(filteredCoffees);
+        showNotification("Coffee updated.", "success");
+      });
+
+      card.querySelector(".btn-cancel").addEventListener("click", () => {
+        renderCoffeeCards(filteredCoffees);
+      });
     });
 
-  card.querySelector(".btn-cancel").addEventListener("click", () => {
-    renderCoffeeCards(filteredCoffees);
-  });
-});
-
-  
-});
-
-  card.querySelector(".btn-cancel").addEventListener("click", () => {
-    renderCoffeeCards(filteredCoffees);
-  });
-});
-
-    card.querySelector(".delete-btn").addEventListener("click", () => {
-      handleDeleteCoffee(index);
+    card.querySelector(".btn-cancel").addEventListener("click", () => {
+      renderCoffeeCards(filteredCoffees);
     });
+  });
 
-    grid.appendChild(card);
+  card.querySelector(".delete-btn").addEventListener("click", () => {
+    handleDeleteCoffee(index);
+  });
+
+  grid.appendChild(card);
 
   lucide.createIcons();
 }
@@ -347,7 +356,9 @@ function toggleAddCoffee() {
     return;
   }
 
-  const addSection = document.getElementById("add-coffee-section") || document.createElement("div");
+  const addSection =
+    document.getElementById("add-coffee-section") ||
+    document.createElement("div");
   addSection.id = "add-coffee-section";
   addSection.className = "coffee-card add-card expanded-card";
   document.getElementById("coffee-grid").prepend(addSection);
@@ -407,23 +418,26 @@ function toggleAddCoffee() {
 
   form.querySelector(".btn-submit").addEventListener("click", async () => {
     const inputs = form.querySelectorAll(".edit-input");
-    const newCoffee = { in_green_container: inGreen, in_grey_container: inGrey };
+    const newCoffee = {
+      in_green_container: inGreen,
+      in_grey_container: inGrey,
+    };
     inputs.forEach((input) => {
       newCoffee[input.name] = input.value;
     });
 
     const conflicts = [];
     if (inGreen) {
-      const other = allCoffees.find(c => c.in_green_container);
+      const other = allCoffees.find((c) => c.in_green_container);
       if (other) conflicts.push({ container: "green", coffee: other });
     }
     if (inGrey) {
-      const other = allCoffees.find(c => c.in_grey_container);
+      const other = allCoffees.find((c) => c.in_grey_container);
       if (other) conflicts.push({ container: "grey", coffee: other });
     }
 
     if (conflicts.length) {
-      const msg = `${conflicts.map(c => `${c.container} is used by ${c.coffee.name}`).join("\n")}\nReplace them?`;
+      const msg = `${conflicts.map((c) => `${c.container} is used by ${c.coffee.name}`).join("\n")}\nReplace them?`;
 
       showContainerModal({
         message: msg,
@@ -431,7 +445,7 @@ function toggleAddCoffee() {
           await submitNewCoffee(newCoffee, true, conflicts);
           addSection.remove();
           renderCoffeeCards(filteredCoffees);
-        }
+        },
       });
       return;
     }
@@ -462,7 +476,7 @@ function handleDeleteCoffee(index) {
         return;
       }
 
-      const allIdx = allCoffees.findIndex(c => c.id === coffee.id);
+      const allIdx = allCoffees.findIndex((c) => c.id === coffee.id);
       if (allIdx !== -1) allCoffees.splice(allIdx, 1);
       filteredCoffees.splice(index, 1);
       renderCoffeeCards(filteredCoffees);
@@ -471,7 +485,7 @@ function handleDeleteCoffee(index) {
     onCancel: () => {},
     title: "Delete Coffee",
     icon: "trash-2",
-    iconColor: "#ef4444"
+    iconColor: "#ef4444",
   });
 }
 
@@ -540,5 +554,5 @@ export {
   addLoginButton,
   addLogoutButton,
   toggleAddCoffee,
-  renderCoffeeCards
+  renderCoffeeCards,
 };
