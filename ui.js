@@ -445,9 +445,8 @@ function toggleAddCoffee() {
     }
 
     if (conflicts.length) {
-      const msg = conflicts.map(c => `${c.container} is used by ${c.coffee.name}`).join("
-") + "
-Replace them?";
+      const msg = `${conflicts.map(c => `${c.container} is used by ${c.coffee.name}`).join("\n")}\nReplace them?`;
+
       showContainerModal({
         message: msg,
         onConfirm: async () => {
