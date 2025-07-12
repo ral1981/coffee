@@ -401,12 +401,12 @@ function toggleAddCoffee() {
   greenBtn.addEventListener("click", () => {
     inGreen = !inGreen;
     updateContainerUI();
-
+  });
   }
   greyBtn.addEventListener("click", () => {
     inGrey = !inGrey;
     updateContainerUI();
-
+  });
   }
   updateContainerUI();
 
