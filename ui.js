@@ -337,6 +337,8 @@ function renderCoffeeCards(coffees) {
 
 
     card.querySelector(".delete-btn").addEventListener("click", () => {
+      handleDeleteCoffee(index);
+    });
   grid.appendChild(card);
 
   lucide.createIcons();
@@ -400,10 +402,12 @@ function toggleAddCoffee() {
     inGreen = !inGreen;
     updateContainerUI();
 
+  }
   greyBtn.addEventListener("click", () => {
     inGrey = !inGrey;
     updateContainerUI();
 
+  }
   updateContainerUI();
 
   form.querySelector(".btn-submit").addEventListener("click", async () => {
@@ -421,6 +425,7 @@ function toggleAddCoffee() {
       if (other) conflicts.push({ container: "green", coffee: other });
     }
     if (inGrey) {
+    }
       const other = allCoffees.find((c) => c.in_grey_container);
       if (other) conflicts.push({ container: "grey", coffee: other });
     }
@@ -441,6 +446,8 @@ function toggleAddCoffee() {
     await submitNewCoffee(newCoffee);
     addSection.remove();
     renderCoffeeCards(filteredCoffees);
+      }
+    }
 
   form.querySelector(".btn-cancel").addEventListener("click", () => {
     addSection.remove();
@@ -512,13 +519,17 @@ function initializeApp() {
 
   updateUIForUnauthorizedUser();
   setTimeout(() => {
+}
     showNotification("Login required to add or edit content.", "info");
   }, 1000);
 
   lucide.createIcons();
 
   const backToTopBtn = document.getElementById("back-to-top");
+    }
   if (backToTopBtn) {
+    }
+  }
     window.addEventListener("scroll", () => {
       backToTopBtn.classList.toggle("visible", window.pageYOffset > 300);
     backToTopBtn.addEventListener("click", () => {
