@@ -337,7 +337,6 @@ function renderCoffeeCards(coffees) {
     });
 
     grid.appendChild(card);
-  });
 
   lucide.createIcons();
 }
