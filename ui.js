@@ -335,14 +335,8 @@ function renderCoffeeCards(coffees) {
 
   });
 
-    handleDeleteCoffee(index);
-  });
 
-      handleDeleteCoffee(index);
-    });
     card.querySelector(".delete-btn").addEventListener("click", () => {
-      handleDeleteCoffee(index);
-    });
   grid.appendChild(card);
 
   lucide.createIcons();
