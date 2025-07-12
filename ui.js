@@ -324,6 +324,9 @@ function renderCoffeeCards(coffees) {
   });
 });
 
+  
+});
+
   card.querySelector(".btn-cancel").addEventListener("click", () => {
     renderCoffeeCards(filteredCoffees);
   });
