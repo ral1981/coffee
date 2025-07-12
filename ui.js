@@ -407,11 +407,9 @@ function toggleAddCoffee() {
     inGrey = !inGrey;
     updateContainerUI();
   });
-  }
   updateContainerUI();
 
   form.querySelector(".btn-submit").addEventListener("click", async () => {
-    const inputs = form.querySelectorAll(".edit-input");
     const newCoffee = {
       in_green_container: inGreen,
       in_grey_container: inGrey,
