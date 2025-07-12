@@ -32,6 +32,26 @@ h1 {
     font-weight: 400;
 }
 
+.notification {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  color: white;
+  z-index: 9999;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  max-width: 300px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.notification-success { background: #10b981; }
+.notification-error { background: #ef4444; }
+.notification-info { background: #3b82f6; }
+.notification-warning { background: #f59e0b; }
+
 .add-coffee-section {
     margin-bottom: 2rem;
     background: white;
@@ -368,6 +388,40 @@ h1 {
 .confirmation-actions .btn-confirm:focus {
     outline: 2px solid #f59e0b;
     outline-offset: 2px;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.actions .btn-submit,
+.actions .btn-cancel {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.actions .btn-submit {
+  background: #059669;
+  color: white;
+}
+
+.actions .btn-submit:hover {
+  background: #047857;
+}
+
+.actions .btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.actions .btn-cancel:hover {
+  background: #e5e7eb;
 }
 
 @keyframes fadeIn {
@@ -763,6 +817,38 @@ h1 {
 .container-icons-top .container-icon.grey {
     border-color: #6b7280;
     color: #6b7280;
+}
+
+.edit-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  width: 100%;
+  background: #fff;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.edit-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 /* Grey container - NOT active (toggled OFF) - Alternative 1: Opacity */
@@ -1634,18 +1720,17 @@ h1 {
   padding-right: 0;
 }
 
+.coffee-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
 .coffee-name {
-  font-size: 1.4rem;
-  font-weight: 700;
+  font-weight: 600;
+  font-size: 1.1rem;
   color: #1f2937;
-  line-height: 1.2;
-  margin-bottom: 0.1em;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
-  padding-right: 48px;
 }
 
 .shop-row {
@@ -1657,6 +1742,18 @@ h1 {
   margin-top: 0.2em;
   overflow: visible;
   padding-right: 0px;
+}
+
+.expand-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  transition: transform 0.2s ease;
+}
+
+.expand-toggle:hover {
+  color: #4b5563;
 }
 
 .expand-collapse-wrapper {
