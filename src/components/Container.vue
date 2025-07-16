@@ -8,13 +8,14 @@
       colorClass,
       !isLoggedIn ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'
     ]"
-    v-html="iconSvg"
-  ></button>
+  >
+    <span class="w-6 h-6" v-html="iconSvg" />
+  </button>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import rawSvg from '../assets/icons/container_01.svg?raw'
+import rawSvg from '../assets/icons/bag_03.svg?raw'
 
 const props = defineProps({
   color: {
