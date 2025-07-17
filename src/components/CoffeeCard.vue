@@ -30,6 +30,7 @@
         <div class="ml-auto flex flex-col items-center space-y-1">
           <!-- 3-dot menu -->
           <button
+            ref="menuButton"
             type="button"
             @click="toggleMenu"
             :class="isLoggedIn ? 'text-gray-600 hover:text-black' : 'text-gray-300 cursor-not-allowed'"
@@ -48,9 +49,10 @@
           </button>
         </div>
 
-        <!-- menu dropdown (absolute, unchanged) -->
+        <!-- menu dropdown -->
         <div
           v-if="showMenu"
+          ref="menuPanel"
           class="absolute top-0 right-0 mt-10 w-32 bg-white border border-gray-200 rounded shadow-md overflow-hidden"
         >
           <template v-if="isLoggedIn">
@@ -259,17 +261,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { supabase } from '../lib/supabase'
 import Container from './Container.vue'
 import { Pencil, Trash2, Check, X, ChevronDown, ChevronUp, EllipsisVertical } from 'lucide-vue-next'
-
-const emit = defineEmits(['update-container', 'deleted'])
-
-const isCollapsed = ref(true)
-const isSingleShot = ref(false)
-const isEditing = ref(false)
-const showMenu = ref(false)
 
 const props = defineProps({
   coffee: {
@@ -280,6 +275,15 @@ const props = defineProps({
   isLoggedIn: Boolean,
   containerStatus: Object
 })
+
+const emit = defineEmits(['update-container', 'deleted', 'editing-changed'])
+
+const isCollapsed = ref(true)
+const isSingleShot = ref(false)
+const isEditing = ref(false)
+const showMenu = ref(false)
+const menuButton = ref(null)
+const menuPanel  = ref(null)
 
 const local = ref({ ...props.coffee })
 
@@ -312,16 +316,24 @@ const handleContainerUpdate = (payload) => {
   emit('update-container', payload)
 }
 
-const enterEditMode = () => {
+watch(isEditing, (now) => {
+  emit('editing-changed', now)
+})
+
+watch(() => props.isLoggedIn, (newLoggedIn) => {
+  // If user logged out while editing, exit edit mode
+  if (!newLoggedIn && isEditing.value) {
+    isEditing.value = false
+    showMenu.value = false
+  }
+})
+
+function enterEditMode() {
+  isEditing.value = true
   local.value = { ...props.coffee }
   isEditing.value = true
   showMenu.value = false
-}
-
-const cancelEdit = () => {
-  if (confirm('Discard all changes?')) {
-    isEditing.value = false
-  }
+  isCollapsed.value = false
 }
 
 const saveChanges = async () => {
@@ -348,14 +360,6 @@ const deriveShopInfo = () => {
   }
 }
 
-const toggleMenu = () => {
-  if (!props.isLoggedIn) {
-    alert('You must be logged in to perform this action.')
-    return
-  }
-  showMenu.value = !showMenu.value
-}
-
 const confirmDelete = async () => {
   showMenu.value = false
   const ok = confirm(`Delete "${props.coffee.name}"?`)
@@ -367,6 +371,38 @@ const confirmDelete = async () => {
 
 const notifyLogin = () => { alert('Please log in to edit or delete.')
 }
+
+function toggleMenu () {
+  if (!props.isLoggedIn) {
+    alert('You must be logged in to perform this action.')
+    return
+  }
+  showMenu.value = !showMenu.value
+}
+
+function onClickOutside(e) {
+  // if menu is open, and click is not in button or panel, close it
+  if (
+    showMenu.value &&
+    menuButton.value  && !menuButton.value.contains(e.target) &&
+    menuPanel.value   && !menuPanel.value.contains(e.target)
+  ) {
+    showMenu.value = false
+  }
+}
+
+function cancelEdit() {
+   if (confirm('Discard all changes?')) {
+     isEditing.value = false
+   }
+}
+
+onMounted(() => {
+  document.addEventListener('click', onClickOutside)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onClickOutside)
+})
 
 function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value

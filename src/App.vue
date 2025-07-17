@@ -1,10 +1,12 @@
 <template>
   <main class="min-h-screen bg-gray-35 dark:bg-white dark:text-gray-900 p-6">
-    <Authentication @user-changed="onUserChanged" />
+    <Authentication
+      @user-changed="onUserChanged"
+      @logout="attemptLogout" />
 
     <h1 class="text-4xl font-bold mb-6">☕ Coffee Tracker</h1>
 
-    <CoffeeForm v-if="user" />
+    <CoffeeForm v-if="isLoggedIn" />
 
     <FilterPanel
       :origins="uniqueOrigins"
@@ -14,13 +16,14 @@
       @filter-change="handleFilterChange"
     />
 
-    <div class="grid grid-cols-1 gap-4 mt-6 md:grid-cols-2 lg:grid-cols-3 items-start">
+    <div class="grid grid-cols-1 gap-4 mt-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
       <CoffeeCard
         v-for="coffee in filteredCoffees"
         :key="coffee.id"
         :coffee="coffee"
-        :isLoggedIn="!!user"
+        :isLoggedIn="isLoggedIn"
         :containerStatus="containerStatus"
+        @editing-changed="onEditingChanged"
         @update-container="handleContainerUpdate"
         @deleted="loadCoffees"
       />
@@ -37,12 +40,39 @@ import FilterPanel from './components/FilterPanel.vue'
 import CoffeeCard from './components/CoffeeCard.vue'
 
 const user = ref(null)
+const coffees = ref([])
+const isLoggedIn = ref(true)
+const anyEditing = ref(false)
 
-const onUserChanged = (u) => {
-  user.value = u
+async function attemptLogout() {
+  if (anyEditing.value) {
+    const ok = confirm(
+      'You have unsaved changes. Discard them and log out?'
+    )
+    if (!ok) {
+      // abort logout, stay logged in
+      return
+    }
+  }
+  // user confirmed or nothing was editing: proceed
+  const { error } = await supabase.auth.signOut()
+  if (error) {
+    alert('Logout failed: ' + error.message)
+  } else {
+    isLoggedIn.value = false
+    anyEditing.value = false 
+    await loadCoffees()
+  }
 }
 
-const coffees = ref([])
+function onUserChanged(newUser) {
+  user.value = newUser
+  isLoggedIn.value = !!newUser
+  
+  if (!newUser) {
+    anyEditing.value = false
+  }
+}
 
 const loadCoffees = async () => {
   const { data, error } = await supabase
@@ -118,6 +148,11 @@ const handleContainerUpdate = async ({ coffee, container, assign }) => {
 
   await loadCoffees()
 }
+
+function onEditingChanged(isNowEditing) {
+  anyEditing.value = anyEditing.value || isNowEditing
+}
+
 </script>
 
 <style scoped>

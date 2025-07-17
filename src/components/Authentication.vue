@@ -34,7 +34,7 @@
     <div v-else>
       <p class="mb-3 text-sm text-gray-700">✅ Logged in as: <strong>{{ user.email }}</strong></p>
       <button
-        @click="logout"
+        @click="$emit('logout')"
         class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm"
       >
         Log Out
@@ -44,14 +44,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, defineEmits } from 'vue'
 import { supabase } from '../lib/supabase'
 
 const email = ref('')
 const password = ref('')
 const user = ref(null)
-
-const emit = defineEmits(['user-changed'])
+const emit = defineEmits(['user-changed', 'logout'])
 
 const getUser = async () => {
   const { data } = await supabase.auth.getUser()
@@ -60,15 +59,20 @@ const getUser = async () => {
 
 watch(user, (newUser) => {
   emit('user-changed', newUser)
-})
+}, { immediate: true })
 
 const login = async () => {
   const { error } = await supabase.auth.signInWithPassword({
     email: email.value,
     password: password.value
   })
-  if (error) alert(error.message)
-  else await getUser()
+  if (error) {
+    alert(error.message)
+  } else {
+    await getUser()
+    email.value = ''
+    password.value = ''
+  }
 }
 
 const signup = async () => {
@@ -80,13 +84,17 @@ const signup = async () => {
   else alert('Check your email to confirm!')
 }
 
-const logout = async () => {
-  await supabase.auth.signOut()
-  user.value = null
-}
-
 onMounted(async () => {
   await getUser()
-  emit('user-changed', user.value)
+})
+
+onMounted(() => {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_OUT') {
+      user.value = null
+    } else if (event === 'SIGNED_IN') {
+      await getUser()
+    }
+  })
 })
 </script>
