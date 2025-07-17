@@ -1,237 +1,259 @@
 <template>
   <div v-if="props.coffee">
-    <div
-      class="relative m-4 p-4 pr-14 rounded-lg border border-gray-300 shadow hover:shadow-md group bg-white text-gray-900 dark:bg-gray-800 dark:text-white"
-    >
-
-      <!-- Top-right hover icons -->
-      <div
-        class="absolute top-2 right-2 hidden gap-1 z-10 group-hover:flex"
-        v-if="isLoggedIn && !isEditing"
-      >
-        <button @click="enterEditMode" class="btn text-blue-500 hover:text-blue-600">
-          <Pencil class="w-6 h-6" />
-        </button>
-        <button @click="confirmDelete" class="btn text-red-500 hover:text-red-600">
-          <Trash2 class="w-6 h-6" />
-        </button>
-      </div>
-
-      <!-- Containers -->
-      <div class="mt-2 flex gap-2">
-        <Container
-          color="green"
-          :assigned="props.coffee.in_green_container"
-          :activeCoffee="props.containerStatus?.green"
-          :coffee="props.coffee"
-          :isLoggedIn="props.isLoggedIn"
-          @update-container="handleContainerUpdate"
-        />
-        <Container
-          color="grey"
-          :assigned="props.coffee.in_grey_container"
-          :activeCoffee="props.containerStatus?.grey"
-          :coffee="props.coffee"
-          :isLoggedIn="props.isLoggedIn"
-          @update-container="handleContainerUpdate"
-        />
+    <div :class="cardClasses">
+      <!-- 3-dot menu icon for both desktop and mobile -->
+      <div class="absolute top-4 right-4 z-10">
+          <button
+            type="button"
+            @click="toggleMenu"
+            :class="isLoggedIn ? 'text-gray-600 hover:text-black' : 'text-gray-300 cursor-not-allowed'"
+            class="p-1"
+          >
+            <EllipsisVertical class="w-6 h-6" />
+          </button>
+        <div
+          v-if="showMenu"
+          class="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded shadow-md overflow-hidden"
+        >
+          <template v-if="isLoggedIn">
+            <button type="button" @click="enterEditMode" class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm">✏️ Edit</button>
+            <button type="button" @click.stop="confirmDelete" class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm text-red-600">🗑 Delete</button>
+          </template>
+          <template v-else>
+            <button
+              @click="notifyLogin"
+              class="block w-full text-left px-3 py-2 text-sm text-gray-500 cursor-not-allowed"
+            >
+              🔒 Login required
+            </button>
+          </template>
+        </div>
       </div>
 
       <!-- Header -->
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <div class="flex items-center gap-3 pr-10">
         <template v-if="isEditing">
+          <input v-model="local.name" placeholder="Coffee Name" class="input text-lg font-semibold" />
           <input
-            v-model="local.name"
-            placeholder="Coffee Name"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-          <input
-          v-model="local.shop_url"
-          placeholder="Shop URL"
-          @blur="deriveShopInfo"
-          class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm" />
+            v-model="local.shop_url"
+            placeholder="Shop URL"
+            @blur="deriveShopInfo"
+            class="input text-base"
+          />
         </template>
         <template v-else>
           <a
             :href="coffee.shop_url"
             target="_blank"
             rel="noopener noreferrer"
-            style="display: flex; align-items: center; gap: 0.5rem;"
+            class="flex items-center gap-3"
           >
-            <img :src="coffee.shop_logo" alt="shop logo" width="16" height="16" />
-            <strong>{{ coffee.name }}</strong>
-            <span style="color: gray">({{ coffee.shop_name }})</span>
+            <img
+              :src="coffee.shop_logo"
+              alt="shop logo"
+              width="24"
+              height="24"
+              class="rounded"
+            />
+            <strong class="text-lg font-bold">{{ coffee.name }}</strong>
+            <span class="text-base text-gray-500">({{ coffee.shop_name }})</span>
           </a>
         </template>
-      </div>
-
-      <!-- Info -->
-      <p>
-        <strong>Origin: </strong>
-        <template v-if="isEditing">
-          <input
-            v-model="local.origin"
-            placeholder="Origin"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-        </template>
-        <template v-else>{{ coffee.origin }}</template>
-      </p>
-
-      <p>
-        <strong>Region: </strong>
-        <template v-if="isEditing">
-          <input
-            v-model="local.region"
-            placeholder="Region"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-        </template>
-        <template v-else>{{ coffee.region }}</template>
-      </p>
-
-      <p>
-        <strong>Altitude (m): </strong>
-        <template v-if="isEditing">
-          <input
-            v-model="local.altitude_meters"
-            placeholder="Altitude (m)"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-        </template>
-        <template v-else>{{ coffee.altitude_meters }}</template>
-      </p>
-
-      <p>
-        <strong>Botanic Variety: </strong>
-        <template v-if="isEditing">
-          <input
-            v-model="local.buttonic_variety"
-            placeholder="Botanic Variety"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-        </template>
-        <template v-else>{{ coffee.botanic_variety }}</template>
-      </p>
-
-      <p>
-        <strong>Producer / Farm: </strong>
-        <template v-if="isEditing">
-          <input
-            v-model="local.farm_producer"
-            placeholder="Producer / Farm">"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-        </template>
-        <template v-else>{{ coffee.farm_producer }}</template>
-      </p>
-
-      <p>
-        <strong>Processing: </strong>
-        <template v-if="isEditing">
-          <input
-            v-model="local.processing_method"
-            placeholder="Peocessing Method"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-        </template>
-        <template v-else>{{ coffee.processing_method }}</template>
-      </p>
-
-      <p>
-        <strong>SCA Score: </strong>
-        <template v-if="isEditing">
-          <input
-            v-model="local.sca"
-            placeholder="SCA Score"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-        </template>
-        <template v-else>{{ coffee.sca }}</template>
-      </p>
-
-      <p>
-        <strong>Flavor: </strong>
-        <template v-if="isEditing">
-          <input
-            v-model="local.flavor"
-            placeholder="Flavor notes"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-        </template>
-        <template v-else>{{ coffee.flavor || '–' }}</template>
-      </p>
-
-      <!-- Recipe -->
-      <div style="margin-top: 0.5rem;">
-        <p>
-          <strong>Recipe Ratio: </strong>
-          <template v-if="isEditing">
-          <input
-            v-model="local.recipe_ratio"
-            placeholder="Recipe Ratio"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-          </template>
-          <template v-else>{{ coffee.recipe_ratio }}</template>
-        </p>
-        <p><strong>Espresso ({{ isSingleShot ? 'Single' : 'Double' }}):</strong></p>
-        <template v-if="isEditing">
-          <input
-            v-model="local.recipe_in_grams"
-            placeholder="In (g)"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-          →
-          <input
-            v-model="local.recipe_out_grams"
-            placeholder="Out (g)"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-          <input
-            v-model="local.recipe_time_seconds"
-            placeholder="Time (s)"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-          <input
-            v-model="local.recipe_temperature_c"
-            placeholder="Temp (°C)"
-            class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-          >
-        </template>
-        <template v-else>
-          <p>{{ displayedIn }}g → {{ displayedOut }}g</p>
-          <p v-if="coffee.recipe_time_seconds || coffee.recipe_temperature_c">
-            {{ coffee.recipe_time_seconds || '⏱' }} sec at {{ coffee.recipe_temperature_c || '?' }}°C
-          </p>
-        </template>
-
         <button
-          class="bg-white border border-gray-300 rounded px-2 py-1 text-sm shadow-sm hover:shadow transition"
-          @click="toggleShotSize"
+          type="button"
+          @click="toggleCollapse"
+          class="ml-auto p-1 text-gray-500 hover:text-gray-700"
         >
-          Toggle Shot Size
+          <ChevronDown v-if="isCollapsed" class="w-6 h-6" />
+          <ChevronUp v-else class="w-6 h-6" />
         </button>
       </div>
 
-      <!-- Notes -->
-      <div v-if="isEditing">
-        <textarea
-          v-model="local.notes"
-          placeholder="Notes"
-          class="w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm"
-        ></textarea>
-      </div>
-      <p v-else-if="coffee.notes"><strong>Notes:</strong> {{ coffee.notes }}</p>
-    
-      <!-- Save/Cancel edit buttons -->
-      <div v-if="isEditing" class="mt-4 flex justify-end gap-2">
-        <button @click="saveChanges" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 flex items-center gap-1">
-          <Check class="w-8 h-8" />
-        </button>
-        <button @click="cancelEdit" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 flex items-center gap-1">
-          <X class="w-8 h-8" />
-        </button>
+      <div v-show="!isCollapsed" class="space-y-4">
+        <!-- Info Grid -->
+        <div class="grid rounded-md grid-cols-2 gap-2 text-sm border-l-4 border-gray-300 pl-2">
+          <div>
+            <strong>Origin: </strong>
+            <template v-if="isEditing">
+              <input v-model="local.origin" class="input" />
+            </template>
+            <template v-else>{{ coffee.origin }}</template>
+          </div>
+          <div>
+            <strong>Region: </strong>
+            <template v-if="isEditing">
+              <input v-model="local.region" class="input" />
+            </template>
+            <template v-else>{{ coffee.region }}</template>
+          </div>
+          <div>
+            <strong>Altitude (m): </strong>
+            <template v-if="isEditing">
+              <input v-model="local.altitude_meters" class="input" />
+            </template>
+            <template v-else>{{ coffee.altitude_meters }}</template>
+          </div>
+          <div>
+            <strong>Variety: </strong>
+            <template v-if="isEditing">
+              <input v-model="local.botanic_variety" class="input" />
+            </template>
+            <template v-else>{{ coffee.botanic_variety }}</template>
+          </div>
+          <div>
+            <strong>Farm/Producer: </strong>
+            <template v-if="isEditing">
+              <input v-model="local.farm_producer" class="input" />
+            </template>
+            <template v-else>{{ coffee.farm_producer }}</template>
+          </div>
+          <div>
+            <strong>Processing: </strong>
+            <template v-if="isEditing">
+              <input v-model="local.processing_method" class="input" />
+            </template>
+            <template v-else>{{ coffee.processing_method }}</template>
+          </div>
+          <div>
+            <strong>SCA Score: </strong>
+            <template v-if="isEditing">
+              <input v-model="local.sca" class="input" />
+            </template>
+            <template v-else>{{ coffee.sca }}</template>
+          </div>
+        </div>
+
+        <!-- Flavor Profile -->
+        <div class="bg-blue-50 rounded-md p-3 border-l-4 border-blue-300">
+          <h4 class="uppercase text-xs font-semibold text-blue-700 mb-1">
+            Flavor Profile
+          </h4>
+          <template v-if="isEditing">
+            <textarea v-model="local.flavor" class="input"></textarea>
+          </template>
+          <template v-else>
+            <p class="text-sm">{{ coffee.flavor || '–' }}</p>
+          </template>
+        </div>
+
+        <!-- Notes -->
+        <div class="bg-gray-50 rounded-md p-3 border-l-4 border-gray-300">
+          <h4 class="uppercase text-xs font-semibold text-gray-700 mb-1">
+            Notes
+          </h4>
+          <template v-if="isEditing">
+            <textarea v-model="local.notes" class="input"></textarea>
+          </template>
+          <template v-else>
+            <p class="text-sm">{{ coffee.notes || 'No notes yet.' }}</p>
+          </template>
+        </div>
+
+        <!-- Espresso Recipe -->
+        <div class="bg-orange-50 rounded-md p-3 border-l-4 border-orange-400">
+          <h4 class="uppercase text-xs font-semibold text-orange-700 mb-2">
+            Espresso Recipe
+          </h4>
+          <template v-if="isEditing">
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <input
+                v-model="local.recipe_in_grams"
+                placeholder="In (g)"
+                class="input"
+              />
+              <input
+                v-model="local.recipe_out_grams"
+                placeholder="Out (g)"
+                class="input"
+              />
+              <input
+                v-model="local.recipe_time_seconds"
+                placeholder="Time (s)"
+                class="input"
+              />
+              <input
+                v-model="local.recipe_temperature_c"
+                placeholder="Temp (°C)"
+                class="input"
+              />
+            </div>
+          </template>
+          <template v-else>
+            <div class="grid grid-cols-2 gap-2">
+              <!-- Ratio -->
+              <div class="bg-white rounded-lg p-3 shadow text-center">
+                <div class="text-xs font-medium text-gray-500">Ratio</div>
+                <div class="mt-1 text-lg font-semibold text-orange-600">
+                  {{ coffee.recipe_ratio }}
+                </div>
+              </div>
+              <!-- In (g) -->
+              <div class="bg-white rounded-lg p-3 shadow text-center">
+                <div class="text-xs font-medium text-gray-500">In (g)</div>
+                <div class="mt-1 text-lg font-semibold text-orange-600">
+                  {{ displayedIn }}
+                </div>
+              </div>
+              <!-- Out (g) -->
+              <div class="bg-white rounded-lg p-3 shadow text-center">
+                <div class="text-xs font-medium text-gray-500">Out (g)</div>
+                <div class="mt-1 text-lg font-semibold text-orange-600">
+                  {{ displayedOut }}
+                </div>
+              </div>
+              <!-- Time (s) -->
+              <div class="bg-white rounded-lg p-3 shadow text-center">
+                <div class="text-xs font-medium text-gray-500">Time (s)</div>
+                <div class="mt-1 text-lg font-semibold text-orange-600">
+                  {{ coffee.recipe_time_seconds }}
+                </div>
+              </div>
+              <!-- Temp (°C) -->
+              <div class="bg-white rounded-lg p-3 shadow text-center">
+                <div class="text-xs font-medium text-gray-500">Temp (°C)</div>
+                <div class="mt-1 text-lg font-semibold text-orange-600">
+                  {{ coffee.recipe_temperature_c }}
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Containers -->
+        <div class="flex justify-center gap-4 mt-4">
+          <Container
+            color="green"
+            :assigned="props.coffee.in_green_container"
+            :activeCoffee="props.containerStatus?.green"
+            :coffee="props.coffee"
+            :isLoggedIn="props.isLoggedIn"
+            @update-container="handleContainerUpdate"
+          />
+          <Container
+            color="grey"
+            :assigned="props.coffee.in_grey_container"
+            :activeCoffee="props.containerStatus?.grey"
+            :coffee="props.coffee"
+            :isLoggedIn="props.isLoggedIn"
+            @update-container="handleContainerUpdate"
+          />
+        </div>
+
+        <!-- Save/Cancel edit buttons -->
+        <div v-if="isEditing" class="mt-4 flex justify-end gap-2">
+          <button
+            @click="saveChanges"
+            class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 flex items-center gap-1"
+          >
+            <Check class="w-8 h-8" />
+          </button>
+          <button
+            @click="cancelEdit"
+            class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 flex items-center gap-1"
+          >
+            <X class="w-8 h-8" />
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -241,12 +263,14 @@
 import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabase'
 import Container from './Container.vue'
-import { X } from 'lucide-vue-next'
+import { Pencil, Trash2, Check, X, ChevronDown, ChevronUp, EllipsisVertical } from 'lucide-vue-next'
 
 const emit = defineEmits(['update-container', 'deleted'])
 
+const isCollapsed = ref(true)
 const isSingleShot = ref(false)
 const isEditing = ref(false)
+const showMenu = ref(false)
 
 const props = defineProps({
   coffee: {
@@ -259,6 +283,17 @@ const props = defineProps({
 })
 
 const local = ref({ ...props.coffee })
+
+const cardClasses = computed(() => [
+  // common
+  'relative m-4 p-4 rounded-xl border border-gray-200 shadow-sm text-gray-900 space-y-4 flex flex-col h-full border-l-4',
+  // container‐specific
+  props.coffee.in_green_container
+    ? 'bg-green-50 border-l-green-500'
+    : props.coffee.in_grey_container
+      ? 'bg-gray-100 border-l-gray-500'
+      : 'bg-white border-l-black'
+])
 
 const toggleShotSize = () => {
   isSingleShot.value = !isSingleShot.value
@@ -281,6 +316,7 @@ const handleContainerUpdate = (payload) => {
 const enterEditMode = () => {
   local.value = { ...props.coffee }
   isEditing.value = true
+  showMenu.value = false
 }
 
 const cancelEdit = () => {
@@ -313,22 +349,33 @@ const deriveShopInfo = () => {
   }
 }
 
-const confirmDelete = async () => {
-  if (!confirm(`Are you sure you want to delete "${props.coffee.name}"?`)) return
-
-  const { error } = await supabase
-    .from('coffee_beans')
-    .delete()
-    .eq('id', props.coffee.id)
-
-  if (error) {
-    alert('❌ Failed to delete: ' + error.message)
-  } else {
-    emit('deleted')
+const toggleMenu = () => {
+  if (!props.isLoggedIn) {
+    alert('You must be logged in to perform this action.')
+    return
   }
+  showMenu.value = !showMenu.value
+}
+
+const confirmDelete = async () => {
+  showMenu.value = false
+  const ok = confirm(`Delete "${props.coffee.name}"?`)
+  if (!ok) return
+  const { error } = await supabase.from('coffee_beans').delete().eq('id', props.coffee.id)
+  if (error) alert('❌ Delete failed: ' + error.message)
+  else emit('deleted')
+}
+
+const notifyLogin = () => { alert('Please log in to edit or delete.')
+}
+
+function toggleCollapse() {
+  isCollapsed.value = !isCollapsed.value
 }
 </script>
 
 <style scoped>
-
+.input {
+  @apply w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm;
+}
 </style>

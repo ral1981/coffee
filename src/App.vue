@@ -1,5 +1,5 @@
 <template>
-  <main class="min-h-screen bg-gray-900 text-white dark:bg-white dark:text-gray-900 p-6">
+  <main class="min-h-screen bg-gray-35 dark:bg-white dark:text-gray-900 p-6">
     <Authentication @user-changed="onUserChanged" />
 
     <h1 class="text-4xl font-bold mb-6">☕ Coffee Tracker</h1>
@@ -14,7 +14,7 @@
       @filter-change="handleFilterChange"
     />
 
-    <div class="grid gap-4 mt-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div class="grid grid-cols-1 gap-4 mt-6 md:grid-cols-2 lg:grid-cols-3 items-start">
       <CoffeeCard
         v-for="coffee in filteredCoffees"
         :key="coffee.id"
