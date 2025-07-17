@@ -1,19 +1,57 @@
 <template>
   <div v-if="props.coffee">
     <div :class="cardClasses">
-      <!-- 3-dot menu icon for both desktop and mobile -->
-      <div class="absolute top-4 right-4 z-10">
+      <!-- Header -->
+      <div class="relative flex items-center m-4">
+        <!-- 1) Favicon (left zone) -->
+        <div class="flex-shrink-0">
+          <a :href="coffee.shop_url" target="_blank" rel="noopener">
+            <img
+              :src="coffee.shop_logo"
+              alt="shop logo"
+              width="48"
+              height="48"
+              class="rounded"
+            />
+          </a>
+        </div>
+
+        <!-- 2) Title & Shop name (middle zone) -->
+        <div class="flex flex-col justify-center ml-4">
+          <strong class="text-xl font-bold leading-none">
+            {{ coffee.name }}
+          </strong>
+          <span class="text-sm text-gray-500">
+            {{ coffee.shop_name }}
+          </span>
+        </div>
+
+        <!-- 3) Actions (right zone) -->
+        <div class="ml-auto flex flex-col items-center space-y-1">
+          <!-- 3-dot menu -->
           <button
             type="button"
             @click="toggleMenu"
             :class="isLoggedIn ? 'text-gray-600 hover:text-black' : 'text-gray-300 cursor-not-allowed'"
             class="p-1"
           >
-            <EllipsisVertical class="w-6 h-6" />
+            <EllipsisVertical class="w-6 h-6"/>
           </button>
+          <!-- expand/collapse chevron -->
+          <button
+            type="button"
+            @click="toggleCollapse"
+            class="p-1 text-gray-500 hover:text-gray-700"
+          >
+            <ChevronDown v-if="isCollapsed" class="w-6 h-6"/>
+            <ChevronUp   v-else         class="w-6 h-6"/>
+          </button>
+        </div>
+
+        <!-- menu dropdown (absolute, unchanged) -->
         <div
           v-if="showMenu"
-          class="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded shadow-md overflow-hidden"
+          class="absolute top-0 right-0 mt-10 w-32 bg-white border border-gray-200 rounded shadow-md overflow-hidden"
         >
           <template v-if="isLoggedIn">
             <button type="button" @click="enterEditMode" class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm">✏️ Edit</button>
@@ -28,45 +66,6 @@
             </button>
           </template>
         </div>
-      </div>
-
-      <!-- Header -->
-      <div class="flex items-center gap-3 pr-10">
-        <template v-if="isEditing">
-          <input v-model="local.name" placeholder="Coffee Name" class="input text-lg font-semibold" />
-          <input
-            v-model="local.shop_url"
-            placeholder="Shop URL"
-            @blur="deriveShopInfo"
-            class="input text-base"
-          />
-        </template>
-        <template v-else>
-          <a
-            :href="coffee.shop_url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex items-center gap-3"
-          >
-            <img
-              :src="coffee.shop_logo"
-              alt="shop logo"
-              width="24"
-              height="24"
-              class="rounded"
-            />
-            <strong class="text-lg font-bold">{{ coffee.name }}</strong>
-            <span class="text-base text-gray-500">({{ coffee.shop_name }})</span>
-          </a>
-        </template>
-        <button
-          type="button"
-          @click="toggleCollapse"
-          class="ml-auto p-1 text-gray-500 hover:text-gray-700"
-        >
-          <ChevronDown v-if="isCollapsed" class="w-6 h-6" />
-          <ChevronUp v-else class="w-6 h-6" />
-        </button>
       </div>
 
       <div v-show="!isCollapsed" class="space-y-4">
