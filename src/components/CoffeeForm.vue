@@ -1,80 +1,217 @@
 <template>
   <div>
-    <button v-if="!showForm" @click="showForm = true">➕ Add Coffee</button>
+    <button v-if="!showForm" @click="showForm = true" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2 m-4">
+      ➕ Add Coffee
+    </button>
 
-      <div
-        v-if="showForm"
-        class="border-2 border-dashed border-gray-400 p-4 m-4 rounded-lg bg-white dark:bg-gray-100"
-      >
+    <div v-if="showForm" class="relative m-4 p-4 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 text-gray-900 space-y-4 flex flex-col h-full">
+      <!-- Header -->
+      <div class="relative flex items-start m-4">
+        <!-- 1) Favicon (left zone) -->
+        <div class="flex-shrink-0">
+          <img
+            :src="form.shop_logo || 'https://www.google.com/s2/favicons?domain=example.com'"
+            alt="shop logo"
+            width="48"
+            height="48"
+            class="rounded"
+          />
+        </div>
 
-      <div class="flex gap-2 mb-2 items-center">
-        <img :src="form.shop_logo" alt="shop" width="16" height="16" />
-        <input
-          v-model="form.name"
-          placeholder="Coffee Name"
-          class="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-        />
-        <input
-          v-model="form.shop_url"
-          placeholder="SShop URL"
-          class="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-        />
-      </div>
+        <!-- 2) Title & Shop name (middle zone) -->
+        <div class="flex-1 min-w-0 ml-4 mr-2">
+          <div class="transition-all duration-300 ease-in-out">
+            <!-- Coffee name input -->
+            <input
+              v-model="form.name"
+              placeholder="Coffee Name"
+              class="block text-3xl font-bold leading-tight w-full bg-transparent border-b-2 border-gray-300 focus:border-blue-500 focus:outline-none mb-2"
+            />
+            
+            <!-- Shop name input -->
+            <input
+              v-model="form.shop_url"
+              @input="deriveShopInfo"
+              placeholder="Shop URL"
+              class="text-xl text-gray-500 block w-full bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+        </div>
 
-        <input
-          v-model="form.origin"
-          placeholder="Origin"
-          class="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-        />
-        <input
-          v-model="form.flavor"
-          placeholder="Flavor"
-          class="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-        />
-
-      <div class="my-2">
-        <strong>Containers:</strong>
-        <div class="flex gap-4 mt-1">
-          <label class="flex items-center gap-1">
-            <input type="checkbox" v-model="form.in_green_container" />
-            🟩 Green
-          </label>
-          <label class="flex items-center gap-1">
-            <input type="checkbox" v-model="form.in_grey_container" />
-            ⬜ Grey
-          </label>
+        <!-- 3) Actions (right zone) -->
+        <div class="flex flex-col items-center space-y-1 flex-shrink-0">
+          <button
+            type="button"
+            @click="saveCoffee"
+            class="p-1 text-green-600 hover:text-green-800"
+            title="Save Coffee"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </button>
+          <button
+            type="button"
+            @click="cancelForm"
+            class="p-1 text-red-600 hover:text-red-800"
+            title="Cancel"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
         </div>
       </div>
 
-      <div class="my-2">
-        <strong>Recipe:</strong>
-        <div class="flex flex-wrap items-center gap-2 mt-1">
-          <input type="number" step="0.1" v-model.number="form.recipe_in_grams" placeholder="In (g)" class="input" />
-          <span>→</span>
-          <input type="number" step="0.1" v-model.number="form.recipe_out_grams" placeholder="Out (g)" class="input" />
-          <input type="text" v-model="form.recipe_time_seconds" placeholder="Time (s)" class="input" />
-          <input type="number" v-model="form.recipe_temperature_c" placeholder="Temp (°C)" class="input" />
+      <div class="space-y-4">
+        <!-- Info Grid -->
+        <div class="grid rounded-md grid-cols-1 md:grid-cols-2 gap-3 md:gap-2 text-base border-l-4 border-blue-300 pl-3 md:pl-2">
+          <div>
+            <strong>Origin: </strong>
+            <input v-model="form.origin" placeholder="Origin" class="input" />
+          </div>
+          <div>
+            <strong>Region: </strong>
+            <input v-model="form.region" placeholder="Region" class="input" />
+          </div>
+          <div>
+            <strong>Altitude (m): </strong>
+            <input v-model="form.altitude_meters" placeholder="Altitude" class="input" />
+          </div>
+          <div>
+            <strong>Variety: </strong>
+            <input v-model="form.botanic_variety" placeholder="Variety" class="input" />
+          </div>
+          <div>
+            <strong>Farm/Producer: </strong>
+            <input v-model="form.farm_producer" placeholder="Farm/Producer" class="input" />
+          </div>
+          <div>
+            <strong>Processing: </strong>
+            <input v-model="form.processing_method" placeholder="Processing" class="input" />
+          </div>
+          <div>
+            <strong>SCA Score: </strong>
+            <input
+              v-model.number="form.sca"
+              type="number"
+              step="0.1"
+              placeholder="SCA Score"
+              class="input"
+            />
+          </div>
+        </div>
+
+        <!-- Flavor Profile -->
+        <div class="bg-blue-50 rounded-md p-4 md:p-3 border-l-4 border-blue-300">
+          <h4 class="uppercase text-base font-semibold text-blue-700 mb-1">
+            Flavor Profile
+          </h4>
+          <textarea 
+            v-model="form.flavor" 
+            placeholder="Describe the flavor profile..."
+            rows="3"
+            class="input w-full resize-none"
+          ></textarea>
+        </div>
+
+        <!-- Notes -->
+        <div class="bg-gray-50 rounded-md p-4 md:p-3 border-l-4 border-gray-300">
+          <h4 class="uppercase text-base font-semibold text-gray-700 mb-1">
+            Notes
+          </h4>
+          <textarea 
+            v-model="form.notes" 
+            placeholder="Add your notes here..."
+            rows="3"
+            class="input w-full resize-none"
+          ></textarea>
+        </div>
+
+        <!-- Espresso Recipe -->
+        <div class="bg-orange-50 rounded-md p-4 md:p-3 border-l-4 border-orange-400">
+          <h4 class="uppercase text-base font-semibold text-orange-700 mb-3 md:mb-2">
+            Espresso Recipe
+          </h4>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <input
+              v-model.number="form.recipe_in_grams"
+              type="number"
+              step="0.1"
+              placeholder="In (g)"
+              class="input"
+            />
+            <input
+              v-model.number="form.recipe_out_grams"
+              type="number"
+              step="0.1"
+              placeholder="Out (g)"
+              class="input"
+            />
+            <input
+              v-model="form.recipe_time_seconds"
+              placeholder="Time (s)"
+              class="input"
+            />
+            <input
+              v-model.number="form.recipe_temperature_c"
+              type="number"
+              step="0.1"
+              placeholder="Temp (°C)"
+              class="input"
+            />
+          </div>
+        </div>
+
+        <!-- Containers -->
+        <div class="bg-green-50 rounded-md p-4 md:p-3 border-l-4 border-green-400">
+          <h4 class="uppercase text-base font-semibold text-green-700 mb-2">
+            Containers
+          </h4>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                v-model="form.in_green_container"
+                class="w-4 h-4 text-green-600"
+              />
+              <span class="text-sm font-medium">🟩 Green Container</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                v-model="form.in_grey_container"
+                class="w-4 h-4 text-gray-600"
+              />
+              <span class="text-sm font-medium">⬜ Grey Container</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            @click="saveCoffee"
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Save Coffee
+          </button>
+          <button
+            type="button"
+            @click="cancelForm"
+            class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Cancel
+          </button>
         </div>
       </div>
-
-      <textarea
-        v-model="form.notes"
-        placeholder="Notes"
-        rows="3"
-        class="w-full px-2 py-1 border border-gray-300 rounded text-sm resize-none"
-      />
-
-      <div class="mt-4 flex gap-2">
-        <button
-          class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-          @click="saveCoffee"
-        >💾 Save Coffee</button>
-        <button
-          class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-          @click="cancelForm"
-        >❌ Cancel</button>
-      </div>
-
     </div>
   </div>
 </template>
@@ -84,7 +221,6 @@ import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
 
 const showForm = ref(false)
-
 const coffees = ref([])
 
 const fetchCoffees = async () => {
@@ -97,6 +233,12 @@ fetchCoffees()
 const form = ref({
   name: '',
   origin: '',
+  region: '',
+  altitude_meters: '',
+  botanic_variety: '',
+  farm_producer: '',
+  processing_method: '',
+  sca: null,
   shop_url: '',
   shop_name: '',
   shop_logo: '',
@@ -124,6 +266,12 @@ const resetForm = () => {
   form.value = {
     name: '',
     origin: '',
+    region: '',
+    altitude_meters: '',
+    botanic_variety: '',
+    farm_producer: '',
+    processing_method: '',
+    sca: null,
     shop_url: '',
     shop_name: '',
     shop_logo: '',
@@ -205,5 +353,7 @@ const calculateRatio = () => {
 </script>
 
 <style scoped>
-
+.input {
+  @apply w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500;
+}
 </style>
