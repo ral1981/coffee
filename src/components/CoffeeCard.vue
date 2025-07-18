@@ -160,7 +160,12 @@
           <div>
             <strong>SCA Score: </strong>
             <template v-if="isEditing">
-              <input v-model="local.sca" class="input" />
+              <input v-model.number="local.sca"
+                type="number"
+                step="0.1"
+                placeholder="SCA Score"
+                class="input"
+              />
             </template>
             <template v-else>{{ coffee.sca }}</template>
           </div>
@@ -200,12 +205,16 @@
           <template v-if="isEditing">
             <div class="grid grid-cols-2 gap-2 text-sm">
               <input
-                v-model="local.recipe_in_grams"
+                v-model.number="local.recipe_in_grams"
+                type="number"
+                step="0.1"
                 placeholder="In (g)"
                 class="input"
               />
               <input
-                v-model="local.recipe_out_grams"
+                v-model.number="local.recipe_out_grams"
+                type="number"
+                step="0.1"
                 placeholder="Out (g)"
                 class="input"
               />
@@ -215,7 +224,9 @@
                 class="input"
               />
               <input
-                v-model="local.recipe_temperature_c"
+                v-model.number="local.recipe_temperature_c"
+                type="number"
+                step="0.1"
                 placeholder="Temp (°C)"
                 class="input"
               />

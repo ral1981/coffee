@@ -30,15 +30,26 @@
       />
     </div>
   </main>
+  <Transition name="fade">
+    <button
+      v-if="showBackToTop"
+      @click="scrollToTop"
+      class="fixed bottom-6 right-6 z-50 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+      title="Back to top"
+    >
+      <ArrowUp class="w-6 h-6" />
+    </button>
+  </Transition>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { supabase } from './lib/supabase'
 import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'
 import FilterPanel from './components/FilterPanel.vue'
 import CoffeeCard from './components/CoffeeCard.vue'
+import { ArrowUp } from 'lucide-vue-next'
 
 const user = ref(null)
 const coffees = ref([])
@@ -156,4 +167,34 @@ function onEditingChanged(isNowEditing) {
   anyEditing.value = anyEditing.value || isNowEditing
 }
 
+const showBackToTop = ref(false)
+
+const handleScroll = () => {
+  // Show button after scrolling down 300px
+  showBackToTop.value = window.scrollY > 300
+}
+
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
 </script>
+<style scoped>
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+</style>
