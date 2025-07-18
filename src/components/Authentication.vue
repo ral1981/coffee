@@ -52,9 +52,25 @@ const password = ref('')
 const user = ref(null)
 const emit = defineEmits(['user-changed', 'logout'])
 
-const getUser = async () => {
-  const { data } = await supabase.auth.getUser()
-  user.value = data.user
+const initializeAuth = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession()
+    
+    if (error) {
+      console.error('Error getting session:', error)
+      user.value = null
+      return
+    }
+
+    if (session?.user) {
+      user.value = session.user
+    } else {
+      user.value = null
+    }
+  } catch (error) {
+    console.error('Error initializing auth:', error)
+    user.value = null
+  }
 }
 
 watch(user, (newUser) => {
@@ -85,16 +101,18 @@ const signup = async () => {
 }
 
 onMounted(async () => {
-  await getUser()
-})
-
-onMounted(() => {
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  await initializeAuth()
+  
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_OUT') {
       user.value = null
-    } else if (event === 'SIGNED_IN') {
-      await getUser()
+    } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      user.value = session?.user || null
     }
   })
+
+  return () => {
+    subscription?.unsubscribe()
+  }
 })
 </script>

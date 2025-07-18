@@ -26,6 +26,7 @@
         @editing-changed="onEditingChanged"
         @update-container="handleContainerUpdate"
         @deleted="loadCoffees"
+        @saved="loadCoffees"
       />
     </div>
   </main>
@@ -41,7 +42,7 @@ import CoffeeCard from './components/CoffeeCard.vue'
 
 const user = ref(null)
 const coffees = ref([])
-const isLoggedIn = ref(true)
+const isLoggedIn = ref(false)
 const anyEditing = ref(false)
 
 async function attemptLogout() {
@@ -68,6 +69,8 @@ async function attemptLogout() {
 function onUserChanged(newUser) {
   user.value = newUser
   isLoggedIn.value = !!newUser
+
+  loadCoffees()
   
   if (!newUser) {
     anyEditing.value = false
@@ -154,7 +157,3 @@ function onEditingChanged(isNowEditing) {
 }
 
 </script>
-
-<style scoped>
-
-</style>

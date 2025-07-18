@@ -285,6 +285,7 @@
         <!-- Save/Cancel edit buttons -->
         <div v-if="isEditing" class="mt-4 flex justify-end gap-2">
           <button
+            type="button"
             @click="saveChanges"
             class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 flex items-center gap-1"
           >
@@ -318,7 +319,7 @@ const props = defineProps({
   containerStatus: Object
 })
 
-const emit = defineEmits(['update-container', 'deleted', 'editing-changed'])
+const emit = defineEmits(['update-container', 'deleted', 'editing-changed', 'saved'])
 
 const isCollapsed = ref(true)
 const isSingleShot = ref(false)
@@ -389,6 +390,7 @@ const saveChanges = async () => {
   } else {
     alert('✅ Changes saved!')
     isEditing.value = false
+    emit('saved')
   }
 }
 
