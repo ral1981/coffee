@@ -114,7 +114,7 @@
 
       <div v-show="!isCollapsed" class="space-y-4">
         <!-- Info Grid -->
-        <div class="grid rounded-md grid-cols-1 md:grid-cols-2 gap-3 md:gap-2 text-base md:text-sm border-l-4 border-gray-300 pl-3 md:pl-2">
+        <div class="grid rounded-md grid-cols-1 md:grid-cols-2 gap-3 md:gap-2 text-base border-l-4 border-gray-300 pl-3 md:pl-2">
           <div>
             <strong>Origin: </strong>
             <template v-if="isEditing">
@@ -168,33 +168,33 @@
 
         <!-- Flavor Profile -->
         <div class="bg-blue-50 rounded-md p-4 md:p-3 border-l-4 border-blue-300">
-          <h4 class="uppercase text-xs font-semibold text-blue-700 mb-1">
+          <h4 class="uppercase text-base font-semibold text-blue-700 mb-1">
             Flavor Profile
           </h4>
           <template v-if="isEditing">
             <textarea v-model="local.flavor" class="input"></textarea>
           </template>
           <template v-else>
-            <p class="text-sm">{{ coffee.flavor || '–' }}</p>
+            <p class="text-base">{{ coffee.flavor || '–' }}</p>
           </template>
         </div>
 
         <!-- Notes -->
         <div class="bg-gray-50 rounded-md p-4 md:p-3 border-l-4 border-gray-300">
-          <h4 class="uppercase text-xs font-semibold text-gray-700 mb-1">
+          <h4 class="uppercase text-base font-semibold text-gray-700 mb-1">
             Notes
           </h4>
           <template v-if="isEditing">
             <textarea v-model="local.notes" class="input"></textarea>
           </template>
           <template v-else>
-            <p class="text-sm">{{ coffee.notes || 'No notes yet.' }}</p>
+            <p class="text-base">{{ coffee.notes || 'No notes yet.' }}</p>
           </template>
         </div>
 
         <!-- Espresso Recipe -->
         <div class="bg-orange-50 rounded-md p-4 md:p-3 border-l-4 border-orange-400">
-          <h4 class="uppercase text-sm md:text-xs font-semibold text-orange-700 mb-3 md:mb-2">
+          <h4 class="uppercase text-base font-semibold text-orange-700 mb-3 md:mb-2">
             Espresso Recipe
           </h4>
           <template v-if="isEditing">
@@ -225,36 +225,36 @@
             <div class="grid grid-cols-2 gap-3 md:gap-2">
               <!-- Ratio -->
               <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
-                <div class="text-sm md:text-xs font-medium text-gray-500">Ratio</div>
-                <div class="mt-2 md:mt-1 text-2xl md:text-lg font-semibold text-orange-600">
+                <div class="uppercase text-sm font-medium text-gray-500">Ratio</div>
+                <div class="mt-2 md:mt-1 text-xl font-semibold text-orange-600">
                   {{ coffee.recipe_ratio }}
                 </div>
               </div>
               <!-- In (g) -->
               <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
-                <div class="text-sm md:text-xs font-medium text-gray-500">In (g)</div>
-                <div class="mt-2 md:mt-1 text-2xl md:text-lg font-semibold text-orange-600">
+                <div class="uppercase text-sm font-medium text-gray-500">In (g)</div>
+                <div class="mt-2 md:mt-1 text-xl font-semibold text-orange-600">
                   {{ displayedIn }}
                 </div>
               </div>
               <!-- Out (g) -->
               <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
-                <div class="text-sm md:text-xs font-medium text-gray-500">Out (g)</div>
-                <div class="mt-2 md:mt-1 text-2xl md:text-lg font-semibold text-orange-600">
+                <div class="uppercase text-sm font-medium text-gray-500">Out (g)</div>
+                <div class="mt-2 md:mt-1 text-xl font-semibold text-orange-600">
                   {{ displayedOut }}
                 </div>
               </div>
               <!-- Time (s) -->
               <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
-                <div class="text-sm md:text-xs font-medium text-gray-500">Time (s)</div>
-                <div class="mt-2 md:mt-1 text-2xl md:text-lg font-semibold text-orange-600">
+                <div class="uppercase text-sm font-medium text-gray-500">Time (s)</div>
+                <div class="mt-2 md:mt-1 text-xl font-semibold text-orange-600">
                   {{ coffee.recipe_time_seconds }}
                 </div>
               </div>
               <!-- Temp (°C) -->
               <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
-                <div class="text-sm md:text-xs font-medium text-gray-500">Temp (°C)</div>
-                <div class="mt-2 md:mt-1 text-2xl md:text-lg font-semibold text-orange-600">
+                <div class="uppercase text-sm font-medium text-gray-500">Temp (°C)</div>
+                <div class="mt-2 md:mt-1 text-xl font-semibold text-orange-600">
                   {{ coffee.recipe_temperature_c }}
                 </div>
               </div>
