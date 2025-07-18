@@ -2,33 +2,76 @@
   <div v-if="props.coffee">
     <div :class="cardClasses">
       <!-- Header -->
-      <div class="relative flex items-center m-4">
-        <!-- 1) Favicon (left zone) -->
+      <div class="relative flex items-start m-4">
+        <!-- 1) Favicon (left zone) - No link when collapsed -->
         <div class="flex-shrink-0">
-          <a :href="coffee.shop_url" target="_blank" rel="noopener">
-            <img
-              :src="coffee.shop_logo"
-              alt="shop logo"
-              width="48"
-              height="48"
-              class="rounded"
-            />
-          </a>
+          <img
+            :src="coffee.shop_logo"
+            alt="shop logo"
+            width="48"
+            height="48"
+            class="rounded"
+          />
         </div>
 
         <!-- 2) Title & Shop name (middle zone) -->
-        <div class="flex flex-col justify-center ml-4">
-          <strong class="text-xl font-bold leading-none">
-            {{ coffee.name }}
-          </strong>
-          <span class="text-sm text-gray-500">
-            {{ coffee.shop_name }}
-          </span>
+        <div class="flex-1 min-w-0 ml-4 mr-2">
+          <div class="transition-all duration-300 ease-in-out">
+            <!-- Coffee name - clickable when expanded -->
+            <div class="flex items-center gap-2">
+              <a
+                v-if="coffee.shop_url && !isCollapsed"
+                :href="coffee.shop_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block text-3xl font-bold leading-tight transition-all duration-300"
+                :class="[
+                  isCollapsed ? 'truncate' : 'break-words',
+                  !isCollapsed && coffee.shop_url ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''
+                ]"
+                :title="coffee.name"
+              >
+                {{ coffee.name }}
+              </a>
+              <strong
+                v-else
+                class="block text-3xl font-bold leading-tight transition-all duration-300"
+                :class="[
+                  isCollapsed ? 'truncate' : 'break-words'
+                ]"
+                :title="coffee.name"
+              >
+                {{ coffee.name }}
+              </strong>              
+              <!-- External link icon - only show when expanded -->
+              <div v-if="!isCollapsed && coffee.shop_url" class="flex-shrink-0">
+                <a
+                  v-if="coffee.shop_url && !isCollapsed"
+                  :href="coffee.shop_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex-shrink-0"
+                  :title="`Visit ${coffee.shop_name}`"
+                >
+                  <ExternalLink
+                    class="w-5 h-5 text-gray-400 hover:text-blue-600 cursor-pointer"
+                  />
+                </a>
+              </div>
+            </div>
+            
+            <span 
+              class="text-xl text-gray-500 block transition-all duration-300"
+              :class="isCollapsed ? 'truncate' : 'break-words'"
+              :title="coffee.shop_name"
+            >
+              {{ coffee.shop_name }}
+            </span>
+          </div>
         </div>
 
         <!-- 3) Actions (right zone) -->
-        <div class="ml-auto flex flex-col items-center space-y-1">
-          <!-- 3-dot menu -->
+        <div class="flex flex-col items-center space-y-1 flex-shrink-0">
           <button
             ref="menuButton"
             type="button"
@@ -38,7 +81,6 @@
           >
             <EllipsisVertical class="w-6 h-6"/>
           </button>
-          <!-- expand/collapse chevron -->
           <button
             type="button"
             @click="toggleCollapse"
@@ -53,7 +95,7 @@
         <div
           v-if="showMenu"
           ref="menuPanel"
-          class="absolute top-0 right-0 mt-10 w-32 bg-white border border-gray-200 rounded shadow-md overflow-hidden"
+          class="absolute top-0 right-0 mt-10 w-32 bg-white border border-gray-200 rounded shadow-md overflow-hidden z-10"
         >
           <template v-if="isLoggedIn">
             <button type="button" @click="enterEditMode" class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm">✏️ Edit</button>
@@ -72,7 +114,7 @@
 
       <div v-show="!isCollapsed" class="space-y-4">
         <!-- Info Grid -->
-        <div class="grid rounded-md grid-cols-2 gap-2 text-sm border-l-4 border-gray-300 pl-2">
+        <div class="grid rounded-md grid-cols-1 md:grid-cols-2 gap-3 md:gap-2 text-base md:text-sm border-l-4 border-gray-300 pl-3 md:pl-2">
           <div>
             <strong>Origin: </strong>
             <template v-if="isEditing">
@@ -125,7 +167,7 @@
         </div>
 
         <!-- Flavor Profile -->
-        <div class="bg-blue-50 rounded-md p-3 border-l-4 border-blue-300">
+        <div class="bg-blue-50 rounded-md p-4 md:p-3 border-l-4 border-blue-300">
           <h4 class="uppercase text-xs font-semibold text-blue-700 mb-1">
             Flavor Profile
           </h4>
@@ -138,7 +180,7 @@
         </div>
 
         <!-- Notes -->
-        <div class="bg-gray-50 rounded-md p-3 border-l-4 border-gray-300">
+        <div class="bg-gray-50 rounded-md p-4 md:p-3 border-l-4 border-gray-300">
           <h4 class="uppercase text-xs font-semibold text-gray-700 mb-1">
             Notes
           </h4>
@@ -151,8 +193,8 @@
         </div>
 
         <!-- Espresso Recipe -->
-        <div class="bg-orange-50 rounded-md p-3 border-l-4 border-orange-400">
-          <h4 class="uppercase text-xs font-semibold text-orange-700 mb-2">
+        <div class="bg-orange-50 rounded-md p-4 md:p-3 border-l-4 border-orange-400">
+          <h4 class="uppercase text-sm md:text-xs font-semibold text-orange-700 mb-3 md:mb-2">
             Espresso Recipe
           </h4>
           <template v-if="isEditing">
@@ -180,39 +222,39 @@
             </div>
           </template>
           <template v-else>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-2 gap-3 md:gap-2">
               <!-- Ratio -->
-              <div class="bg-white rounded-lg p-3 shadow text-center">
-                <div class="text-xs font-medium text-gray-500">Ratio</div>
-                <div class="mt-1 text-lg font-semibold text-orange-600">
+              <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
+                <div class="text-sm md:text-xs font-medium text-gray-500">Ratio</div>
+                <div class="mt-2 md:mt-1 text-2xl md:text-lg font-semibold text-orange-600">
                   {{ coffee.recipe_ratio }}
                 </div>
               </div>
               <!-- In (g) -->
-              <div class="bg-white rounded-lg p-3 shadow text-center">
-                <div class="text-xs font-medium text-gray-500">In (g)</div>
-                <div class="mt-1 text-lg font-semibold text-orange-600">
+              <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
+                <div class="text-sm md:text-xs font-medium text-gray-500">In (g)</div>
+                <div class="mt-2 md:mt-1 text-2xl md:text-lg font-semibold text-orange-600">
                   {{ displayedIn }}
                 </div>
               </div>
               <!-- Out (g) -->
-              <div class="bg-white rounded-lg p-3 shadow text-center">
-                <div class="text-xs font-medium text-gray-500">Out (g)</div>
-                <div class="mt-1 text-lg font-semibold text-orange-600">
+              <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
+                <div class="text-sm md:text-xs font-medium text-gray-500">Out (g)</div>
+                <div class="mt-2 md:mt-1 text-2xl md:text-lg font-semibold text-orange-600">
                   {{ displayedOut }}
                 </div>
               </div>
               <!-- Time (s) -->
-              <div class="bg-white rounded-lg p-3 shadow text-center">
-                <div class="text-xs font-medium text-gray-500">Time (s)</div>
-                <div class="mt-1 text-lg font-semibold text-orange-600">
+              <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
+                <div class="text-sm md:text-xs font-medium text-gray-500">Time (s)</div>
+                <div class="mt-2 md:mt-1 text-2xl md:text-lg font-semibold text-orange-600">
                   {{ coffee.recipe_time_seconds }}
                 </div>
               </div>
               <!-- Temp (°C) -->
-              <div class="bg-white rounded-lg p-3 shadow text-center">
-                <div class="text-xs font-medium text-gray-500">Temp (°C)</div>
-                <div class="mt-1 text-lg font-semibold text-orange-600">
+              <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
+                <div class="text-sm md:text-xs font-medium text-gray-500">Temp (°C)</div>
+                <div class="mt-2 md:mt-1 text-2xl md:text-lg font-semibold text-orange-600">
                   {{ coffee.recipe_temperature_c }}
                 </div>
               </div>
@@ -264,7 +306,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { supabase } from '../lib/supabase'
 import Container from './Container.vue'
-import { Pencil, Trash2, Check, X, ChevronDown, ChevronUp, EllipsisVertical } from 'lucide-vue-next'
+import { Pencil, Trash2, Check, X, ChevronDown, ChevronUp, EllipsisVertical, ExternalLink } from 'lucide-vue-next'
 
 const props = defineProps({
   coffee: {
@@ -408,9 +450,3 @@ function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value
 }
 </script>
-
-<style scoped>
-.input {
-  @apply w-full px-2 py-1 border border-gray-300 text-gray-900 bg-white focus:outline-none focus:ring focus:border-blue-300 rounded text-sm;
-}
-</style>
