@@ -219,6 +219,9 @@
 <script setup>
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
+import { data } from 'autoprefixer'
+
+const emit = defineEmits(['coffee-saved'])
 
 const showForm = ref(false)
 const coffees = ref([])
@@ -324,12 +327,13 @@ const saveCoffee = async () => {
   const { error } = await supabase.from('coffee_beans').insert({
     ...form.value,
     user_id: user.id
-  })
+  }).select()
 
   if (error) {
     alert('❌ Failed to save coffee: ' + error.message)
   } else {
     alert('✅ Coffee saved!')
+    emit('coffee-saved', data`[0]`)
     resetForm()
     showForm.value = false
     fetchCoffees()

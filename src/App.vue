@@ -21,6 +21,7 @@
         v-for="coffee in filteredCoffees"
         :key="coffee.id"
         :coffee="coffee"
+        :class="{ 'new-item': coffee.id === newlyAddedId }"
         :isLoggedIn="isLoggedIn"
         :containerStatus="containerStatus"
         @editing-changed="onEditingChanged"
@@ -43,7 +44,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { supabase } from './lib/supabase'
 import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'
@@ -55,6 +56,8 @@ const user = ref(null)
 const coffees = ref([])
 const isLoggedIn = ref(false)
 const anyEditing = ref(false)
+const newlyAddedId = ref(null)
+const containerStatus = ref({})
 
 async function attemptLogout() {
   if (anyEditing.value) {
@@ -96,6 +99,30 @@ const loadCoffees = async () => {
 
   if (error) console.error(error)
   else coffees.value = data
+}
+
+const handleNewCoffee = async (newCoffee) => {
+  // Add to beginning of list for immediate visibility
+  coffees.value.unshift(newCoffee)
+  
+  // Mark as newly added
+  newlyAddedId.value = newCoffee.id
+  
+  // Scroll to new item
+  await nextTick()
+  const newElement = document.querySelector(`[data-coffee-id="${newCoffee.id}"]`)
+  if (newElement) {
+    newElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+  
+  // Remove "new" highlight after 3 seconds
+  setTimeout(() => {
+    newlyAddedId.value = null
+  }, 3000)
+}
+
+const handleCoffeeDeleted = () => {
+  fetchCoffees()
 }
 
 const filter = ref({ green: false, grey: false, origin: '', shop: '' })
@@ -196,5 +223,52 @@ onBeforeUnmount(() => {
 
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
+}
+
+.new-item {
+  animation: highlight 3s ease-in-out;
+  position: relative;
+}
+
+.new-item::before {
+  content: "NEW";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #10b981;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  z-index: 10;
+  animation: fade-out 3s ease-in-out forwards;
+}
+
+@keyframes highlight {
+  0% { 
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
+    transform: scale(1.02);
+  }
+  100% { 
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-out {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.coffee-list {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
 }
 </style>

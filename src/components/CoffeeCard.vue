@@ -1,5 +1,5 @@
 <template>
-  <div v-if="props.coffee">
+  <div v-if="props.coffee" :data-coffee-id="props.coffee.id">
     <div :class="cardClasses">
       <!-- Header -->
       <div class="relative flex items-start m-4">
