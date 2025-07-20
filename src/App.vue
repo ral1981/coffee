@@ -1,11 +1,43 @@
 <template>
   <main class="min-h-screen bg-gray-35 dark:bg-white dark:text-gray-900 p-6 relative">
-    <Authentication
-      @user-changed="onUserChanged"
-      @logout="attemptLogout"
-      class="absolute top-6 right-6 z-50"
-    />
+    <!-- Backdrop to close menu when clicking outside -->
+    <div 
+      v-if="showAuth"
+      @click="closeAuth"
+      class="fixed inset-0 z-40 bg-black bg-opacity-20"
+    ></div>
 
+    <!-- Unified Authentication Panel -->
+    <div class="fixed top-4 right-4 z-50">
+      <!-- Lock Icon Button -->
+      <button 
+        @click.stop="toggleAuth"
+        class="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
+        :class="{ 'bg-green-50 dark:bg-green-900': isLoggedIn }"
+        :title="isLoggedIn ? 'Account Menu' : 'Login'"
+      >
+        <LockOpen v-if="isLoggedIn" class="w-6 h-6 text-green-600 dark:text-green-400" />
+        <Lock v-else class="w-6 h-6 text-gray-700 dark:text-gray-300" />
+      </button>
+      
+      <!-- Authentication Dropdown -->
+      <Transition name="slide-fade">
+        <div 
+          v-if="showAuth" 
+          @click.stop
+          data-auth-panel
+          class="absolute top-16 right-0 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 overflow-hidden z-60"
+        >
+          <Authentication
+            @user-changed="onUserChanged"
+            @logout="attemptLogout"
+            :show-toggle="false"
+            @user-activity="resetActivityTimer"
+          />
+        </div>
+      </Transition>
+    </div>
+    
     <div class="flex flex-col items-center mb-6">
       <Coffee class="w-12 h-12 text-amber-700 mb-2" />
       <h1 class="text-4xl font-bold">Coffee Tracker</h1>
@@ -50,13 +82,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { supabase } from './lib/supabase'
 import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'
 import FilterPanel from './components/FilterPanel.vue'
 import CoffeeCard from './components/CoffeeCard.vue'
-import { ArrowUp, Coffee } from 'lucide-vue-next'
+import { ArrowUp, Coffee, Lock, LockOpen } from 'lucide-vue-next'
 
 // Reactive state
 const user = ref(null)
@@ -67,6 +99,95 @@ const newlyAddedId = ref(null)
 const containerStatus = ref({})
 const filter = ref({ green: false, grey: false, origin: '', shop: '' })
 const showBackToTop = ref(false)
+const showAuth = ref(false)
+const autoCollapseTimer = ref(null)
+const lastScrollY = ref(0)
+const userActivityTimer = ref(null)
+const lastActivityTime = ref(Date.now())
+
+// Authentication methods
+const toggleAuth = () => {
+  console.log('Toggle auth clicked, current state:', showAuth.value)
+  showAuth.value = !showAuth.value
+  
+  // Clear any existing timer when manually toggling
+  clearAutoCollapseTimer()
+  
+  // If opening, set auto-collapse timer (for both logged in and logged out users)
+  if (showAuth.value) {
+    resetActivityTimer()
+    startAutoCollapseTimer()
+  }
+}
+
+const closeAuth = () => {
+  showAuth.value = false
+  clearAutoCollapseTimer()
+}
+
+const clearAutoCollapseTimer = () => {
+  if (autoCollapseTimer.value) {
+    clearTimeout(autoCollapseTimer.value)
+    autoCollapseTimer.value = null
+  }
+  if (userActivityTimer.value) {
+    clearTimeout(userActivityTimer.value)
+    userActivityTimer.value = null
+  }
+}
+
+const startAutoCollapseTimer = () => {
+  clearAutoCollapseTimer() // Clear any existing timer first
+  autoCollapseTimer.value = setTimeout(() => {
+    // Check if user has been inactive for 10 seconds
+    const timeSinceLastActivity = Date.now() - lastActivityTime.value
+    if (timeSinceLastActivity >= 10000) { // 10 seconds
+      showAuth.value = false
+      autoCollapseTimer.value = null
+    } else {
+      // User was active recently, wait for remaining time
+      const remainingTime = 10000 - timeSinceLastActivity
+      autoCollapseTimer.value = setTimeout(() => {
+        showAuth.value = false
+        autoCollapseTimer.value = null
+      }, remainingTime)
+    }
+  }, 5000) // Initial 5 seconds, then check activity
+}
+
+const resetActivityTimer = () => {
+  lastActivityTime.value = Date.now()
+  
+  // Clear existing activity timer
+  if (userActivityTimer.value) {
+    clearTimeout(userActivityTimer.value)
+  }
+  
+  // If menu is open and we detect activity, extend the collapse time
+  if (showAuth.value) {
+    // Clear the main collapse timer and restart it
+    if (autoCollapseTimer.value) {
+      clearTimeout(autoCollapseTimer.value)
+      // Wait 10 seconds from this activity
+      autoCollapseTimer.value = setTimeout(() => {
+        showAuth.value = false
+        autoCollapseTimer.value = null
+      }, 10000)
+    }
+  }
+}
+
+// Watch for login state changes to handle auto-expand and auto-collapse
+watch(isLoggedIn, (newValue, oldValue) => {
+  if (newValue && !oldValue) {
+    // User just logged in - expand the menu and start auto-collapse timer
+    showAuth.value = true
+    nextTick(() => {
+      resetActivityTimer()
+      startAutoCollapseTimer() // 5 seconds initial, then 10 seconds after activity
+    })
+  }
+})
 
 // Computed properties
 const filteredCoffees = computed(() => {
@@ -107,6 +228,7 @@ const loadCoffees = async () => {
 }
 
 const onUserChanged = (newUser) => {
+  console.log('User changed:', newUser) // Debug log
   user.value = newUser
   isLoggedIn.value = !!newUser
 
@@ -114,10 +236,14 @@ const onUserChanged = (newUser) => {
   
   if (!newUser) {
     anyEditing.value = false
+    // Don't automatically close auth panel when user logs out
+    // Let them see the login form again
   }
 }
 
 const attemptLogout = async () => {
+  console.log('Logout attempted')
+  
   if (anyEditing.value) {
     const ok = confirm(
       'You have unsaved changes. Discard them and log out?'
@@ -127,13 +253,53 @@ const attemptLogout = async () => {
     }
   }
 
-  const { error } = await supabase.auth.signOut()
-  if (error) {
-    alert('Logout failed: ' + error.message)
-  } else {
-    isLoggedIn.value = false
-    anyEditing.value = false 
-    await loadCoffees()
+  // Clear the app state immediately to provide instant feedback
+  isLoggedIn.value = false
+  anyEditing.value = false 
+  user.value = null
+  
+  // Clear any running timers
+  clearAutoCollapseTimer()
+  
+  // Enhanced logout: Force sign out with global scope and clear all session data
+  try {
+    await supabase.auth.signOut({ scope: 'global' })
+    
+    // Clear all possible storage locations
+    localStorage.removeItem('supabase.auth.token')
+    localStorage.removeItem('sb-' + supabase.supabaseKey + '-auth-token')
+    sessionStorage.clear()
+    
+    console.log('Complete logout with session cleanup successful')
+  } catch (error) {
+    console.warn('Error during logout cleanup (but continuing):', error)
+  }
+  
+  // Close the auth panel
+  showAuth.value = false
+  
+  // Reload coffees to show public view
+  await loadCoffees()
+  
+  console.log('Local logout completed successfully')
+}
+
+const setupActivityListeners = () => {
+  // Listen for activity in the auth panel
+  const authPanel = document.querySelector('[data-auth-panel]')
+  if (authPanel) {
+    ['keydown', 'keyup', 'input', 'click', 'focus'].forEach(eventType => {
+      authPanel.addEventListener(eventType, resetActivityTimer, true)
+    })
+  }
+}
+
+const cleanupActivityListeners = () => {
+  const authPanel = document.querySelector('[data-auth-panel]')
+  if (authPanel) {
+    ['keydown', 'keyup', 'input', 'click', 'focus'].forEach(eventType => {
+      authPanel.removeEventListener(eventType, resetActivityTimer, true)
+    })
   }
 }
 
@@ -201,8 +367,24 @@ const onEditingChanged = (isNowEditing) => {
 }
 
 const handleScroll = () => {
-  // Show button after scrolling down 300px
-  showBackToTop.value = window.scrollY > 300
+  const currentScrollY = window.scrollY
+  
+  // Show back to top button after scrolling down 300px
+  showBackToTop.value = currentScrollY > 300
+  
+  // Close auth panel quickly when scrolling (after 1 second delay)
+  if (showAuth.value && Math.abs(currentScrollY - lastScrollY.value) > 10) {
+    // Clear existing timers
+    clearAutoCollapseTimer()
+    
+    // Set short timer for scroll-based closing (1 second)
+    autoCollapseTimer.value = setTimeout(() => {
+      showAuth.value = false
+      autoCollapseTimer.value = null
+    }, 1000) // 1 second when scrolling
+  }
+  
+  lastScrollY.value = currentScrollY
 }
 
 const scrollToTop = () => {
@@ -216,19 +398,42 @@ const scrollToTop = () => {
 onMounted(() => {
   loadCoffees()
   window.addEventListener('scroll', handleScroll)
+  lastScrollY.value = window.scrollY
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', handleScroll)
+  if (autoCollapseTimer.value) {
+    clearTimeout(autoCollapseTimer.value)
+  }
 })
 </script>
 
 <style scoped>
+/* Z-index layers */
+.z-60 {
+  z-index: 60;
+}
+
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.3s ease;
 }
 
 .fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-20px) scale(0.95);
   opacity: 0;
 }
 
