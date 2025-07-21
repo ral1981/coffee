@@ -104,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { supabase } from './lib/supabase'
 import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'
@@ -117,7 +117,6 @@ const user = ref(null)
 const coffees = ref([])
 const isLoggedIn = ref(false)
 const anyEditing = ref(false)
-const newlyAddedId = ref(null)
 const containerStatus = ref({})
 const filter = ref({ green: false, grey: false, origin: '', shop: '' })
 const showBackToTop = ref(false)
@@ -377,7 +376,6 @@ const handleNewCoffee = async (newCoffee) => {
 }
 
 const handleFilterChange = (newFilter) => {
-  console.log('[App] Filter changed:', newFilter)
   filter.value = { ...newFilter }
 }
 

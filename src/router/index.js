@@ -1,12 +1,16 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../views/Home.vue' // adjust path to your view
+import App from '../App.vue'
 
 const routes = [
   {
     path: '/coffee',
     name: 'Coffee',
-    component: Home
+    component: App
+  },
+  {
+    path: '/',
+    redirect: '/coffee'  // Redirect root to /coffee
   }
 ]
 
