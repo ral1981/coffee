@@ -104,6 +104,7 @@ import { ref, reactive, watch, onMounted } from 'vue'
 import { ChevronDown, ChevronUp } from 'lucide-vue-next'
 
 const isOpen = ref(false)
+const initialized = ref(false)
 
 const togglePanel = () => {
   isOpen.value = !isOpen.value
@@ -128,36 +129,106 @@ const filters = reactive({
 const route = useRoute()
 const router = useRouter()
 
-onMounted(() => {
-  filters.green = route.query.green === 'true'
-  filters.grey = route.query.grey === 'true'
-  filters.origin = route.query.origin || ''
-  filters.shop = route.query.shop || ''
+// Parse URL parameters into filter object
+const parseUrlFilters = () => {
+  const urlFilters = {
+    green: false,
+    grey: false,
+    origin: '',
+    shop: ''
+  }
 
-  emit('filter-change', { ...filters }) // ✅ trigger filtering on load
-})
+  // Handle container parameter
+  if (route.query.container) {
+    const containerParam = route.query.container
+    let containers = []
+    
+    if (Array.isArray(containerParam)) {
+      containers = containerParam
+    } else if (typeof containerParam === 'string') {
+      containers = containerParam.split(',').map(c => c.trim()).filter(c => c)
+    }
+
+    urlFilters.green = containers.includes('green')
+    urlFilters.grey = containers.includes('grey')
+  }
+
+  // Handle other filters
+  urlFilters.origin = route.query.origin || ''
+  urlFilters.shop = route.query.shop || ''
+
+  return urlFilters
+}
+
+// Apply filters from URL to reactive filters
+const loadFiltersFromUrl = () => {
+  const urlFilters = parseUrlFilters()
+  
+  // Update reactive filters
+  Object.assign(filters, urlFilters)
+  
+  // Emit the change to parent
+  emit('filter-change', { ...filters })
+}
+
+// Update URL based on current filters
+const updateUrl = () => {
+  if (!initialized.value) return
+
+  const query = {}
+
+  // Handle container filters
+  const containerList = []
+  if (filters.green) containerList.push('green')
+  if (filters.grey) containerList.push('grey')
+  
+  if (containerList.length > 0) {
+    query.container = containerList.join(',')
+  }
+
+  // Handle other filters
+  if (filters.origin) {
+    query.origin = filters.origin
+  }
+  if (filters.shop) {
+    query.shop = filters.shop
+  }
+
+  // Use router.replace to avoid adding to history
+  router.replace({
+    path: route.path,
+    query
+  })
+}
 
 const clearFilters = () => {
   filters.green = false
   filters.grey = false
   filters.origin = ''
   filters.shop = ''
-  emit('filter-change', { ...filters })
 }
 
-// Watch for changes and emit the updated filters
+// Initialize filters from URL when component mounts
+onMounted(() => {
+  loadFiltersFromUrl()
+  initialized.value = true
+})
+
+// Watch for filter changes and update URL
 watch(filters, () => {
+  if (!initialized.value) return
+  
   emit('filter-change', { ...filters })
+  updateUrl()
+}, { deep: true })
 
-  const query = {}
-  if (filters.green) query.green = 'true'
-  if (filters.grey) query.grey = 'true'
-  if (filters.origin) query.origin = filters.origin
-  if (filters.shop) query.shop = filters.shop
-
-  router.replace({
-    path: route.path,
-    query
-  })
+// Watch for route changes (when URL is manually changed)
+watch(() => route.query, () => {
+  if (!initialized.value) return
+  
+  // Temporarily disable URL updates to prevent infinite loop
+  initialized.value = false
+  loadFiltersFromUrl()
+  initialized.value = true
 }, { deep: true })
 </script>

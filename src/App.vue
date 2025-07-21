@@ -130,7 +130,6 @@ const lastActivityTime = ref(Date.now())
 
 // Authentication methods
 const toggleAuth = () => {
-  console.log('Toggle auth clicked, current state:', showAuth.value)
   showAuth.value = !showAuth.value
   
   // Clear any existing timer when manually toggling
@@ -220,11 +219,18 @@ watch(isLoggedIn, (newValue, oldValue) => {
 // Computed properties
 const filteredCoffees = computed(() => {
   return coffees.value.filter(coffee => {
-    const containerMatch =
-      (!filter.value.green || coffee.in_green_container) &&
-      (!filter.value.grey || coffee.in_grey_container)
+    // Container filter logic - if no containers selected, show all
+    let containerMatch = true
+    if (filter.value.green || filter.value.grey) {
+      containerMatch = 
+        (filter.value.green && coffee.in_green_container) ||
+        (filter.value.grey && coffee.in_grey_container)
+    }
 
+    // Origin filter
     const originMatch = !filter.value.origin || coffee.origin === filter.value.origin
+    
+    // Shop filter
     const shopMatch = !filter.value.shop || coffee.shop_name === filter.value.shop
 
     return containerMatch && originMatch && shopMatch
@@ -289,7 +295,6 @@ const onUserChanged = (newUser) => {
 }
 
 const attemptLogout = async () => {
-  console.log('Logout attempted')
   
   if (anyEditing.value) {
     const ok = confirm(
@@ -318,7 +323,6 @@ const attemptLogout = async () => {
     localStorage.removeItem('sb-' + supabase.supabaseKey + '-auth-token')
     sessionStorage.clear()
     
-    console.log('Complete logout with session cleanup successful')
   } catch (error) {
     console.warn('Error during logout cleanup (but continuing):', error)
   }
@@ -328,8 +332,6 @@ const attemptLogout = async () => {
   
   // Reload coffees to show public view
   await loadCoffees()
-  
-  console.log('Local logout completed successfully')
 }
 
 const setupActivityListeners = () => {
@@ -375,7 +377,8 @@ const handleNewCoffee = async (newCoffee) => {
 }
 
 const handleFilterChange = (newFilter) => {
-  filter.value = newFilter
+  console.log('[App] Filter changed:', newFilter)
+  filter.value = { ...newFilter }
 }
 
 const handleContainerUpdate = async ({ coffee, container, assign }) => {

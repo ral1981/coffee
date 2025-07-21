@@ -1,12 +1,12 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
-import App from '../App.vue' // adjust path to your view
+import Home from '../views/Home.vue' // adjust path to your view
 
 const routes = [
   {
-    path: '/',
-    name: 'Home',
-    component: App
+    path: '/coffee',
+    name: 'Coffee',
+    component: Home
   }
 ]
 
