@@ -198,8 +198,8 @@
         </div>
 
         <!-- Espresso Recipe -->
-        <div class="bg-orange-50 rounded-md p-4 md:p-3 border-l-4 border-orange-400">
-          <h4 class="uppercase text-base font-semibold text-orange-700 mb-3 md:mb-2">
+        <div class="recipe">
+          <h4 class="recipe-title">
             Espresso Recipe
           </h4>
           <template v-if="isEditing">
@@ -233,41 +233,56 @@
             </div>
           </template>
           <template v-else>
-            <div class="grid grid-cols-2 gap-3 md:gap-2">
+            <div class="recipe-grid">
+              <!-- Shot Toggle -->
+              <div 
+                class="shot-toggle" 
+                :data-state="shotState"
+                @click="toggleShotSize"
+              >
+                <img 
+                  :src="shotIconSrc" 
+                  class="shot-icon" 
+                  :alt="shotState === 'single' ? 'Single Shot' : 'Double Shot'"
+                />
+                <div 
+                  class="slide-switch" 
+                  :data-state="shotState"
+                >
+                  <div class="thumb"></div>
+                  <span class="label">Single</span>
+                  <span class="label">Double</span>
+                </div>
+              </div>
+
               <!-- Ratio -->
-              <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
-                <div class="uppercase text-sm font-medium text-gray-500">Ratio</div>
-                <div class="mt-2 md:mt-1 text-xl font-semibold text-orange-600">
-                  {{ coffee.recipe_ratio }}
-                </div>
+              <div class="recipe-item">
+                <div class="recipe-label">Ratio</div>
+                <div class="recipe-value">{{ coffee.recipe_ratio }}</div>
               </div>
+
               <!-- In (g) -->
-              <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
-                <div class="uppercase text-sm font-medium text-gray-500">In (g)</div>
-                <div class="mt-2 md:mt-1 text-xl font-semibold text-orange-600">
-                  {{ displayedIn }}
-                </div>
+              <div class="recipe-item">
+                <div class="recipe-label">In (g)</div>
+                <div class="recipe-value in-val">{{ displayedIn }}</div>
               </div>
+
               <!-- Out (g) -->
-              <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
-                <div class="uppercase text-sm font-medium text-gray-500">Out (g)</div>
-                <div class="mt-2 md:mt-1 text-xl font-semibold text-orange-600">
-                  {{ displayedOut }}
-                </div>
+              <div class="recipe-item">
+                <div class="recipe-label">Out (g)</div>
+                <div class="recipe-value out-val">{{ displayedOut }}</div>
               </div>
+
               <!-- Time (s) -->
-              <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
-                <div class="uppercase text-sm font-medium text-gray-500">Time (s)</div>
-                <div class="mt-2 md:mt-1 text-xl font-semibold text-orange-600">
-                  {{ coffee.recipe_time_seconds }}
-                </div>
+              <div class="recipe-item">
+                <div class="recipe-label">Time (s)</div>
+                <div class="recipe-value">{{ coffee.recipe_time_seconds }}</div>
               </div>
+
               <!-- Temp (°C) -->
-              <div class="bg-white rounded-lg p-4 md:p-3 shadow text-center">
-                <div class="uppercase text-sm font-medium text-gray-500">Temp (°C)</div>
-                <div class="mt-2 md:mt-1 text-xl font-semibold text-orange-600">
-                  {{ coffee.recipe_temperature_c }}
-                </div>
+              <div class="recipe-item">
+                <div class="recipe-label">Temp (°C)</div>
+                <div class="recipe-value">{{ coffee.recipe_temperature_c }}</div>
               </div>
             </div>
           </template>
@@ -319,6 +334,8 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { supabase } from '../lib/supabase'
 import Container from './Container.vue'
 import { Pencil, Trash2, Check, X, ChevronDown, ChevronUp, EllipsisVertical, ExternalLink } from 'lucide-vue-next'
+import singleShotIcon from '../assets/icons/1shot.svg'
+import doubleShotIcon from '../assets/icons/2shot.svg'
 
 const props = defineProps({
   coffee: {
@@ -333,7 +350,7 @@ const props = defineProps({
 const emit = defineEmits(['update-container', 'deleted', 'editing-changed', 'saved'])
 
 const isCollapsed = ref(true)
-const isSingleShot = ref(false)
+const shotState = ref('double') // 'single' or 'double'
 const isEditing = ref(false)
 const showMenu = ref(false)
 const menuButton = ref(null)
@@ -352,18 +369,22 @@ const cardClasses = computed(() => [
       : 'bg-white border-l-black'
 ])
 
+const shotIconSrc = computed(() => {
+  return shotState.value === 'single' ? singleShotIcon : doubleShotIcon
+})
+
 const toggleShotSize = () => {
-  isSingleShot.value = !isSingleShot.value
+  shotState.value = shotState.value === 'single' ? 'double' : 'single'
 }
 
 const displayedIn = computed(() => {
   const val = props.coffee.recipe_in_grams
-  return isSingleShot.value ? (val / 2).toFixed(1) : val
+  return shotState.value === 'single' ? (val / 2).toFixed(1) : val
 })
 
 const displayedOut = computed(() => {
   const val = props.coffee.recipe_out_grams
-  return isSingleShot.value ? (val / 2).toFixed(1) : val
+  return shotState.value === 'single' ? (val / 2).toFixed(1) : val
 })
 
 const handleContainerUpdate = (payload) => {
@@ -463,3 +484,130 @@ function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value
 }
 </script>
+
+<style scoped>
+.recipe {
+  background: #fff7ed;
+  padding: 20px;
+  border-radius: 12px;
+  border-left: 3px solid #ea580c;
+}
+
+.recipe-title {
+  color: #c2410c;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.shot-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #fed7aa;
+  grid-column: 1 / -1;
+  order: -1;
+  cursor: pointer;
+}
+
+.shot-icon {
+  width: 32px;
+  height: 32px;
+  transition: opacity 0.3s ease;
+}
+
+.slide-switch {
+  position: relative;
+  width: 100px;
+  height: 30px;
+  background-color: #ddd;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: #555;
+}
+
+.label {
+  z-index: 1;
+  width: 50%;
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+.thumb {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  background-color: #fff;
+  border-radius: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: left 0.3s ease;
+  left: 50%;
+}
+
+.slide-switch[data-state="single"] .thumb {
+  left: 0;
+}
+
+.slide-switch[data-state="single"] .label:first-child {
+  color: #c2410c;
+  font-weight: 600;
+}
+
+.slide-switch[data-state="double"] .label:last-child {
+  color: #c2410c;
+  font-weight: 600;
+}
+
+.recipe-item {
+  background: white;
+  padding: 16px 12px;
+  border-radius: 8px;
+  border: 1px solid #fed7aa;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 80px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.recipe-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.recipe-label {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-bottom: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.recipe-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #c2410c;
+  line-height: 1.2;
+}
+</style>
