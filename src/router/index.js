@@ -11,6 +11,14 @@ const routes = [
   {
     path: '/',
     redirect: '/coffee'  // Redirect root to /coffee
+  },
+  {
+    path: '/coffee/index.html?container=green',
+    redirect: '/coffee/?container=green'  // Redirect deprecated url for green container
+  },
+  {
+    path: '/coffee/index.html?container=grey',
+    redirect: '/coffee/?container=grey'  // Redirect deprecated url for grey container
   }
 ]
 
