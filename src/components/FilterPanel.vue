@@ -99,7 +99,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { ChevronDown, ChevronUp } from 'lucide-vue-next'
 
 const isOpen = ref(false)
@@ -124,6 +125,18 @@ const filters = reactive({
   shop: ''
 })
 
+const route = useRoute()
+const router = useRouter()
+
+onMounted(() => {
+  filters.green = route.query.green === 'true'
+  filters.grey = route.query.grey === 'true'
+  filters.origin = route.query.origin || ''
+  filters.shop = route.query.shop || ''
+
+  emit('filter-change', { ...filters }) // ✅ trigger filtering on load
+})
+
 const clearFilters = () => {
   filters.green = false
   filters.grey = false
@@ -135,5 +148,16 @@ const clearFilters = () => {
 // Watch for changes and emit the updated filters
 watch(filters, () => {
   emit('filter-change', { ...filters })
+
+  const query = {}
+  if (filters.green) query.green = 'true'
+  if (filters.grey) query.grey = 'true'
+  if (filters.origin) query.origin = filters.origin
+  if (filters.shop) query.shop = filters.shop
+
+  router.replace({
+    path: route.path,
+    query
+  })
 }, { deep: true })
 </script>
