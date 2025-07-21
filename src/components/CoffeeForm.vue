@@ -1,9 +1,5 @@
 <template>
   <div>
-    <button v-if="!showForm" @click="showForm = true" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2 m-4">
-      ➕ Add Coffee
-    </button>
-
     <div v-if="showForm" class="relative m-4 p-4 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 text-gray-900 space-y-4 flex flex-col h-full">
       <!-- Header -->
       <div class="relative flex items-start m-4">
@@ -220,10 +216,9 @@
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
 import { data } from 'autoprefixer'
+const emit = defineEmits(['coffee-saved', 'cancel'])
 
-const emit = defineEmits(['coffee-saved'])
-
-const showForm = ref(false)
+const showForm = ref(true)
 const coffees = ref([])
 
 const fetchCoffees = async () => {
@@ -345,7 +340,7 @@ const cancelForm = () => {
   if (!confirmed) return
 
   resetForm()
-  showForm.value = false
+  emit('cancel')
 }
 
 const calculateRatio = () => {

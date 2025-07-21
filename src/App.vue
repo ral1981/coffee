@@ -9,7 +9,6 @@
 
     <!-- Unified Authentication Panel -->
     <div class="fixed top-4 right-4 z-50">
-      <!-- Lock Icon Button -->
       <button 
         @click.stop="toggleAuth"
         class="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
@@ -19,8 +18,6 @@
         <LockOpen v-if="isLoggedIn" class="w-6 h-6 text-green-600 dark:text-green-400" />
         <Lock v-else class="w-6 h-6 text-gray-700 dark:text-gray-300" />
       </button>
-      
-      <!-- Authentication Dropdown -->
       <Transition name="slide-fade">
         <div 
           v-if="showAuth" 
@@ -37,22 +34,48 @@
         </div>
       </Transition>
     </div>
-    
+
     <div class="flex flex-col items-center mb-6">
       <Coffee class="w-12 h-12 text-amber-700 mb-2" />
       <h1 class="text-4xl font-bold">Coffee Tracker</h1>
     </div>
 
-    <CoffeeForm v-if="isLoggedIn" @coffee-added="handleNewCoffee" />
-
-    <FilterPanel
-      :origins="uniqueOrigins"
-      :shops="uniqueShops"
-      :filtered-count="filteredCoffees.length"
-      :total-count="totalCoffees"
-      @filter-change="handleFilterChange"
-    />
-
+    <!-- Controls: Filter Panel -->
+    <div class="flex flex-col lg:flex-row lg:items-stretch gap-4 mb-6">
+      <div class="flex-1">
+        <FilterPanel
+          :origins="uniqueOrigins"
+          :shops="uniqueShops"
+          :filtered-count="filteredCoffees.length"
+          :total-count="totalCoffees"
+          @filter-change="handleFilterChange"
+        />
+      </div>
+    </div>
+    <div class="mt-6">
+      <div class="mb-6 flex justify-center">
+        <button
+          v-if="!showCoffeeForm"
+          @click="showCoffeeForm = true"
+          :disabled="!isLoggedIn"
+          class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg disabled:scale-100 disabled:shadow-md flex items-center justify-center gap-2 px-4 py-3"
+          :class="{ 'opacity-60': !isLoggedIn }"
+          :title="isLoggedIn ? 'Add Coffee' : 'Please log in to add coffee'"
+        >
+          <Plus class="w-5 h-5" />
+          <span>Add Coffee</span>
+        </button>
+      </div>
+      <div class="mb-6 flex justify-center"></div>
+        <CoffeeForm
+          v-if="showCoffeeForm"
+          :user="user"
+          @coffee-added="handleNewCoffee"
+          @cancel="showCoffeeForm = false"
+          class="w-full lg:w-2/3 xl:w-1/2"
+        />
+      </div>
+    <!-- Coffee Cards Grid -->
     <div class="grid grid-cols-1 gap-4 mt-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
       <CoffeeCard
         v-for="coffee in filteredCoffees"
@@ -67,7 +90,6 @@
         @saved="loadCoffees"
       />
     </div>
-
     <Transition name="fade">
       <button
         v-if="showBackToTop"
@@ -88,7 +110,7 @@ import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'
 import FilterPanel from './components/FilterPanel.vue'
 import CoffeeCard from './components/CoffeeCard.vue'
-import { ArrowUp, Coffee, Lock, LockOpen } from 'lucide-vue-next'
+import { ArrowUp, Coffee, Lock, LockOpen, Plus } from 'lucide-vue-next'
 
 // Reactive state
 const user = ref(null)
@@ -100,6 +122,7 @@ const containerStatus = ref({})
 const filter = ref({ green: false, grey: false, origin: '', shop: '' })
 const showBackToTop = ref(false)
 const showAuth = ref(false)
+const showCoffeeForm = ref(false)
 const autoCollapseTimer = ref(null)
 const lastScrollY = ref(0)
 const userActivityTimer = ref(null)
@@ -187,6 +210,11 @@ watch(isLoggedIn, (newValue, oldValue) => {
       startAutoCollapseTimer() // 5 seconds initial, then 10 seconds after activity
     })
   }
+  
+  // Hide coffee form when logging out
+  if (!newValue && oldValue) {
+    showCoffeeForm.value = false
+  }
 })
 
 // Computed properties
@@ -227,8 +255,26 @@ const loadCoffees = async () => {
   }
 }
 
+const handleAddCoffeeClick = () => {
+  if (!isLoggedIn.value) {
+    // Show notification to log in
+    alert('Please log in to add coffee entries.')
+    return
+  }
+  
+  // Always show the form directly (don't toggle)
+  showCoffeeForm.value = true
+  
+  // Scroll to form when opening
+  nextTick(() => {
+    const formElement = document.querySelector('.coffee-form') || document.querySelector('form')
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  })
+}
+
 const onUserChanged = (newUser) => {
-  console.log('User changed:', newUser) // Debug log
   user.value = newUser
   isLoggedIn.value = !!newUser
 
@@ -236,6 +282,7 @@ const onUserChanged = (newUser) => {
   
   if (!newUser) {
     anyEditing.value = false
+    showCoffeeForm.value = false
     // Don't automatically close auth panel when user logs out
     // Let them see the login form again
   }
@@ -257,6 +304,7 @@ const attemptLogout = async () => {
   isLoggedIn.value = false
   anyEditing.value = false 
   user.value = null
+  showCoffeeForm.value = false
   
   // Clear any running timers
   clearAutoCollapseTimer()
@@ -309,6 +357,9 @@ const handleNewCoffee = async (newCoffee) => {
   
   // Mark as newly added
   newlyAddedId.value = newCoffee.id
+  
+  // Hide the form after successful addition
+  showCoffeeForm.value = false
   
   // Scroll to new item
   await nextTick()
