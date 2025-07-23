@@ -344,12 +344,16 @@ const props = defineProps({
     default: () => ({})
   },
   isLoggedIn: Boolean,
-  containerStatus: Object
+  containerStatus: Object,
+  initiallyExpanded: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const emit = defineEmits(['update-container', 'deleted', 'editing-changed', 'saved'])
 
-const isCollapsed = ref(true)
+const isCollapsed = ref(!props.initiallyExpanded)
 const shotState = ref('double') // 'single' or 'double'
 const isEditing = ref(false)
 const showMenu = ref(false)
@@ -400,6 +404,13 @@ watch(() => props.isLoggedIn, (newLoggedIn) => {
   if (!newLoggedIn && isEditing.value) {
     isEditing.value = false
     showMenu.value = false
+  }
+})
+
+// Optional: Watch for changes to initiallyExpanded prop
+watch(() => props.initiallyExpanded, (newValue) => {
+  if (newValue && isCollapsed.value) {
+    isCollapsed.value = false
   }
 })
 

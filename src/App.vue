@@ -84,6 +84,7 @@
         :class="{ 'new-item': coffee.id === newlyAddedId }"
         :isLoggedIn="isLoggedIn"
         :containerStatus="containerStatus"
+        :initiallyExpanded="shouldExpandCards"
         @editing-changed="onEditingChanged"
         @update-container="handleContainerUpdate"
         @deleted="loadCoffees"
@@ -256,6 +257,14 @@ const uniqueShops = computed(() =>
   [...new Set(coffees.value.map(c => c.shop_name).filter(Boolean))]
 )
 
+const shouldExpandCards = computed(() => {
+  // Check if we have exactly one container filter and no other filters
+  const containerCount = (filter.value.green ? 1 : 0) + (filter.value.grey ? 1 : 0)
+  const hasOtherFilters = filter.value.origin || filter.value.shop
+  
+  return containerCount === 1 && !hasOtherFilters
+})
+
 // Methods
 const loadCoffees = async () => {
   const { data, error } = await supabase
@@ -268,6 +277,23 @@ const loadCoffees = async () => {
   } else {
     coffees.value = data
   }
+}
+
+// Add this method for scrolling to first card
+const scrollToFirstCard = async () => {
+  await nextTick()
+  // Wait a bit more for the card to fully render in expanded state
+  setTimeout(() => {
+    const firstCard = document.querySelector('[data-coffee-id]')
+    if (firstCard) {
+      const cardTop = firstCard.offsetTop
+      // Scroll to just above the card (accounting for header/spacing)
+      window.scrollTo({
+        top: cardTop - 20,
+        behavior: 'smooth'
+      })
+    }
+  }, 300) // Give time for the expand animation
 }
 
 const handleAddCoffeeClick = () => {
@@ -385,8 +411,13 @@ const handleNewCoffee = async (newCoffee) => {
   }, 3000)
 }
 
-const handleFilterChange = (newFilter) => {
+const handleFilterChange = (newFilter, isInitialLoad = false) => {
   filter.value = { ...newFilter }
+  
+  // If this is initial load from URL and we should expand cards, scroll to first card
+  if (isInitialLoad && shouldExpandCards.value && filteredCoffees.value.length > 0) {
+    scrollToFirstCard()
+  }
 }
 
 // Track container status

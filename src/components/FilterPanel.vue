@@ -415,7 +415,7 @@ const loadFiltersFromUrl = () => {
   Object.assign(filters, urlFilters)
   
   // Emit the change to parent
-  emit('filter-change', { ...filters })
+  emit('filter-change', { ...filters }, true)
 }
 
 // Update URL based on current filters
@@ -467,7 +467,7 @@ onMounted(() => {
 watch(filters, () => {
   if (!initialized.value) return
   
-  emit('filter-change', { ...filters })
+  emit('filter-change', { ...filters }, false)
   updateUrl()
 }, { deep: true })
 
