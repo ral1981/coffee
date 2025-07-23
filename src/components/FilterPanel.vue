@@ -38,7 +38,7 @@
             :class="[
               'w-10 h-10 cursor-pointer transition-all duration-500',
               // Enhanced icon styling for active filters with rotation effect
-              hasActiveFilters ? 'text-blue-600 hover:text-blue-700' : 'text-gray-600 hover:text-gray-800',
+              hasActiveFilters ? 'text-red-600 hover:text-red-700' : 'text-gray-600 hover:text-gray-800',
               // Subtle rotation animation when expanding
               isOpen ? 'rotate-90' : 'rotate-0'
             ]"
@@ -49,7 +49,7 @@
           <!-- Counter Dot (when collapsed and has active filters) -->
           <div 
             v-if="hasActiveFilters"
-            class="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-sm transition-all duration-300"
+            class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-sm transition-all duration-300"
             :class="isOpen ? 'scale-75' : 'opacity-100 scale-100'"
           >
             {{ activeFilterCount }}
@@ -72,7 +72,11 @@
             <div class="flex items-center gap-2 transform transition-all duration-600 ease-out"
                 :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
                 :style="{ transitionDelay: isOpen ? '400ms' : '300ms' }">
-              <span class="text-sm font-medium text-gray-600">Quick Filters:</span>
+              <span class="relative text-sm font-medium text-gray-600">
+                Quick Filters:
+                <span v-if="filters.green || filters.grey"
+                      class="absolute -top-1 -left-3 w-2 h-2 bg-red-500 rounded-full"></span>
+              </span>
               <button
                 @click="toggleContainer('green')"
                 :class="[
@@ -103,7 +107,11 @@
               <div class="flex items-center gap-2 transform transition-all duration-600 ease-out"
                   :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
                   :style="{ transitionDelay: isOpen ? '500ms' : '200ms' }">
-              <span class="text-sm font-medium text-gray-600">Origin:</span>
+              <span class="relative text-sm font-medium text-gray-600">
+                Origin:
+                <span v-if="filters.origin"
+                      class="absolute -top-1 -left-3 w-2 h-2 bg-red-500 rounded-full"></span>
+              </span>
               <select
                 v-model="filters.origin"
                 :disabled="hasContainerFilter"
@@ -123,7 +131,11 @@
             <div class="flex items-center gap-2 transform transition-all duration-600 ease-out"
                 :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
                 :style="{ transitionDelay: isOpen ? '600ms' : '100ms' }">
-              <span class="text-sm font-medium text-gray-600">Shop:</span>
+              <span class="relative text-sm font-medium text-gray-600">
+                Shop:
+                <span v-if="filters.shop"
+                      class="absolute -top-1 -left-3 w-2 h-2 bg-red-500 rounded-full"></span>
+              </span>
               <select
                 v-model="filters.shop"
                 :disabled="hasContainerFilter"
@@ -253,8 +265,18 @@
             </div>
             
             <!-- Active Filters Summary -->
-            <div v-if="hasActiveFilters" class="text-xs text-blue-600 bg-blue-50 inline-block px-2 py-1 rounded-md transition-all duration-300 hover:bg-blue-100">
-              Active filters: {{ getActiveFiltersText() }}
+            <div v-if="hasActiveFilters" class="flex flex-wrap justify-center gap-2 mt-2">
+              <span
+                v-for="filter in activeFilters"
+                :key="filter.key"
+                class="inline-flex items-center bg-red-100 text-red-700 text-xs font-medium px-2 py-1 rounded-full"
+              >
+                {{ filter.label }}
+                <button
+                  @click="removeFilter(filter.key)"
+                  class="ml-1 text-red-500 hover:text-red-700"
+                >×</button>
+              </span>
             </div>
           </div>
         </div>
@@ -308,31 +330,25 @@ const filters = reactive({
 const route = useRoute()
 const router = useRouter()
 
-// Computed properties
+// 1) container‐only check stays the same
 const hasContainerFilter = computed(() => filters.green || filters.grey)
-const hasActiveFilters = computed(() => 
-  filters.green || filters.grey || filters.origin || filters.shop
-)
 
-// Count of active filters for badge
-const activeFilterCount = computed(() => {
-  let count = 0
-  if (filters.green) count++
-  if (filters.grey) count++
-  if (filters.origin && !hasContainerFilter.value) count++
-  if (filters.shop && !hasContainerFilter.value) count++
-  return count
+// 2) build a single list of “active” filters
+const activeFilters = computed(() => {
+  const arr = []
+  if (filters.green)  arr.push({ key: 'green',  label: 'Green' })
+  if (filters.grey)   arr.push({ key: 'grey',   label: 'Grey' })
+  // only count origin/shop if no container is active
+  if (!hasContainerFilter.value) {
+    if (filters.origin) arr.push({ key: 'origin', label: filters.origin })
+    if (filters.shop)   arr.push({ key: 'shop',   label: filters.shop })
+  }
+  return arr
 })
 
-// Generate active filters text description
-const getActiveFiltersText = () => {
-  const activeFilters = []
-  if (filters.green) activeFilters.push('Green')
-  if (filters.grey) activeFilters.push('Grey')
-  if (filters.origin && !hasContainerFilter.value) activeFilters.push(filters.origin)
-  if (filters.shop && !hasContainerFilter.value) activeFilters.push(filters.shop)
-  return activeFilters.join(', ')
-}
+// 3) expose the flags you need in the template
+const hasActiveFilters   = computed(() => activeFilters.value.length > 0)
+const activeFilterCount  = computed(() => activeFilters.value.length)
 
 // Toggle container filter
 const toggleContainer = (container) => {
@@ -346,6 +362,15 @@ const toggleContainer = (container) => {
   if (hasContainerFilter.value) {
     filters.origin = ''
     filters.shop = ''
+  }
+}
+
+// remove a single filter when clicking the × on a chip
+function removeFilter(key) {
+  if (key === 'green' || key === 'grey') {
+    filters[key] = false
+  } else {
+    filters[key] = ''
   }
 }
 
