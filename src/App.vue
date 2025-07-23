@@ -89,6 +89,17 @@
         @deleted="loadCoffees"
         @saved="loadCoffees"
       />
+      <footer style="font-size: 0.9em; color: #666; margin-top: 2em; text-align: center;">
+      <p>© 2025 R.A., all rights reserved unless otherwise noted.</p>
+      <p>This site is for personal, non-commercial use to catalog specialty coffee beans at home.</p>
+      <p>QR codes are intended for private household use and should not be shared externally.</p>
+      <p>
+        Licensed under 
+        <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">
+          CC BY-NC 4.0
+        </a>.
+      </p>
+    </footer>
     </div>
     <Transition name="fade">
       <button
