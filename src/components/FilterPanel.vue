@@ -38,7 +38,7 @@
             :class="[
               'w-10 h-10 cursor-pointer transition-all duration-500',
               // Enhanced icon styling for active filters with rotation effect
-              hasActiveFilters ? 'text-red-600 hover:text-red-700' : 'text-gray-600 hover:text-gray-800',
+              hasActiveFilters ? 'text-blue-600 hover:text-blue-700' : 'text-gray-600 hover:text-gray-800',
               // Subtle rotation animation when expanding
               isOpen ? 'rotate-90' : 'rotate-0'
             ]"
