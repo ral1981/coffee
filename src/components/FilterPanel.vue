@@ -73,7 +73,7 @@
                 :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
                 :style="{ transitionDelay: isOpen ? '400ms' : '300ms' }">
               <span class="relative text-sm font-medium text-gray-600">
-                Quick Filters:
+                Container Quick Filters:
                 <span v-if="filters.green || filters.grey"
                       class="absolute -top-1 -left-3 w-2 h-2 bg-red-500 rounded-full"></span>
               </span>
@@ -171,7 +171,7 @@
           <div class="text-center transform transition-all duration-600 ease-out"
               :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
               :style="{ transitionDelay: isOpen ? '400ms' : '300ms' }">
-              <span class="text-sm font-medium text-gray-600 block mb-2">Quick Filters</span>
+              <span class="text-sm font-medium text-gray-600 block mb-2">Container Quick Filters</span>
               <div class="flex justify-center gap-2">
                 <button
                   @click="toggleContainer('green')"
