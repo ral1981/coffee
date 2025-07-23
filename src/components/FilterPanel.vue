@@ -1,113 +1,292 @@
 <template>
-  <div class="mb-4 p-4 bg-white rounded-xl border border-gray-200 shadow-sm text-gray-900 border-l-4 border-l-blue-500">
-    <div class="flex items-center justify-between mb-3">
-      <h3 class="text-lg font-semibold text-gray-900">🔍 Filter Coffees</h3>
-      
-      <!-- Toggle Button -->
-      <button 
-        @click="togglePanel"
-        class="p-1 text-gray-500 hover:text-gray-700 transition-colors"
-        :title="isOpen ? 'Hide Filters' : 'Show Filters'"
+  <div class="mb-6 flex justify-center">
+    <div
+      :class="[
+        'bg-white border shadow-sm cursor-pointer relative transform-gpu origin-center',
+        // Conditional overflow control - allow overflow during collapse animation
+        isOpen ? '' : 'overflow-hidden',
+        // Enhanced styling for active filters
+        !isOpen && hasActiveFilters ? [
+          'border-blue-500 shadow-lg',
+          'ring-2 ring-blue-200 ring-opacity-50'
+        ] : 'border-gray-200 shadow-sm'
+      ]"
+      :style="{
+        width: isOpen ? '100%' : '64px',
+        maxWidth: isOpen ? '56rem' : '64px',
+        height: isOpen ? 'auto' : '64px',
+        padding: isOpen ? '16px' : '0',
+        borderRadius: isOpen ? '12px' : '16px',
+        transition: `width 0.7s ease-in-out ${isOpen ? '0ms' : '400ms'}, 
+                     max-width 0.7s ease-in-out ${isOpen ? '0ms' : '400ms'}, 
+                     height 0.7s ease-in-out ${isOpen ? '0ms' : '800ms'}, 
+                     padding 0.7s ease-in-out ${isOpen ? '0ms' : '400ms'}, 
+                     border-radius 0.7s ease-in-out ${isOpen ? '0ms' : '400ms'},
+                     border-color 0.3s ease-in-out,
+                     box-shadow 0.3s ease-in-out`
+      }"
+      class="flex flex-col"
+    >
+      <!-- Filter Icon with Counter Dot -->
+      <div
+        class="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-in-out flex-shrink-0 z-20"
+        style="top: 32px;"
       >
-        <ChevronDown v-if="!isOpen" class="w-6 h-6"/>
-        <ChevronUp v-else class="w-6 h-6"/>
-      </button>
-    </div>
-
-    <!-- Filters -->
-    <div v-show="isOpen" class="space-y-4">
-      
-      <!-- Clear Filters Button -->
-      <div class="flex justify-end">
-        <button 
-          @click="clearFilters"
-          class="text-sm text-blue-600 hover:text-blue-700 hover:underline transition-colors"
-        >
-          🔄 Clear All Filters
-        </button>
-      </div>
-
-      <!-- Container Filters -->
-      <div class="bg-gray-50 rounded-md p-3 border-l-4 border-gray-300">
-        <h4 class="uppercase text-sm font-semibold text-gray-700 mb-2">
-          Container Status
-        </h4>
-        <div class="flex gap-4">
-          <label class="flex items-center gap-2 text-sm text-gray-900 cursor-pointer">
-            <input 
-              type="checkbox" 
-              v-model="filters.green"
-              class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
-            />
-            <span class="flex items-center gap-1">
-              <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-              Green Container
-            </span>
-          </label>
-          <label class="flex items-center gap-2 text-sm text-gray-900 cursor-pointer">
-            <input 
-              type="checkbox" 
-              v-model="filters.grey"
-              class="w-4 h-4 text-gray-600 bg-gray-100 border-gray-300 rounded focus:ring-gray-500 focus:ring-2"
-            />
-            <span class="flex items-center gap-1">
-              <div class="w-3 h-3 bg-gray-500 rounded-full"></div>
-              Grey Container
-            </span>
-          </label>
+        <!-- Icon Container -->
+        <div class="relative">
+          <SlidersHorizontal
+            :class="[
+              'w-10 h-10 cursor-pointer transition-all duration-500',
+              // Enhanced icon styling for active filters with rotation effect
+              hasActiveFilters ? 'text-blue-600 hover:text-blue-700' : 'text-gray-600 hover:text-gray-800',
+              // Subtle rotation animation when expanding
+              isOpen ? 'rotate-90' : 'rotate-0'
+            ]"
+            @click="togglePanel"
+            :title="isOpen ? 'Hide Filters' : hasActiveFilters ? `Show Filters (${activeFilterCount} active)` : 'Show Filters'"
+          />
+          
+          <!-- Counter Dot (when collapsed and has active filters) -->
+          <div 
+            v-if="hasActiveFilters"
+            class="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-sm transition-all duration-300"
+            :class="isOpen ? 'scale-75' : 'opacity-100 scale-100'"
+          >
+            {{ activeFilterCount }}
+          </div>
         </div>
       </div>
 
-      <!-- Origin Filter -->
-      <div class="bg-blue-50 rounded-md p-3 border-l-4 border-blue-300">
-        <h4 class="uppercase text-sm font-semibold text-blue-700 mb-2">
-          Origin
-        </h4>
-        <select
-          v-model="filters.origin"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="">All Origins</option>
-          <option v-for="origin in origins" :key="origin" :value="origin">
-            {{ origin }}
-          </option>
-        </select>
-      </div>
+      <!-- Expanded Content -->
+      <div
+        v-show="isOpen"
+        class="pt-12 w-full transition-all duration-700 ease-out"
+        :class="isOpen ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'"
+        :style="{ transitionDelay: isOpen ? '200ms' : '0ms' }"
+      >
+        <!-- Filters Container -->
+        <div>
+          <!-- Desktop: Single Row Layout -->
+          <div class="hidden lg:flex items-center justify-center gap-6 flex-wrap mb-4">
+            <!-- Container Tags -->
+            <div class="flex items-center gap-2 transform transition-all duration-600 ease-out"
+                :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+                :style="{ transitionDelay: isOpen ? '400ms' : '300ms' }">
+              <span class="text-sm font-medium text-gray-600">Quick Filters:</span>
+              <button
+                @click="toggleContainer('green')"
+                :class="[
+                  'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1.5 transform hover:scale-105',
+                  filters.green 
+                    ? 'bg-green-100 text-green-800 border-2 border-green-300 shadow-sm' 
+                    : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                ]"
+              >
+                <div class="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+                Green
+              </button>
+              <button
+                @click="toggleContainer('grey')"
+                :class="[
+                  'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1.5 transform hover:scale-105',
+                  filters.grey 
+                    ? 'bg-gray-200 text-gray-800 border-2 border-gray-400 shadow-sm' 
+                    : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                ]"
+              >
+                <div class="w-2.5 h-2.5 bg-gray-500 rounded-full"></div>
+                Grey
+              </button>
+            </div>
 
-      <!-- Shop Filter -->
-      <div class="bg-orange-50 rounded-md p-3 border-l-4 border-orange-400">
-        <h4 class="uppercase text-sm font-semibold text-orange-700 mb-2">
-          Coffee Shop
-        </h4>
-        <select
-          v-model="filters.shop"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-        >
-          <option value="">All Shops</option>
-          <option v-for="shop in shops" :key="shop" :value="shop">
-            {{ shop }}
-          </option>
-        </select>
-      </div>
-    </div>
+              <!-- Origin Filter -->
+              <div class="flex items-center gap-2 transform transition-all duration-600 ease-out"
+                  :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+                  :style="{ transitionDelay: isOpen ? '500ms' : '200ms' }">
+              <span class="text-sm font-medium text-gray-600">Origin:</span>
+              <select
+                v-model="filters.origin"
+                :disabled="hasContainerFilter"
+                :class="[
+                  'px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[120px] transition-all duration-200',
+                  hasContainerFilter ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'text-gray-900 hover:border-gray-400'
+                ]"
+              >
+                <option value="">All Origins</option>
+                <option v-for="origin in origins" :key="origin" :value="origin">
+                  {{ origin }}
+                </option>
+              </select>
+            </div>
 
-    <!-- Result Count -->
-    <div class="mt-4 pt-3 border-t border-gray-200 text-sm text-gray-600 text-center">
-      Showing <span class="font-semibold">{{ filteredCount }}</span> of <span class="font-semibold">{{ totalCount }}</span> coffees
+            <!-- Shop Filter -->
+            <div class="flex items-center gap-2 transform transition-all duration-600 ease-out"
+                :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+                :style="{ transitionDelay: isOpen ? '600ms' : '100ms' }">
+              <span class="text-sm font-medium text-gray-600">Shop:</span>
+              <select
+                v-model="filters.shop"
+                :disabled="hasContainerFilter"
+                :class="[
+                  'px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 min-w-[120px] transition-all duration-200',
+                  hasContainerFilter ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'text-gray-900 hover:border-gray-400'
+                ]"
+              >
+                <option value="">All Shops</option>
+                <option v-for="shop in shops" :key="shop" :value="shop">
+                  {{ shop }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Clear Filters Button -->
+            <button 
+              @click="clearFilters"
+              v-if="hasActiveFilters"
+              class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-all duration-600 transform hover:scale-105"
+              :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+              :style="{ transitionDelay: isOpen ? '700ms' : '0ms' }"
+              title="Clear All Filters"
+            >
+              <X class="w-4 h-4"/>
+              Clear
+            </button>
+          </div>
+
+          <!-- Mobile: Stacked Layout -->
+          <div class="lg:hidden space-y-4 mb-4">
+          <!-- Container Tags -->
+          <div class="text-center transform transition-all duration-600 ease-out"
+              :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
+              :style="{ transitionDelay: isOpen ? '400ms' : '300ms' }">
+              <span class="text-sm font-medium text-gray-600 block mb-2">Quick Filters</span>
+              <div class="flex justify-center gap-2">
+                <button
+                  @click="toggleContainer('green')"
+                  :class="[
+                    'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1.5 transform hover:scale-105',
+                    filters.green 
+                      ? 'bg-green-100 text-green-800 border-2 border-green-300 shadow-sm' 
+                      : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+                  Green
+                </button>
+                <button
+                  @click="toggleContainer('grey')"
+                  :class="[
+                    'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1.5 transform hover:scale-105',
+                    filters.grey 
+                      ? 'bg-gray-200 text-gray-800 border-2 border-gray-400 shadow-sm' 
+                      : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+                  ]"
+                >
+                  <div class="w-2.5 h-2.5 bg-gray-500 rounded-full"></div>
+                  Grey
+                </button>
+              </div>
+            </div>
+
+            <!-- Origin Filter -->
+            <div class="text-center transform transition-all duration-600 ease-out"
+                :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
+                :style="{ transitionDelay: isOpen ? '500ms' : '200ms' }">
+              <label class="text-sm font-medium text-gray-600 block mb-2">Origin</label>
+              <select
+                v-model="filters.origin"
+                :disabled="hasContainerFilter"
+                :class="[
+                  'w-full max-w-xs mx-auto px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200',
+                  hasContainerFilter ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'text-gray-900 hover:border-gray-400'
+                ]"
+              >
+                <option value="">All Origins</option>
+                <option v-for="origin in origins" :key="origin" :value="origin">
+                  {{ origin }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Shop Filter -->
+            <div class="text-center transform transition-all duration-600 ease-out"
+                :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
+                :style="{ transitionDelay: isOpen ? '600ms' : '100ms' }">
+              <label class="text-sm font-medium text-gray-600 block mb-2">Coffee Shop</label>
+              <select
+                v-model="filters.shop"
+                :disabled="hasContainerFilter"
+                :class="[
+                  'w-full max-w-xs mx-auto px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200',
+                  hasContainerFilter ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'text-gray-900 hover:border-gray-400'
+                ]"
+              >
+                <option value="">All Shops</option>
+                <option v-for="shop in shops" :key="shop" :value="shop">
+                  {{ shop }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Clear Filters Button -->
+            <div class="text-center transform transition-all duration-600 ease-out"
+                :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
+                :style="{ transitionDelay: isOpen ? '700ms' : '0ms' }"
+                v-if="hasActiveFilters">
+              <button 
+                @click="clearFilters"
+                class="inline-flex items-center gap-1.5 px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-all duration-300 transform hover:scale-105"
+                title="Clear All Filters"
+              >
+                <X class="w-4 h-4"/>
+                Clear All Filters
+              </button>
+            </div>
+          </div>
+
+          <!-- Result Count with Active Filters Summary -->
+          <div class="pt-3 border-t border-gray-200 text-sm text-gray-600 text-center space-y-2 transform transition-all duration-600 ease-out"
+              :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+              :style="{ transitionDelay: isOpen ? '800ms' : '0ms' }">
+            <div>
+              Showing <span class="font-semibold">{{ filteredCount }}</span> of <span class="font-semibold">{{ totalCount }}</span> coffees
+            </div>
+            
+            <!-- Active Filters Summary -->
+            <div v-if="hasActiveFilters" class="text-xs text-blue-600 bg-blue-50 inline-block px-2 py-1 rounded-md transition-all duration-300 hover:bg-blue-100">
+              Active filters: {{ getActiveFiltersText() }}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
-import { ref, reactive, watch, onMounted } from 'vue'
-import { ChevronDown, ChevronUp } from 'lucide-vue-next'
+import { ref, reactive, watch, onMounted, computed } from 'vue'
+import { ChevronDown, ChevronUp, SlidersHorizontal, X } from 'lucide-vue-next'
 
 const isOpen = ref(false)
+const isCollapsing = ref(false)
 const initialized = ref(false)
 
 const togglePanel = () => {
-  isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    // Starting to collapse
+    isCollapsing.value = true
+    isOpen.value = false
+    
+    // Stop showing overflow after elements have animated out
+    setTimeout(() => {
+      isCollapsing.value = false
+    }, 400)
+  } else {
+    // Opening - no special handling needed
+    isCollapsing.value = false
+    isOpen.value = true
+  }
 }
 
 const props = defineProps({
@@ -128,6 +307,47 @@ const filters = reactive({
 
 const route = useRoute()
 const router = useRouter()
+
+// Computed properties
+const hasContainerFilter = computed(() => filters.green || filters.grey)
+const hasActiveFilters = computed(() => 
+  filters.green || filters.grey || filters.origin || filters.shop
+)
+
+// Count of active filters for badge
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (filters.green) count++
+  if (filters.grey) count++
+  if (filters.origin && !hasContainerFilter.value) count++
+  if (filters.shop && !hasContainerFilter.value) count++
+  return count
+})
+
+// Generate active filters text description
+const getActiveFiltersText = () => {
+  const activeFilters = []
+  if (filters.green) activeFilters.push('Green')
+  if (filters.grey) activeFilters.push('Grey')
+  if (filters.origin && !hasContainerFilter.value) activeFilters.push(filters.origin)
+  if (filters.shop && !hasContainerFilter.value) activeFilters.push(filters.shop)
+  return activeFilters.join(', ')
+}
+
+// Toggle container filter
+const toggleContainer = (container) => {
+  if (container === 'green') {
+    filters.green = !filters.green
+  } else if (container === 'grey') {
+    filters.grey = !filters.grey
+  }
+  
+  // Clear other filters when container filter is applied
+  if (hasContainerFilter.value) {
+    filters.origin = ''
+    filters.shop = ''
+  }
+}
 
 // Parse URL parameters into filter object
 const parseUrlFilters = () => {
@@ -153,9 +373,11 @@ const parseUrlFilters = () => {
     urlFilters.grey = containers.includes('grey')
   }
 
-  // Handle other filters
-  urlFilters.origin = route.query.origin || ''
-  urlFilters.shop = route.query.shop || ''
+  // Handle other filters (only if no container filter)
+  if (!urlFilters.green && !urlFilters.grey) {
+    urlFilters.origin = route.query.origin || ''
+    urlFilters.shop = route.query.shop || ''
+  }
 
   return urlFilters
 }
@@ -186,12 +408,14 @@ const updateUrl = () => {
     query.container = containerList.join(',')
   }
 
-  // Handle other filters
-  if (filters.origin) {
-    query.origin = filters.origin
-  }
-  if (filters.shop) {
-    query.shop = filters.shop
+  // Handle other filters (only if no container filter)
+  if (!hasContainerFilter.value) {
+    if (filters.origin) {
+      query.origin = filters.origin
+    }
+    if (filters.shop) {
+      query.shop = filters.shop
+    }
   }
 
   // Use router.replace to avoid adding to history
