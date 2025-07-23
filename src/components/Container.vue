@@ -41,18 +41,40 @@ const iconSvg = computed(() =>
 function handleClick() {
   if (!props.isLoggedIn) return
 
-  if (props.assigned) {
-    emit('update-container', { coffee: props.coffee, container: props.color, assign: false })
-    return
-  }
-
   const otherCoffee = props.activeCoffee
-  if (otherCoffee && otherCoffee.id !== props.coffee.id) {
-    const confirmText = `Container "${props.color}" is already used by "${otherCoffee.name}". Replace it?`
-    if (!confirm(confirmText)) return
-  }
+  const isAssigned   = props.assigned
 
-  emit('update-container', { coffee: props.coffee, container: props.color, assign: true })
+  if (!isAssigned) {
+    // ─── ASSIGN FLOW ─────────────────────────────────────────────────
+    
+    // Check if there's a container conflict (container has a different coffee)
+    if (otherCoffee) {
+      // Container conflict - only show replacement prompt
+      const msg = `Container "${props.color}" is already used by "${otherCoffee.name}". Replace it?`
+      if (!confirm(msg)) return
+    } else {
+      // No conflict - show regular assignment prompt
+      const msg = `Add "${props.coffee.name}" to "${props.color}" container?`
+      if (!confirm(msg)) return
+    }
+
+    emit('update-container', {
+      coffee:    props.coffee,
+      container: props.color,
+      assign:    true
+    })
+  } else {
+    // ─── UNASSIGN FLOW ────────────────────────────────────────────────
+    const msg = `Remove "${props.coffee.name}" from "${props.color}" container?`
+    if (!confirm(msg)) return
+
+    emit('update-container', {
+      coffee:    props.coffee,
+      container: props.color,
+      assign:    false
+    })
+  }
 }
+
 console.log('props:', props)
 </script>

@@ -117,7 +117,6 @@ const user = ref(null)
 const coffees = ref([])
 const isLoggedIn = ref(false)
 const anyEditing = ref(false)
-const containerStatus = ref({})
 const filter = ref({ green: false, grey: false, origin: '', shop: '' })
 const showBackToTop = ref(false)
 const showAuth = ref(false)
@@ -379,6 +378,22 @@ const handleFilterChange = (newFilter) => {
   filter.value = { ...newFilter }
 }
 
+// Track container status
+const containerStatus = computed(() => {
+  const status = { green: null, grey: null }
+  
+  coffees.value.forEach(coffee => {
+    if (coffee.in_green_container) {
+      status.green = coffee
+    }
+    if (coffee.in_grey_container) {
+      status.grey = coffee
+    }
+  })
+  
+  return status
+})
+
 const handleContainerUpdate = async ({ coffee, container, assign }) => {
   if (assign) {
     const conflicting = coffees.value.find(c =>
@@ -386,9 +401,9 @@ const handleContainerUpdate = async ({ coffee, container, assign }) => {
     )
 
     if (conflicting && conflicting.id !== coffee.id) {
-      const confirmText = `Container "${container}" is already used by "${conflicting.name}". Replace it?`
-      if (!confirm(confirmText)) return
-
+      // Don't show another prompt here - the Container component already handled it
+      // Just proceed with the unassignment of the conflicting coffee
+      
       // Unassign the container from the previously assigned coffee
       const unassignUpdate = container === 'green'
         ? { in_green_container: false }
