@@ -1,5 +1,5 @@
 <template>
-  <main class="min-h-screen bg-gray-35 dark:bg-white dark:text-gray-900 p-6 relative">
+  <main class="min-h-screen bg-gray-35 dark:bg-white dark:text-gray-900 p-6 relative flex flex-col">
     <!-- Backdrop to close menu when clicking outside -->
     <div 
       v-if="showAuth"
@@ -35,73 +35,79 @@
       </Transition>
     </div>
 
-    <div class="flex flex-col items-center mb-6">
-      <Coffee class="w-12 h-12 text-amber-700 mb-2" />
-      <h1 class="text-4xl font-bold">Coffee Tracker</h1>
+    <!-- Main Content Area -->
+    <div class="flex-1">
+      <div class="flex flex-col items-center mb-6">
+        <Coffee class="w-12 h-12 text-amber-700 mb-2" />
+        <h1 class="text-4xl font-bold">Coffee Tracker</h1>
+      </div>
+
+      <!-- Controls: Filter Panel -->
+      <div class="flex flex-col lg:flex-row lg:items-stretch gap-4 mb-6">
+        <div class="flex-1">
+          <FilterPanel
+            :origins="uniqueOrigins"
+            :shops="uniqueShops"
+            :filtered-count="filteredCoffees.length"
+            :total-count="totalCoffees"
+            @filter-change="handleFilterChange"
+          />
+        </div>
+      </div>
+      <div class="mt-6">
+        <div class="mb-6 flex justify-center">
+          <button
+            v-if="!showCoffeeForm"
+            @click="showCoffeeForm = true"
+            :disabled="!isLoggedIn"
+            class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg disabled:scale-100 disabled:shadow-md flex items-center justify-center gap-2 px-4 py-3"
+            :class="{ 'opacity-60': !isLoggedIn }"
+            :title="isLoggedIn ? 'Add Coffee' : 'Please log in to add coffee'"
+          >
+            <Plus class="w-5 h-5" />
+            <span>Add Coffee</span>
+          </button>
+        </div>
+        <div class="mb-6 flex justify-center"></div>
+          <CoffeeForm
+            v-if="showCoffeeForm"
+            :user="user"
+            @coffee-added="handleNewCoffee"
+            @cancel="showCoffeeForm = false"
+            class="w-full lg:w-2/3 xl:w-1/2"
+          />
+        </div>
+      <!-- Coffee Cards Grid -->
+      <div class="grid grid-cols-1 gap-4 mt-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
+        <CoffeeCard
+          v-for="coffee in filteredCoffees"
+          :key="coffee.id"
+          :coffee="coffee"
+          :class="{ 'new-item': coffee.id === newlyAddedId }"
+          :isLoggedIn="isLoggedIn"
+          :containerStatus="containerStatus"
+          :initiallyExpanded="shouldExpandCards"
+          @editing-changed="onEditingChanged"
+          @update-container="handleContainerUpdate"
+          @deleted="loadCoffees"
+          @saved="loadCoffees"
+        />
+      </div>
     </div>
 
-    <!-- Controls: Filter Panel -->
-    <div class="flex flex-col lg:flex-row lg:items-stretch gap-4 mb-6">
-      <div class="flex-1">
-        <FilterPanel
-          :origins="uniqueOrigins"
-          :shops="uniqueShops"
-          :filtered-count="filteredCoffees.length"
-          :total-count="totalCoffees"
-          @filter-change="handleFilterChange"
-        />
-      </div>
-    </div>
-    <div class="mt-6">
-      <div class="mb-6 flex justify-center">
-        <button
-          v-if="!showCoffeeForm"
-          @click="showCoffeeForm = true"
-          :disabled="!isLoggedIn"
-          class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg disabled:scale-100 disabled:shadow-md flex items-center justify-center gap-2 px-4 py-3"
-          :class="{ 'opacity-60': !isLoggedIn }"
-          :title="isLoggedIn ? 'Add Coffee' : 'Please log in to add coffee'"
-        >
-          <Plus class="w-5 h-5" />
-          <span>Add Coffee</span>
-        </button>
-      </div>
-      <div class="mb-6 flex justify-center"></div>
-        <CoffeeForm
-          v-if="showCoffeeForm"
-          :user="user"
-          @coffee-added="handleNewCoffee"
-          @cancel="showCoffeeForm = false"
-          class="w-full lg:w-2/3 xl:w-1/2"
-        />
-      </div>
-    <!-- Coffee Cards Grid -->
-    <div class="grid grid-cols-1 gap-4 mt-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
-      <CoffeeCard
-        v-for="coffee in filteredCoffees"
-        :key="coffee.id"
-        :coffee="coffee"
-        :class="{ 'new-item': coffee.id === newlyAddedId }"
-        :isLoggedIn="isLoggedIn"
-        :containerStatus="containerStatus"
-        :initiallyExpanded="shouldExpandCards"
-        @editing-changed="onEditingChanged"
-        @update-container="handleContainerUpdate"
-        @deleted="loadCoffees"
-        @saved="loadCoffees"
-      />
-      <footer style="font-size: 0.9em; color: #666; margin-top: 2em; text-align: center;">
+    <!-- Fixed Footer -->
+    <footer class="mt-auto pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
       <p>© 2025 R.A., all rights reserved unless otherwise noted.</p>
       <p>This site is for personal, non-commercial use to catalog specialty coffee beans at home.</p>
       <p>QR codes are intended for private household use and should not be shared externally.</p>
       <p>
         Licensed under 
-        <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">
+        <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">
           CC BY-NC 4.0
         </a>.
       </p>
     </footer>
-    </div>
+
     <Transition name="fade">
       <button
         v-if="showBackToTop"
