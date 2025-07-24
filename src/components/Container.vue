@@ -2,79 +2,148 @@
   <button
     @click="handleClick"
     :disabled="!isLoggedIn"
-    :class="[
-      'm-1 px-2 py-1 rounded text-sm transition flex items-center gap-2',
-      assigned ? 'bg-green-100' : 'bg-white',
-      colorClass,
-      !isLoggedIn ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'
+    :class="[ 
+      'container-card', 
+      containerColorClass,
+      { assigned, clickable: isLoggedIn, disabled: !isLoggedIn }
     ]"
   >
-    <span class="w-6 h-6" v-html="iconSvg" />
+    <div class="icon-label-wrapper">
+      <div class="icon-square" :class="containerColorClass">
+        <img src="../assets/icons/bean_01.svg" alt="bean icon" class="icon" />
+      </div>
+      <span class="container-label">{{ containerColorLabel }}</span>
+    </div>
   </button>
 </template>
 
-<script setup>
-import { computed } from 'vue'
-import rawSvg from '../assets/icons/bag_03.svg?raw'
-
-const props = defineProps({
-  color: {
-    type: String,
-    required: true // 'green' or 'grey'
+<script>
+export default {
+  props: {
+    color: {
+      type: String,
+      required: true
+    },
+    assigned: Boolean,
+    activeCoffee: Object,
+    coffee: Object,
+    isLoggedIn: Boolean
   },
-  assigned: Boolean,
-  activeCoffee: Object,
-  coffee: Object,
-  isLoggedIn: Boolean
-})
-
-const emit = defineEmits(['update-container'])
-
-const colorClass = computed(() =>
-  props.color === 'green' ? 'text-green-600' : 'text-gray-500'
-)
-
-const iconSvg = computed(() =>
-  rawSvg.replace('<svg', '<svg class="w-6 h-6"')
-)
-
-function handleClick() {
-  if (!props.isLoggedIn) return
-
-  const otherCoffee = props.activeCoffee
-  const isAssigned   = props.assigned
-
-  if (!isAssigned) {
-    // ─── ASSIGN FLOW ─────────────────────────────────────────────────
-    
-    // Check if there's a container conflict (container has a different coffee)
-    if (otherCoffee) {
-      // Container conflict - only show replacement prompt
-      const msg = `Container "${props.color}" is already used by "${otherCoffee.name}". Replace it?`
-      if (!confirm(msg)) return
-    } else {
-      // No conflict - show regular assignment prompt
-      const msg = `Add "${props.coffee.name}" to "${props.color}" container?`
-      if (!confirm(msg)) return
+  computed: {
+    containerColorClass() {
+      return this.color === 'green' ? 'green' : 'grey';
+    },
+    containerColorLabel() {
+      return this.color === 'green' ? 'GREEN' : 'GREY';
     }
+  },
+  methods: {
+    handleClick() {
+      if (!this.isLoggedIn) return;
 
-    emit('update-container', {
-      coffee:    props.coffee,
-      container: props.color,
-      assign:    true
-    })
-  } else {
-    // ─── UNASSIGN FLOW ────────────────────────────────────────────────
-    const msg = `Remove "${props.coffee.name}" from "${props.color}" container?`
-    if (!confirm(msg)) return
+      const otherCoffee = this.activeCoffee;
+      const isAssigned = this.assigned;
 
-    emit('update-container', {
-      coffee:    props.coffee,
-      container: props.color,
-      assign:    false
-    })
+      if (!isAssigned) {
+        if (otherCoffee) {
+          const msg = `Container "${this.color}" is already used by "${otherCoffee.name}". Replace it?`;
+          if (!confirm(msg)) return;
+        } else {
+          const msg = `Add "${this.coffee.name}" to "${this.color}" container?`;
+          if (!confirm(msg)) return;
+        }
+
+        this.$emit('update-container', {
+          coffee: this.coffee,
+          container: this.color,
+          assign: true
+        });
+      } else {
+        const msg = `Remove "${this.coffee.name}" from "${this.color}" container?`;
+        if (!confirm(msg)) return;
+
+        this.$emit('update-container', {
+          coffee: this.coffee,
+          container: this.color,
+          assign: false
+        });
+      }
+    }
   }
+};
+</script>
+
+<style scoped>
+.container-card {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  opacity: 1;
+  border: none;
 }
 
-console.log('props:', props)
-</script>
+.container-card.clickable {
+  cursor: pointer;
+}
+
+/* Only show blue outline when this specific container is assigned */
+.container-card.assigned {
+  box-shadow: 0 0 0 3px #2196f3;
+  transform: scale(1.02);
+}
+
+.container-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.icon-label-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.icon-square {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+}
+
+.container-label {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Green container styling */
+.green .icon-square {
+  background-color: #a8d5a2;
+}
+
+.green .container-label {
+  color: #2b7a2b;
+}
+
+/* Grey container styling */
+.grey .icon-square {
+  background-color: #ccc;
+}
+
+.grey .container-label {
+  color: #666;
+}
+</style>

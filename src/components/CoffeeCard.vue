@@ -366,16 +366,28 @@ const menuPanel  = ref(null)
 
 const local = ref({ ...props.coffee })
 
-const cardClasses = computed(() => [
-  // common
-  'relative m-4 p-4 rounded-xl border border-gray-200 shadow-sm text-gray-900 space-y-4 flex flex-col h-full border-l-4',
-  // container‐specific
-  props.coffee.in_green_container
-    ? 'bg-green-50 border-l-green-500'
-    : props.coffee.in_grey_container
-      ? 'bg-gray-100 border-l-gray-500'
-      : 'bg-white border-l-black'
-])
+const cardClasses = computed(() => {
+  const baseClasses = [
+    'relative m-4 p-4 rounded-xl border border-gray-200 shadow-sm text-gray-900 space-y-4 flex flex-col h-full border-l-4'
+  ]
+  
+  // Determine background based on container assignments
+  if (props.coffee.in_green_container && props.coffee.in_grey_container) {
+    // Both containers assigned - gradient background
+    baseClasses.push('bg-gradient-both border-l-blue-500')
+  } else if (props.coffee.in_green_container) {
+    // Only green container assigned
+    baseClasses.push('bg-green-50 border-l-green-500')
+  } else if (props.coffee.in_grey_container) {
+    // Only grey container assigned  
+    baseClasses.push('bg-gray-100 border-l-gray-500')
+  } else {
+    // No containers assigned
+    baseClasses.push('bg-white border-l-black')
+  }
+  
+  return baseClasses
+})
 
 const shotIconSrc = computed(() => {
   return shotState.value === 'single' ? singleShotIcon : doubleShotIcon
@@ -632,5 +644,9 @@ function toggleCollapse() {
   font-weight: 700;
   color: #c2410c;
   line-height: 1.2;
+}
+
+.bg-gradient-both {
+  background: linear-gradient(135deg, #dcfce7 0%, #dcfce7 45%, #e8f4e8 50%, #f3f4f6 55%, #f3f4f6 100%);
 }
 </style>
