@@ -17,36 +17,46 @@
         <!-- 2) Title & Shop name (middle zone) -->
         <div class="flex-1 min-w-0 ml-4 mr-2">
           <div class="transition-all duration-300 ease-in-out">
-            <!-- Coffee name - clickable when expanded -->
+            <!-- Coffee name -->
             <div class="flex items-center gap-2">
-              <a
-                v-if="coffee.shop_url && !isCollapsed"
-                :href="coffee.shop_url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="block text-3xl font-bold leading-tight transition-all duration-300"
-                :class="[
-                  isCollapsed ? 'truncate' : 'break-words',
-                  !isCollapsed && coffee.shop_url ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''
-                ]"
-                :title="coffee.name"
-              >
-                {{ coffee.name }}
-              </a>
-              <strong
-                v-else
-                class="block text-2xl font-bold leading-tight transition-all duration-300"
-                :class="[
-                  isCollapsed ? 'truncate' : 'break-words'
-                ]"
-                :title="coffee.name"
-              >
-                {{ coffee.name }}
-              </strong>              
-              <!-- External link icon - only show when expanded -->
-              <div v-if="!isCollapsed && coffee.shop_url" class="flex-shrink-0">
+              <template v-if="isEditing">
+                <input
+                  v-model="local.name"
+                  type="text"
+                  class="text-2xl font-bold leading-tight w-full border border-gray-300 rounded px-2 py-1"
+                  :placeholder="coffee.name"
+                />
+              </template>
+              <template v-else>
                 <a
                   v-if="coffee.shop_url && !isCollapsed"
+                  :href="coffee.shop_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="block text-3xl font-bold leading-tight transition-all duration-300"
+                  :class="[
+                    isCollapsed ? 'truncate' : 'break-words',
+                    !isCollapsed && coffee.shop_url ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''
+                  ]"
+                  :title="coffee.name"
+                >
+                  {{ coffee.name }}
+                </a>
+                <strong
+                  v-else
+                  class="block text-2xl font-bold leading-tight transition-all duration-300"
+                  :class="[
+                    isCollapsed ? 'truncate' : 'break-words'
+                  ]"
+                  :title="coffee.name"
+                >
+                  {{ coffee.name }}
+                </strong>
+              </template>
+
+              <!-- External link icon -->
+              <div v-if="!isCollapsed && coffee.shop_url" class="flex-shrink-0">
+                <a
                   :href="coffee.shop_url"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -59,14 +69,27 @@
                 </a>
               </div>
             </div>
-            
-            <span 
-              class="text-lg text-gray-500 block transition-all duration-300"
-              :class="isCollapsed ? 'truncate' : 'break-words'"
-              :title="coffee.shop_name"
-            >
-              {{ coffee.shop_name }}
-            </span>
+
+            <!-- Shop name -->
+            <div>
+              <template v-if="isEditing">
+                <input
+                  v-model="local.shop_name"
+                  type="text"
+                  class="text-lg text-gray-500 border border-gray-300 rounded px-2 py-1 w-full mt-1"
+                  :placeholder="coffee.shop_name"
+                />
+              </template>
+              <template v-else>
+                <span 
+                  class="text-lg text-gray-500 block transition-all duration-300"
+                  :class="isCollapsed ? 'truncate' : 'break-words'"
+                  :title="coffee.shop_name"
+                >
+                  {{ coffee.shop_name }}
+                </span>
+              </template>
+            </div>
           </div>
         </div>
 
