@@ -87,6 +87,7 @@
           :isLoggedIn="isLoggedIn"
           :containerStatus="containerStatus"
           :initiallyExpanded="shouldExpandCards"
+          :forceExpandState="forceExpandState"
           @editing-changed="onEditingChanged"
           @update-container="handleContainerUpdate"
           @deleted="loadCoffees"
@@ -118,6 +119,16 @@
         <ArrowUp class="w-6 h-6" />
       </button>
     </Transition>
+
+<button
+  @click="toggleExpandAll"
+  class="fixed left-6 bottom-24 z-50 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3 border border-gray-200 dark:border-gray-600"
+  :title="allExpanded ? 'Collapse All Cards' : 'Expand All Cards'"
+>
+  <ChevronDown v-if="allExpanded" class="w-6 h-6 text-gray-700 dark:text-gray-300" />
+  <ChevronRight v-else class="w-6 h-6 text-gray-700 dark:text-gray-300" />
+</button>
+
   </main>
 </template>
 
@@ -128,7 +139,7 @@ import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'
 import FilterPanel from './components/FilterPanel.vue'
 import CoffeeCard from './components/CoffeeCard.vue'
-import { ArrowUp, Coffee, Lock, LockOpen, Plus } from 'lucide-vue-next'
+import { ArrowUp, Coffee, Lock, LockOpen, Plus, ChevronDown, ChevronRight } from 'lucide-vue-next'
 
 // Reactive state
 const user = ref(null)
@@ -143,6 +154,8 @@ const autoCollapseTimer = ref(null)
 const lastScrollY = ref(0)
 const userActivityTimer = ref(null)
 const lastActivityTime = ref(Date.now())
+const allExpanded = ref(false)
+const forceExpandState = ref(null)
 
 // Authentication methods
 const toggleAuth = () => {
@@ -213,6 +226,23 @@ const resetActivityTimer = () => {
       }, 10000)
     }
   }
+}
+
+const toggleExpandAll = () => {
+  allExpanded.value = !allExpanded.value
+  forceExpandState.value = allExpanded.value ? 'expand' : 'collapse'
+  
+  // Reset the force state after a short delay to allow cards to process it
+  nextTick(() => {
+    setTimeout(() => {
+      forceExpandState.value = null
+    }, 100)
+  })
+}
+
+const collapseAll = () => {
+  allExpanded.value = false
+  // Emit collapse event to all cards
 }
 
 // Watch for login state changes to handle auto-expand and auto-collapse

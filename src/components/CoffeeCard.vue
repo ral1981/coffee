@@ -35,7 +35,7 @@
               </a>
               <strong
                 v-else
-                class="block text-3xl font-bold leading-tight transition-all duration-300"
+                class="block text-2xl font-bold leading-tight transition-all duration-300"
                 :class="[
                   isCollapsed ? 'truncate' : 'break-words'
                 ]"
@@ -61,7 +61,7 @@
             </div>
             
             <span 
-              class="text-xl text-gray-500 block transition-all duration-300"
+              class="text-lg text-gray-500 block transition-all duration-300"
               :class="isCollapsed ? 'truncate' : 'break-words'"
               :title="coffee.shop_name"
             >
@@ -348,6 +348,10 @@ const props = defineProps({
   initiallyExpanded: {
     type: Boolean,
     default: false
+  },
+  forceExpandState: {
+    type: String,
+    default: null // 'expand', 'collapse', or null
   }
 })
 
@@ -411,6 +415,14 @@ watch(() => props.isLoggedIn, (newLoggedIn) => {
 watch(() => props.initiallyExpanded, (newValue) => {
   if (newValue && isCollapsed.value) {
     isCollapsed.value = false
+  }
+})
+
+watch(() => props.forceExpandState, (newState) => {
+  if (newState === 'expand') {
+    isCollapsed.value = false
+  } else if (newState === 'collapse') {
+    isCollapsed.value = true
   }
 })
 
