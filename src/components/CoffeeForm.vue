@@ -20,7 +20,7 @@
             <!-- Coffee name input -->
             <input
               v-model="form.name"
-              placeholder="Coffee Name"
+              placeholder="Coffee Name *" required :class="{ 'border-red-500': !form.name }"
               class="block text-3xl font-bold leading-tight w-full bg-transparent border-b-2 border-gray-300 focus:border-blue-500 focus:outline-none mb-2"
             />
             
@@ -28,7 +28,7 @@
             <input
               v-model="form.shop_url"
               @input="deriveShopInfo"
-              placeholder="Shop URL"
+              placeholder="Shop URL *" required :class="{ 'border-red-500': !validUrl(form.shop_url) }"
               class="text-xl text-gray-500 block w-full bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
             />
           </div>
@@ -64,7 +64,7 @@
         <div class="grid rounded-md grid-cols-1 md:grid-cols-2 gap-3 md:gap-2 text-base border-l-4 border-blue-300 pl-3 md:pl-2">
           <div>
             <strong>Origin: </strong>
-            <input v-model="form.origin" placeholder="Origin" class="input" />
+            <input v-model="form.origin" placeholder="Origin *" required :class="{ 'border-red-500': !form.origin }" class="input" />
           </div>
           <div>
             <strong>Region: </strong>
@@ -165,22 +165,22 @@
             Containers
           </h4>
           <div class="flex gap-4">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                v-model="form.in_green_container"
-                class="w-4 h-4 text-green-600"
-              />
-              <span class="text-sm font-medium">🟩 Green Container</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                v-model="form.in_grey_container"
-                class="w-4 h-4 text-gray-600"
-              />
-              <span class="text-sm font-medium">⬜ Grey Container</span>
-            </label>
+            <Container
+              color="green"
+              :assigned="greenAssigned"
+              :coffee="newCoffee"
+              :active-coffee="greenAssignedCoffee"
+              :is-logged-in="true"
+              @update-container="fetchCoffees"
+            />
+            <Container
+              color="grey"
+              :assigned="greyAssigned"
+              :coffee="newCoffee"
+              :active-coffee="greyAssignedCoffee"
+              :is-logged-in="true"
+              @update-container="fetchCoffees"
+            />
           </div>
         </div>
 
@@ -213,36 +213,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { supabase } from '../lib/supabase'
 import { data } from 'autoprefixer'
+import Container from './Container.vue'
+
 const emit = defineEmits(['coffee-saved', 'cancel'])
 
 const showForm = ref(true)
 const coffees = ref([])
 
-const fetchCoffees = async () => {
-  const { data } = await supabase.from('coffee_beans').select('*')
-  coffees.value = data || []
-}
-
-fetchCoffees()
-
-const form = ref({
+const form = reactive({
   name: '',
+  shop_url: '',
+  shop_name: '',
+  shop_logo: '',
   origin: '',
   region: '',
   altitude_meters: '',
   botanic_variety: '',
   farm_producer: '',
   processing_method: '',
-  sca: null,
-  shop_url: '',
-  shop_name: '',
-  shop_logo: '',
-  in_green_container: false,
-  in_grey_container: false,
+  sca: '',
   flavor: '',
+  recipe_ratio: '',
   recipe_in_grams: null,
   recipe_out_grams: null,
   recipe_time_seconds: '',
@@ -250,61 +244,81 @@ const form = ref({
   notes: ''
 })
 
-const deriveShopInfo = () => {
+// Must come after coffees is defined
+const greenAssignedCoffee = computed(() =>
+  coffees.value.find(c => c.in_green_container)
+)
+const greyAssignedCoffee = computed(() =>
+  coffees.value.find(c => c.in_grey_container)
+)
+
+const greenAssigned = computed(() => greenAssignedCoffee.value?.id === form.id)
+const greyAssigned = computed(() => greyAssignedCoffee.value?.id === form.id)
+
+const newCoffee = computed(() => ({
+  ...form,
+  id: 'new',
+  name: form.name
+}))
+
+const handleContainerUpdate = ({ container, assign }) => {
+  if (container === 'green') form.in_green_container = assign
+  if (container === 'grey') form.in_grey_container = assign
+}
+
+const fetchCoffees = async () => {
+  const { data } = await supabase.from('coffee_beans').select('*')
+  coffees.value = data || []
+}
+fetchCoffees()
+
+watch(() => form.shop_url, (newVal) => {
+  if (!newVal) return
+  if (!newVal.startsWith('http')) {
+    form.shop_url = 'https://' + newVal
+  }
+  deriveShopInfo()
+})
+
+function deriveShopInfo() {
   try {
-    const url = new URL(form.value.shop_url)
-    form.value.shop_name = url.hostname.replace('www.', '').split('.')[0]
-    form.value.shop_logo = `https://www.google.com/s2/favicons?domain=${url.hostname}`
+    const url = new URL(form.shop_url)
+    form.shop_name = url.hostname.replace('www.', '').split('.')[0]
+    form.shop_logo = `https://www.google.com/s2/favicons?domain=${url.hostname}`
   } catch (e) {
-    console.warn('Invalid shop URL')
+    form.shop_name = ''
+    form.shop_logo = ''
   }
 }
 
 const resetForm = () => {
-  form.value = {
+  Object.assign(form, {
     name: '',
+    shop_url: '',
+    shop_name: '',
+    shop_logo: '',
     origin: '',
     region: '',
     altitude_meters: '',
     botanic_variety: '',
     farm_producer: '',
     processing_method: '',
-    sca: null,
-    shop_url: '',
-    shop_name: '',
-    shop_logo: '',
-    in_green_container: false,
-    in_grey_container: false,
+    sca: '',
     flavor: '',
+    recipe_ratio: '',
     recipe_in_grams: null,
     recipe_out_grams: null,
     recipe_time_seconds: '',
     recipe_temperature_c: null,
     notes: ''
-  }
+  })
 }
 
-const checkContainerConflict = () => {
-  const conflicts = []
-
-  if (form.value.in_green_container) {
-    const other = coffees.value.find(c => c.in_green_container)
-    if (other) conflicts.push({ container: 'green', coffee: other })
-  }
-
-  if (form.value.in_grey_container) {
-    const other = coffees.value.find(c => c.in_grey_container)
-    if (other) conflicts.push({ container: 'grey', coffee: other })
-  }
-
-  for (const { container, coffee } of conflicts) {
-    const ok = confirm(
-      `Container "${container}" is already used by "${coffee.name}". Replace it?`
-    )
-    if (!ok) return false
-  }
-
-  return true
+const calculateRatio = () => {
+  const inGrams = parseFloat(form.recipe_in_grams)
+  const outGrams = parseFloat(form.recipe_out_grams)
+  if (!inGrams || !outGrams) return ''
+  return (outGrams / inGrams).toFixed(2)
 }
 
 const saveCoffee = async () => {
@@ -314,13 +328,12 @@ const saveCoffee = async () => {
     alert('❌ You must be logged in to save coffee.')
     return
   }
-  
-  if (!checkContainerConflict()) return
 
-  form.value.recipe_ratio = calculateRatio()
+  form.recipe_ratio = calculateRatio()
+  const plainForm = JSON.parse(JSON.stringify(form))
 
   const { error } = await supabase.from('coffee_beans').insert({
-    ...form.value,
+    ...plainForm,
     user_id: user.id
   }).select()
 
@@ -328,7 +341,7 @@ const saveCoffee = async () => {
     alert('❌ Failed to save coffee: ' + error.message)
   } else {
     alert('✅ Coffee saved!')
-    emit('coffee-saved', data`[0]`)
+    emit('coffee-saved', form)
     resetForm()
     showForm.value = false
     fetchCoffees()
@@ -343,12 +356,39 @@ const cancelForm = () => {
   emit('cancel')
 }
 
-const calculateRatio = () => {
-  const inGrams = parseFloat(form.value.recipe_in_grams)
-  const outGrams = parseFloat(form.value.recipe_out_grams)
-  if (!inGrams || !outGrams) return ''
-  return (outGrams / inGrams).toFixed(2)
+function validUrl(value) {
+  try {
+    new URL(value)
+    return true
+  } catch (_) {
+    return false
+  }
 }
+
+function isPositiveNumber(value) {
+  return !isNaN(value) && Number(value) > 0
+}
+
+function isFloatInRange(value, min, max) {
+  const num = parseFloat(value)
+  return !isNaN(num) && num >= min && num <= max
+}
+
+function isAltitudeFormat(value) {
+  return /^\d{3,4}(–\d{3,4})?$/.test(value.trim())
+}
+
+function isTimeFormat(value) {
+  return /^\d+$|^\d{1,2}:\d{2}$/.test(value.trim())
+}
+
+const isFormValid = computed(() => {
+  return (
+    form.name &&
+    validUrl(form.shop_url) &&
+    form.origin
+  )
+})
 </script>
 
 <style scoped>
