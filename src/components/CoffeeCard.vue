@@ -736,7 +736,7 @@ function toggleCollapse() {
 }
 
 .bg-gradient-both {
-  background: linear-gradient(135deg, #dcfce7 0%, #dcfce7 45%, #e8f4e8 50%, #f3f4f6 55%, #f3f4f6 100%);
+  background: linear-gradient(90deg, #dcfce7 0%, #dcfce7 25%, #ffffff 50%, #f3f4f6 75%, #f3f4f6 100%);
 }
 
 /* Container Section Styles */
