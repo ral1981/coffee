@@ -38,7 +38,8 @@
     <!-- Main Content Area -->
     <div class="flex-1">
       <div class="flex flex-col items-center mb-6">
-        <Coffee class="w-12 h-12 text-amber-700 mb-2" />
+        <!-- <Coffee class="w-12 h-12 text-amber-700 mb-2" /> -->
+        <img src="./assets/icons/beans_02.svg" alt="Coffee Tracker Logo" class="w-32 h-32 mb-2" />
         <h1 class="text-4xl font-bold">Coffee Tracker</h1>
       </div>
 
