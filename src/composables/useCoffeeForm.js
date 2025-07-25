@@ -58,29 +58,26 @@ export function useCoffeeForm({
     return /^\d+$|^\d{1,2}:\d{2}$/.test(value.trim())
   }
 
-  // Auto-derive shop info from URL
-  const deriveShopInfo = () => {
+  // Auto-derive shop logo from URL
+  const deriveShopLogo = () => {
     const url = form.shop_url
     if (!url) {
-      form.shop_name = ''
       form.shop_logo = ''
       return
     }
     try {
       const u = new URL(url.startsWith('http') ? url : `https://${url}`)
-      form.shop_url  = u.href
-      form.shop_name = u.hostname.replace('www.', '').split('.')[0]
+      form.shop_url = u.href
       form.shop_logo = `https://www.google.com/s2/favicons?domain=${u.hostname}`
     } catch {
-      form.shop_name = ''
       form.shop_logo = ''
     }
   }
 
-  // Watch shop_url changes
+  // Watch shop_url changes (only for logo derivation)
   watch(
     () => form.shop_url,
-    deriveShopInfo,
+    deriveShopLogo,
     { immediate: true }
   )
 
@@ -103,6 +100,7 @@ export function useCoffeeForm({
   const isFormValid = computed(() => {
     return (
       form.name.trim().length > 0 &&
+      form.shop_name.trim().length > 0 &&
       validUrl(form.shop_url) &&
       form.origin.trim().length > 0 &&
       isPositiveNumber(form.recipe_in_grams) &&
@@ -177,6 +175,6 @@ export function useCoffeeForm({
     cancel,
     resetForm,
     validUrl,
-    deriveShopInfo
+    deriveShopLogo
   }
 }

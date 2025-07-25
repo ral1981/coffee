@@ -70,26 +70,34 @@
               </div>
             </div>
 
-            <!-- Shop name -->
-            <div>
-              <template v-if="isEditing">
-                <input
-                  v-model="form.shop_url"
-                  @input="deriveShopInfo"
-                  type="text"
-                  class="text-lg text-gray-500 border border-gray-300 rounded px-2 py-1 w-full mt-1"
-                  placeholder="Shop URL"
-                />
-              </template>
-              <template v-else>
-                <span 
-                  class="text-lg text-gray-500 block transition-all duration-300"
-                  :class="isCollapsed ? 'truncate' : 'break-words'"
-                  :title="coffee.shop_name"
-                >
-                  {{ coffee.shop_name }}
-                </span>
-              </template>
+            <!-- Shop name and URL inputs (editing mode) -->
+            <div v-if="isEditing" class="space-y-2 mt-2">
+              <!-- Shop name input -->
+              <input
+                v-model="form.shop_name"
+                type="text"
+                class="text-lg text-gray-500 border border-gray-300 rounded px-2 py-1 w-full"
+                placeholder="Shop Name"
+              />
+              <!-- Shop URL input -->
+              <input
+                v-model="form.shop_url"
+                @input="deriveShopLogo"
+                type="text"
+                class="text-sm text-gray-400 border border-gray-300 rounded px-2 py-1 w-full"
+                placeholder="Shop URL"
+              />
+            </div>
+
+            <!-- Shop name display (view mode) -->
+            <div v-else>
+              <span 
+                class="text-lg text-gray-500 block transition-all duration-300"
+                :class="isCollapsed ? 'truncate' : 'break-words'"
+                :title="coffee.shop_name"
+              >
+                {{ coffee.shop_name }}
+              </span>
             </div>
           </div>
         </div>
@@ -389,11 +397,25 @@ import doubleShotIcon from '../assets/icons/2shot.svg'
 
 // 1) Props & Emits
 const props = defineProps({
-  coffee: { type: Object, required: true, default: () => ({}) },
+  coffee: { 
+    type: Object, 
+    required: true, 
+    default: () => ({}) 
+  },
   isLoggedIn: Boolean,
   containerStatus: Object,
-  initiallyExpanded: { type: Boolean, default: false },
-  forceExpandState: { type: String, default: null } // 'expand' | 'collapse' | null
+  initiallyExpanded: { 
+    type: Boolean, 
+    default: false 
+  },
+  forceExpandState: { 
+    type: String, 
+    default: null 
+  },
+  fetchCoffees: {
+    type: Function,
+    default: null
+  }
 })
 const emit = defineEmits([
   'update-container',
@@ -423,9 +445,7 @@ const getCoffeeForm = () => {
       onClose: () => {
         isEditing.value = false
       },
-      fetchCoffees: () => {
-        // Parent component handles coffee list refresh
-      }
+      fetchCoffees: props.fetchCoffees
     })
   }
   return coffeeForm
@@ -436,7 +456,7 @@ const form = computed(() => isEditing.value ? getCoffeeForm().form : {})
 const isFormValid = computed(() => isEditing.value ? getCoffeeForm().isFormValid : true)
 const save = () => isEditing.value && getCoffeeForm().save()
 const cancel = () => isEditing.value && getCoffeeForm().cancel()
-const deriveShopInfo = () => isEditing.value && getCoffeeForm().deriveShopInfo()
+const deriveShopLogo = () => isEditing.value && getCoffeeForm().deriveShopLogo()
 
 // 4) Mode toggle
 function enterEditMode() {

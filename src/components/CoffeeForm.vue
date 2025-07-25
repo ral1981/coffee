@@ -28,12 +28,21 @@
             
             <!-- Shop name input -->
             <input
+              v-model="form.shop_name"
+              placeholder="Shop Name *" 
+              required 
+              :class="{ 'border-red-500': !form.shop_name }"
+              class="text-xl text-gray-500 block w-full bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
+            />
+
+            <!-- Shop URL input -->
+            <input
               v-model="form.shop_url"
-              @input="deriveShopInfo"
+              @input="deriveShopLogo"
               placeholder="Shop URL *" 
               required 
               :class="{ 'border-red-500': !validUrl(form.shop_url) }"
-              class="text-xl text-gray-500 block w-full bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
+              class="text-lg text-gray-400 block w-full bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
             />
           </div>
         </div>        
@@ -201,10 +210,17 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
 import SaveCancelButtons from './SaveCancelButtons.vue'
 import { useCoffeeForm } from '../composables/useCoffeeForm'
+
+const props = defineProps({
+  fetchCoffees: {
+    type: Function,
+    default: null
+  }
+})
 
 const emit = defineEmits(['coffee-saved', 'cancel'])
 
@@ -217,12 +233,12 @@ const fetchCoffees = async () => {
 }
 
 // Initialize composable
-const { form, recipeRatio, isFormValid, save, cancel, validUrl, deriveShopInfo } = useCoffeeForm({
+const { form, isFormValid, save, cancel, validUrl, deriveShopLogo } = useCoffeeForm({
   initialData: {},   
   mode: 'add', 
   emit,
   onClose: () => showForm.value = false,
-  fetchCoffees
+  fetchCoffees: props.fetchCoffees || fetchCoffees
 })
 
 // Container click handlers

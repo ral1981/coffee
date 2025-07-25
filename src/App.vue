@@ -7,6 +7,22 @@
       class="fixed inset-0 z-40 bg-black bg-opacity-20"
     ></div>
 
+    <!-- Coffee Form Overlay -->
+    <div 
+      v-if="showCoffeeForm"
+      @click="handleOverlayClick"
+      class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center pt-8 px-4"
+    >
+      <div @click.stop class="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <CoffeeForm
+          :user="user"
+          :fetchCoffees="loadCoffees"
+          @coffee-added="handleNewCoffee"
+          @cancel="showCoffeeForm = false"
+        />
+      </div>
+    </div>
+
     <!-- Unified Authentication Panel -->
     <div class="fixed top-4 right-4 z-50">
       <button 
@@ -41,6 +57,7 @@
         <img src="./assets/icons/beans_02.svg" alt="Coffee Tracker Logo" class="w-32 h-32 mb-2" />
         <h1 class="text-4xl font-bold">Coffee Tracker</h1>
       </router-link>
+    </div>
 
       <!-- Controls: Filter Panel -->
       <div class="flex flex-col lg:flex-row lg:items-stretch gap-4 mb-6">
@@ -54,29 +71,7 @@
           />
         </div>
       </div>
-      <div class="mt-6">
-        <div class="mb-6 flex justify-center">
-          <button
-            v-if="!showCoffeeForm"
-            @click="showCoffeeForm = true"
-            :disabled="!isLoggedIn"
-            class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-md hover:shadow-lg disabled:scale-100 disabled:shadow-md flex items-center justify-center gap-2 px-4 py-3"
-            :class="{ 'opacity-60': !isLoggedIn }"
-            :title="isLoggedIn ? 'Add Coffee' : 'Please log in to add coffee'"
-          >
-            <Plus class="w-5 h-5" />
-            <span>Add Coffee</span>
-          </button>
-        </div>
-        <div class="mb-6 flex justify-center"></div>
-          <CoffeeForm
-            v-if="showCoffeeForm"
-            :user="user"
-            @coffee-added="handleNewCoffee"
-            @cancel="showCoffeeForm = false"
-            class="w-full lg:w-2/3 xl:w-1/2"
-          />
-        </div>
+
       <!-- Coffee Cards Grid -->
       <div class="grid grid-cols-1 gap-4 mt-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
         <CoffeeCard
@@ -88,13 +83,14 @@
           :containerStatus="containerStatus"
           :initiallyExpanded="shouldExpandCards"
           :forceExpandState="forceExpandState"
+          :fetchCoffees="loadCoffees"
           @editing-changed="onEditingChanged"
           @update-container="handleContainerUpdate"
           @deleted="loadCoffees"
           @saved="loadCoffees"
+          @coffee-updated="handleCoffeeUpdated"
         />
       </div>
-    </div>
 
     <!-- Fixed Footer -->
     <footer class="mt-auto pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
@@ -120,20 +116,32 @@
       </button>
     </Transition>
 
-<button
-  @click="toggleExpandAll"
-  class="fixed left-6 bottom-24 z-50 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3 border border-gray-200 dark:border-gray-600"
-  :title="allExpanded ? 'Collapse All Cards' : 'Expand All Cards'"
->
-  <ChevronDown v-if="allExpanded" class="w-6 h-6 text-gray-700 dark:text-gray-300" />
-  <ChevronRight v-else class="w-6 h-6 text-gray-700 dark:text-gray-300" />
-</button>
+    <!-- Expand/Collapse All Button -->
+    <button
+      @click="toggleExpandAll"
+      class="fixed left-6 bottom-24 z-50 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3 border border-gray-200 dark:border-gray-600"
+      :title="allExpanded ? 'Collapse All Cards' : 'Expand All Cards'"
+    >
+      <ChevronDown v-if="allExpanded" class="w-6 h-6 text-gray-700 dark:text-gray-300" />
+      <ChevronRight v-else class="w-6 h-6 text-gray-700 dark:text-gray-300" />
+    </button>
+
+    <!-- Add Coffee Button -->
+    <button
+      @click="handleAddCoffeeClick"
+      :disabled="!isLoggedIn"
+      class="fixed left-6 bottom-6 z-50 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:cursor-not-allowed rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 disabled:scale-100 disabled:shadow-lg p-3"
+      :class="{ 'opacity-60': !isLoggedIn }"
+      :title="isLoggedIn ? 'Add Coffee' : 'Please log in to add coffee'"
+    >
+      <Plus class="w-6 h-6 text-white" />
+    </button>
 
   </main>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { supabase } from './lib/supabase'
 import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'
@@ -156,6 +164,7 @@ const userActivityTimer = ref(null)
 const lastActivityTime = ref(Date.now())
 const allExpanded = ref(false)
 const forceExpandState = ref(null)
+const newlyAddedId = ref(null)
 
 // Authentication methods
 const toggleAuth = () => {
@@ -238,11 +247,6 @@ const toggleExpandAll = () => {
       forceExpandState.value = null
     }, 100)
   })
-}
-
-const collapseAll = () => {
-  allExpanded.value = false
-  // Emit collapse event to all cards
 }
 
 // Watch for login state changes to handle auto-expand and auto-collapse
@@ -339,16 +343,15 @@ const handleAddCoffeeClick = () => {
     return
   }
   
-  // Always show the form directly (don't toggle)
+  // Show the form as an overlay
   showCoffeeForm.value = true
-  
-  // Scroll to form when opening
-  nextTick(() => {
-    const formElement = document.querySelector('.coffee-form') || document.querySelector('form')
-    if (formElement) {
-      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  })
+}
+
+const handleOverlayClick = (event) => {
+  // Close form when clicking on the backdrop
+  if (event.target === event.currentTarget) {
+    showCoffeeForm.value = false
+  }
 }
 
 const onUserChanged = (newUser) => {
@@ -405,28 +408,9 @@ const attemptLogout = async () => {
   await loadCoffees()
 }
 
-const setupActivityListeners = () => {
-  // Listen for activity in the auth panel
-  const authPanel = document.querySelector('[data-auth-panel]')
-  if (authPanel) {
-    ['keydown', 'keyup', 'input', 'click', 'focus'].forEach(eventType => {
-      authPanel.addEventListener(eventType, resetActivityTimer, true)
-    })
-  }
-}
-
-const cleanupActivityListeners = () => {
-  const authPanel = document.querySelector('[data-auth-panel]')
-  if (authPanel) {
-    ['keydown', 'keyup', 'input', 'click', 'focus'].forEach(eventType => {
-      authPanel.removeEventListener(eventType, resetActivityTimer, true)
-    })
-  }
-}
-
 const handleNewCoffee = async (newCoffee) => {
-  // Add to beginning of list for immediate visibility
-  coffees.value.unshift(newCoffee)
+  // Refresh the entire list to ensure consistency
+  await loadCoffees()
   
   // Mark as newly added
   newlyAddedId.value = newCoffee.id
@@ -453,6 +437,18 @@ const handleFilterChange = (newFilter, isInitialLoad = false) => {
   // If this is initial load from URL and we should expand cards, scroll to first card
   if (isInitialLoad && shouldExpandCards.value && filteredCoffees.value.length > 0) {
     scrollToFirstCard()
+  }
+}
+
+// ADD: New event handler for coffee updates
+const handleCoffeeUpdated = async (updatedCoffee) => {
+  // Option 1: Refresh entire list (simple and reliable)
+  await loadCoffees()
+  
+  // Option 2: Update specific item (more efficient)
+const index = coffees.value.findIndex(c => c.id === updatedCoffee.id)
+  if (index !== -1) {
+    coffees.value[index] = updatedCoffee
   }
 }
 
