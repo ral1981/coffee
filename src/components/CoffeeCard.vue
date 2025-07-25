@@ -21,7 +21,7 @@
             <div class="flex items-center gap-2">
               <template v-if="isEditing">
                 <input
-                  v-model="local.name"
+                  v-model="form.name"
                   type="text"
                   class="text-2xl font-bold leading-tight w-full border border-gray-300 rounded px-2 py-1"
                   :placeholder="coffee.name"
@@ -74,10 +74,11 @@
             <div>
               <template v-if="isEditing">
                 <input
-                  v-model="local.shop_name"
+                  v-model="form.shop_url"
+                  @input="deriveShopInfo"
                   type="text"
                   class="text-lg text-gray-500 border border-gray-300 rounded px-2 py-1 w-full mt-1"
-                  :placeholder="coffee.shop_name"
+                  placeholder="Shop URL"
                 />
               </template>
               <template v-else>
@@ -141,49 +142,49 @@
           <div>
             <strong>Origin: </strong>
             <template v-if="isEditing">
-              <input v-model="local.origin" class="input" />
+              <input v-model="form.origin" class="input" />
             </template>
             <template v-else>{{ coffee.origin }}</template>
           </div>
           <div>
             <strong>Region: </strong>
             <template v-if="isEditing">
-              <input v-model="local.region" class="input" />
+              <input v-model="form.region" class="input" />
             </template>
             <template v-else>{{ coffee.region }}</template>
           </div>
           <div>
             <strong>Altitude (m): </strong>
             <template v-if="isEditing">
-              <input v-model="local.altitude_meters" class="input" />
+              <input v-model="form.altitude_meters" class="input" />
             </template>
             <template v-else>{{ coffee.altitude_meters }}</template>
           </div>
           <div>
             <strong>Variety: </strong>
             <template v-if="isEditing">
-              <input v-model="local.botanic_variety" class="input" />
+              <input v-model="form.botanic_variety" class="input" />
             </template>
             <template v-else>{{ coffee.botanic_variety }}</template>
           </div>
           <div>
             <strong>Farm/Producer: </strong>
             <template v-if="isEditing">
-              <input v-model="local.farm_producer" class="input" />
+              <input v-model="form.farm_producer" class="input" />
             </template>
             <template v-else>{{ coffee.farm_producer }}</template>
           </div>
           <div>
             <strong>Processing: </strong>
             <template v-if="isEditing">
-              <input v-model="local.processing_method" class="input" />
+              <input v-model="form.processing_method" class="input" />
             </template>
             <template v-else>{{ coffee.processing_method }}</template>
           </div>
           <div>
             <strong>SCA Score: </strong>
             <template v-if="isEditing">
-              <input v-model.number="local.sca"
+              <input v-model.number="form.sca"
                 type="number"
                 step="0.1"
                 placeholder="SCA Score"
@@ -200,7 +201,7 @@
             Flavor Profile
           </h4>
           <template v-if="isEditing">
-            <textarea v-model="local.flavor" class="input"></textarea>
+            <textarea v-model="form.flavor" class="input w-full resize-none" rows="3"></textarea>
           </template>
           <template v-else>
             <p class="text-base">{{ coffee.flavor || '–' }}</p>
@@ -213,7 +214,7 @@
             Notes
           </h4>
           <template v-if="isEditing">
-            <textarea v-model="local.notes" class="input"></textarea>
+            <textarea v-model="form.notes" class="input w-full resize-none" rows="3"></textarea>
           </template>
           <template v-else>
             <p class="text-base">{{ coffee.notes || 'No notes yet.' }}</p>
@@ -228,26 +229,26 @@
           <template v-if="isEditing">
             <div class="grid grid-cols-2 gap-2 text-sm">
               <input
-                v-model.number="local.recipe_in_grams"
+                v-model.number="form.recipe_in_grams"
                 type="number"
                 step="0.1"
                 placeholder="In (g)"
                 class="input"
               />
               <input
-                v-model.number="local.recipe_out_grams"
+                v-model.number="form.recipe_out_grams"
                 type="number"
                 step="0.1"
                 placeholder="Out (g)"
                 class="input"
               />
               <input
-                v-model="local.recipe_time_seconds"
+                v-model="form.recipe_time_seconds"
                 placeholder="Time (s)"
                 class="input"
               />
               <input
-                v-model.number="local.recipe_temperature_c"
+                v-model.number="form.recipe_temperature_c"
                 type="number"
                 step="0.1"
                 placeholder="Temp (°C)"
@@ -365,250 +366,196 @@
           </div>
         </div>
 
-        <!-- Save/Cancel edit buttons -->
-        <div v-if="isEditing" class="mt-4 flex justify-end gap-2">
-          <button
-            type="button"
-            @click="saveChanges"
-            class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 flex items-center gap-1"
-          >
-            <Check class="w-8 h-8" />
-          </button>
-          <button
-            @click="cancelEdit"
-            class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 flex items-center gap-1"
-          >
-            <X class="w-8 h-8" />
-          </button>
-        </div>
+        <!-- Save/Cancel edit buttons -->      
+        <SaveCancelButtons
+          v-if="isEditing"
+          :disabled="!isFormValid"
+          @save="save"
+          @cancel="cancel"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { supabase } from '../lib/supabase'
-import Container from './Container.vue'
-import { Pencil, Trash2, Check, X, ChevronDown, ChevronUp, EllipsisVertical, ExternalLink } from 'lucide-vue-next'
+import SaveCancelButtons from './SaveCancelButtons.vue'
+import { useCoffeeForm } from '../composables/useCoffeeForm'
+import { ChevronDown, ChevronUp, EllipsisVertical, ExternalLink } from 'lucide-vue-next'
 import singleShotIcon from '../assets/icons/1shot.svg'
 import doubleShotIcon from '../assets/icons/2shot.svg'
 
+// 1) Props & Emits
 const props = defineProps({
-  coffee: {
-    type: Object,
-    required: true,
-    default: () => ({})
-  },
+  coffee: { type: Object, required: true, default: () => ({}) },
   isLoggedIn: Boolean,
   containerStatus: Object,
-  initiallyExpanded: {
-    type: Boolean,
-    default: false
-  },
-  forceExpandState: {
-    type: String,
-    default: null // 'expand', 'collapse', or null
-  }
+  initiallyExpanded: { type: Boolean, default: false },
+  forceExpandState: { type: String, default: null } // 'expand' | 'collapse' | null
 })
+const emit = defineEmits([
+  'update-container',
+  'deleted',
+  'editing-changed',
+  'coffee-updated',
+  'cancel'
+])
 
-const emit = defineEmits(['update-container', 'deleted', 'editing-changed', 'saved'])
-
+// 2) Local UI state
 const isCollapsed = ref(!props.initiallyExpanded)
-const shotState = ref('double') // 'single' or 'double'
+const shotState = ref('double')   // 'single' | 'double'
 const isEditing = ref(false)
 const showMenu = ref(false)
 const menuButton = ref(null)
-const menuPanel  = ref(null)
+const menuPanel = ref(null)
 
-const local = ref({ ...props.coffee })
+// 3) Coffee form composable (only initialize when editing)
+let coffeeForm = null
 
-const cardClasses = computed(() => {
-  const baseClasses = [
-    'relative m-4 p-4 rounded-xl border border-gray-200 shadow-sm text-gray-900 space-y-4 flex flex-col h-full border-l-4'
-  ]
-  
-  // Determine background based on container assignments
-  if (props.coffee.in_green_container && props.coffee.in_grey_container) {
-    // Both containers assigned - gradient background
-    baseClasses.push('bg-gradient-both border-l-blue-500')
-  } else if (props.coffee.in_green_container) {
-    // Only green container assigned
-    baseClasses.push('bg-green-50 border-l-green-500')
-  } else if (props.coffee.in_grey_container) {
-    // Only grey container assigned  
-    baseClasses.push('bg-gray-100 border-l-gray-500')
-  } else {
-    // No containers assigned
-    baseClasses.push('bg-white border-l-black')
+const getCoffeeForm = () => {
+  if (!coffeeForm) {
+    coffeeForm = useCoffeeForm({
+      initialData: props.coffee,
+      mode: 'edit',
+      emit,
+      onClose: () => {
+        isEditing.value = false
+      },
+      fetchCoffees: () => {
+        // Parent component handles coffee list refresh
+      }
+    })
   }
-  
-  return baseClasses
-})
-
-const shotIconSrc = computed(() => {
-  return shotState.value === 'single' ? singleShotIcon : doubleShotIcon
-})
-
-const toggleShotSize = () => {
-  shotState.value = shotState.value === 'single' ? 'double' : 'single'
+  return coffeeForm
 }
 
-const displayedIn = computed(() => {
-  const val = props.coffee.recipe_in_grams
-  return shotState.value === 'single' ? (val / 2).toFixed(1) : val
-})
+// Computed properties that conditionally use the form
+const form = computed(() => isEditing.value ? getCoffeeForm().form : {})
+const isFormValid = computed(() => isEditing.value ? getCoffeeForm().isFormValid : true)
+const save = () => isEditing.value && getCoffeeForm().save()
+const cancel = () => isEditing.value && getCoffeeForm().cancel()
+const deriveShopInfo = () => isEditing.value && getCoffeeForm().deriveShopInfo()
 
-const displayedOut = computed(() => {
-  const val = props.coffee.recipe_out_grams
-  return shotState.value === 'single' ? (val / 2).toFixed(1) : val
-})
-
-const handleContainerClick = (color) => {
-  if (!props.isLoggedIn) return;
-
-  const isAssigned = color === 'green' ? props.coffee.in_green_container : props.coffee.in_grey_container;
-  const otherCoffee = props.containerStatus?.[color];
-
-  if (!isAssigned) {
-    if (otherCoffee) {
-      const msg = `Container "${color}" is already used by "${otherCoffee.name}". Replace it?`;
-      if (!confirm(msg)) return;
-    } else {
-      const msg = `Add "${props.coffee.name}" to "${color}" container?`;
-      if (!confirm(msg)) return;
-    }
-
-    emit('update-container', {
-      coffee: props.coffee,
-      container: color,
-      assign: true
-    });
-  } else {
-    const msg = `Remove "${props.coffee.name}" from "${color}" container?`;
-    if (!confirm(msg)) return;
-
-    emit('update-container', {
-      coffee: props.coffee,
-      container: color,
-      assign: false
-    });
-  }
-}
-
-const handleContainerUpdate = (payload) => {
-  emit('update-container', payload)
-}
-
-watch(isEditing, (now) => {
-  emit('editing-changed', now)
-})
-
-watch(() => props.isLoggedIn, (newLoggedIn) => {
-  // If user logged out while editing, exit edit mode
-  if (!newLoggedIn && isEditing.value) {
-    isEditing.value = false
-    showMenu.value = false
-  }
-})
-
-// Optional: Watch for changes to initiallyExpanded prop
-watch(() => props.initiallyExpanded, (newValue) => {
-  if (newValue && isCollapsed.value) {
-    isCollapsed.value = false
-  }
-})
-
-watch(() => props.forceExpandState, (newState) => {
-  if (newState === 'expand') {
-    isCollapsed.value = false
-  } else if (newState === 'collapse') {
-    isCollapsed.value = true
-  }
-})
-
+// 4) Mode toggle
 function enterEditMode() {
-  isEditing.value = true
-  local.value = { ...props.coffee }
   isEditing.value = true
   showMenu.value = false
   isCollapsed.value = false
+  // Reset the form with current coffee data
+  Object.assign(getCoffeeForm().form, props.coffee)
 }
 
-const saveChanges = async () => {
-  const { error } = await supabase
-    .from('coffee_beans')
-    .update({ ...local.value })
-    .eq('id', props.coffee.id)
+function toggleShotSize() {
+  shotState.value = shotState.value === 'single' ? 'double' : 'single'
+}
 
-  if (error) {
-    alert('❌ Failed to save changes: ' + error.message)
+// 5) Computed display classes / icons
+const cardClasses = computed(() => {
+  const base = [
+    'relative m-4 p-4 rounded-xl border border-gray-200 shadow-sm text-gray-900 space-y-4 flex flex-col h-full border-l-4'
+  ]
+  if (props.coffee.in_green_container && props.coffee.in_grey_container) {
+    base.push('bg-gradient-both border-l-blue-500')
+  } else if (props.coffee.in_green_container) {
+    base.push('bg-green-50 border-l-green-500')
+  } else if (props.coffee.in_grey_container) {
+    base.push('bg-gray-100 border-l-gray-500')
   } else {
-    alert('✅ Changes saved!')
-    isEditing.value = false
-    emit('saved')
+    base.push('bg-white border-l-black')
+  }
+  return base
+})
+
+const shotIconSrc = computed(() =>
+  shotState.value === 'single' ? singleShotIcon : doubleShotIcon
+)
+
+const displayedIn = computed(() => {
+  const v = props.coffee.recipe_in_grams
+  return shotState.value === 'single' ? (v/2).toFixed(1) : v
+})
+const displayedOut = computed(() => {
+  const v = props.coffee.recipe_out_grams
+  return shotState.value === 'single' ? (v/2).toFixed(1) : v
+})
+
+// 6) Container click handlers
+function handleContainerClick(color) {
+  if (!props.isLoggedIn) return
+  const isAssigned = color === 'green'
+    ? props.coffee.in_green_container
+    : props.coffee.in_grey_container
+  const other = props.containerStatus?.[color]
+
+  if (!isAssigned) {
+    const msg = other
+      ? `Replace "${other.name}" in ${color}?`
+      : `Add "${props.coffee.name}" to ${color}?`
+    if (!confirm(msg)) return
+    emit('update-container', { coffee: props.coffee, container: color, assign: true })
+  } else {
+    if (!confirm(`Remove "${props.coffee.name}" from ${color}?`)) return
+    emit('update-container', { coffee: props.coffee, container: color, assign: false })
   }
 }
 
-const deriveShopInfo = () => {
-  try {
-    const url = new URL(local.value.shop_url)
-    local.value.shop_name = url.hostname.replace('www.', '').split('.')[0]
-    local.value.shop_logo = `https://www.google.com/s2/favicons?domain=${url.hostname}`
-  } catch (e) {
-    console.warn('Invalid URL')
-  }
-}
-
-const confirmDelete = async () => {
+// 7) Other handlers
+async function confirmDelete() {
   showMenu.value = false
-  const ok = confirm(`Delete "${props.coffee.name}"?`)
-  if (!ok) return
+  if (!confirm(`Delete "${props.coffee.name}"?`)) return
   const { error } = await supabase.from('coffee_beans').delete().eq('id', props.coffee.id)
   if (error) alert('❌ Delete failed: ' + error.message)
   else emit('deleted')
 }
 
-const notifyLogin = () => { alert('Please log in to edit or delete.')
+function notifyLogin() {
+  alert('🔒 Please log in to perform this action.')
 }
 
-function toggleMenu () {
-  if (!props.isLoggedIn) {
-    alert('You must be logged in to perform this action.')
-    return
-  }
+function toggleMenu() {
+  if (!props.isLoggedIn) { notifyLogin(); return }
   showMenu.value = !showMenu.value
 }
 
 function onClickOutside(e) {
-  // if menu is open, and click is not in button or panel, close it
   if (
     showMenu.value &&
-    menuButton.value  && !menuButton.value.contains(e.target) &&
-    menuPanel.value   && !menuPanel.value.contains(e.target)
+    menuButton.value && !menuButton.value.contains(e.target) &&
+    menuPanel.value && !menuPanel.value.contains(e.target)
   ) {
     showMenu.value = false
   }
 }
 
-function cancelEdit() {
-   if (confirm('Discard all changes?')) {
-     isEditing.value = false
-   }
-}
-
-onMounted(() => {
-  document.addEventListener('click', onClickOutside)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onClickOutside)
-})
-
 function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value
 }
-</script>
 
+// 8) Watches
+watch(isEditing, now => emit('editing-changed', now))
+
+watch(() => props.isLoggedIn, loggedIn => {
+  if (!loggedIn && isEditing.value) {
+    isEditing.value = false
+    showMenu.value = false
+  }
+})
+
+watch(() => props.initiallyExpanded, v => {
+  if (v && isCollapsed.value) isCollapsed.value = false
+})
+
+watch(() => props.forceExpandState, state => {
+  if (state === 'expand') isCollapsed.value = false
+  else if (state === 'collapse') isCollapsed.value = true
+})
+
+// 9) Lifecycle hooks
+onMounted(() => document.addEventListener('click', onClickOutside))
+onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
+</script>
 <style scoped>
 .recipe {
   background: #fff7ed;

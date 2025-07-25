@@ -20,7 +20,9 @@
             <!-- Coffee name input -->
             <input
               v-model="form.name"
-              placeholder="Coffee Name *" required :class="{ 'border-red-500': !form.name }"
+              placeholder="Coffee Name *" 
+              required 
+              :class="{ 'border-red-500': !form.name }"
               class="block text-3xl font-bold leading-tight w-full bg-transparent border-b-2 border-gray-300 focus:border-blue-500 focus:outline-none mb-2"
             />
             
@@ -28,35 +30,13 @@
             <input
               v-model="form.shop_url"
               @input="deriveShopInfo"
-              placeholder="Shop URL *" required :class="{ 'border-red-500': !validUrl(form.shop_url) }"
+              placeholder="Shop URL *" 
+              required 
+              :class="{ 'border-red-500': !validUrl(form.shop_url) }"
               class="text-xl text-gray-500 block w-full bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
             />
           </div>
-        </div>
-
-        <!-- 3) Actions (right zone) -->
-        <div class="flex flex-col items-center space-y-1 flex-shrink-0">
-          <button
-            type="button"
-            @click="saveCoffee"
-            class="p-1 text-green-600 hover:text-green-800"
-            title="Save Coffee"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </button>
-          <button
-            type="button"
-            @click="cancelForm"
-            class="p-1 text-red-600 hover:text-red-800"
-            title="Cancel"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
+        </div>        
       </div>
 
       <div class="space-y-4">
@@ -64,7 +44,13 @@
         <div class="grid rounded-md grid-cols-1 md:grid-cols-2 gap-3 md:gap-2 text-base border-l-4 border-blue-300 pl-3 md:pl-2">
           <div>
             <strong>Origin: </strong>
-            <input v-model="form.origin" placeholder="Origin *" required :class="{ 'border-red-500': !form.origin }" class="input" />
+            <input 
+              v-model="form.origin" 
+              placeholder="Origin *" 
+              required 
+              :class="{ 'border-red-500': !form.origin }" 
+              class="input" 
+            />
           </div>
           <div>
             <strong>Region: </strong>
@@ -160,239 +146,200 @@
         </div>
 
         <!-- Containers -->
-        <div class="bg-green-50 rounded-md p-4 md:p-3 border-l-4 border-green-400">
-          <h4 class="uppercase text-base font-semibold text-green-700 mb-2">
+        <div class="bg-purple-50 rounded-md p-4 md:p-3 border-l-4 border-purple-300">
+          <h4 class="uppercase text-base font-semibold text-purple-700 mb-3">
             Containers
           </h4>
-          <div class="flex gap-4">
-            <Container
-              color="green"
-              :assigned="greenAssigned"
-              :coffee="newCoffee"
-              :active-coffee="greenAssignedCoffee"
-              :is-logged-in="true"
-              @update-container="fetchCoffees"
-            />
-            <Container
-              color="grey"
-              :assigned="greyAssigned"
-              :coffee="newCoffee"
-              :active-coffee="greyAssignedCoffee"
-              :is-logged-in="true"
-              @update-container="fetchCoffees"
-            />
+          <div class="flex justify-center gap-6">
+            <div class="container-option">
+              <button
+                @click="handleContainerClick('green')"
+                :class="[
+                  'container-button',
+                  { 
+                    'assigned': form.in_green_container,
+                    'clickable': true
+                  }
+                ]"
+              >
+                <div class="container-circle green-circle">
+                  <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
+                </div>
+              </button>
+              <span class="container-label green-label">Green</span>
+            </div>
+
+            <div class="container-option">
+              <button
+                @click="handleContainerClick('grey')"
+                :class="[
+                  'container-button',
+                  { 
+                    'assigned': form.in_grey_container,
+                    'clickable': true
+                  }
+                ]"
+              >
+                <div class="container-circle grey-circle">
+                  <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
+                </div>
+              </button>
+              <span class="container-label grey-label">Grey</span>
+            </div>
           </div>
         </div>
 
         <!-- Action buttons -->
-        <div class="mt-4 flex justify-end gap-2">
-          <button
-            type="button"
-            @click="saveCoffee"
-            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-2"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Save Coffee
-          </button>
-          <button
-            type="button"
-            @click="cancelForm"
-            class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center gap-2"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-            Cancel
-          </button>
-        </div>
+        <SaveCancelButtons
+          :disabled="!isFormValid"
+          @save="save"
+          @cancel="cancel"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabase'
-import { data } from 'autoprefixer'
-import Container from './Container.vue'
+import SaveCancelButtons from './SaveCancelButtons.vue'
+import { useCoffeeForm } from '../composables/useCoffeeForm'
 
 const emit = defineEmits(['coffee-saved', 'cancel'])
 
 const showForm = ref(true)
 const coffees = ref([])
 
-const form = reactive({
-  name: '',
-  shop_url: '',
-  shop_name: '',
-  shop_logo: '',
-  origin: '',
-  region: '',
-  altitude_meters: '',
-  botanic_variety: '',
-  farm_producer: '',
-  processing_method: '',
-  sca: '',
-  flavor: '',
-  recipe_ratio: '',
-  recipe_in_grams: null,
-  recipe_out_grams: null,
-  recipe_time_seconds: '',
-  recipe_temperature_c: null,
-  notes: ''
-})
-
-// Must come after coffees is defined
-const greenAssignedCoffee = computed(() =>
-  coffees.value.find(c => c.in_green_container)
-)
-const greyAssignedCoffee = computed(() =>
-  coffees.value.find(c => c.in_grey_container)
-)
-
-const greenAssigned = computed(() => greenAssignedCoffee.value?.id === form.id)
-const greyAssigned = computed(() => greyAssignedCoffee.value?.id === form.id)
-
-const newCoffee = computed(() => ({
-  ...form,
-  id: 'new',
-  name: form.name
-}))
-
-const handleContainerUpdate = ({ container, assign }) => {
-  if (container === 'green') form.in_green_container = assign
-  if (container === 'grey') form.in_grey_container = assign
-}
-
 const fetchCoffees = async () => {
   const { data } = await supabase.from('coffee_beans').select('*')
   coffees.value = data || []
 }
+
+// Initialize composable
+const { form, recipeRatio, isFormValid, save, cancel, validUrl, deriveShopInfo } = useCoffeeForm({
+  initialData: {},   
+  mode: 'add', 
+  emit,
+  onClose: () => showForm.value = false,
+  fetchCoffees
+})
+
+// Container click handlers
+const handleContainerClick = (container) => {
+  if (container === 'green') {
+    const other = coffees.value.find(c => c.in_green_container)
+    if (form.in_green_container) {
+      // Remove from green
+      if (confirm(`Remove from green container?`)) {
+        form.in_green_container = false
+      }
+    } else {
+      // Add to green
+      const msg = other 
+        ? `Replace "${other.name}" in green container?`
+        : `Add to green container?`
+      if (confirm(msg)) {
+        form.in_green_container = true
+      }
+    }
+  } else if (container === 'grey') {
+    const other = coffees.value.find(c => c.in_grey_container)
+    if (form.in_grey_container) {
+      // Remove from grey
+      if (confirm(`Remove from grey container?`)) {
+        form.in_grey_container = false
+      }
+    } else {
+      // Add to grey
+      const msg = other 
+        ? `Replace "${other.name}" in grey container?`
+        : `Add to grey container?`
+      if (confirm(msg)) {
+        form.in_grey_container = true
+      }
+    }
+  }
+}
+
+// Initialize
 fetchCoffees()
-
-watch(() => form.shop_url, (newVal) => {
-  if (!newVal) return
-  if (!newVal.startsWith('http')) {
-    form.shop_url = 'https://' + newVal
-  }
-  deriveShopInfo()
-})
-
-function deriveShopInfo() {
-  try {
-    const url = new URL(form.shop_url)
-    form.shop_name = url.hostname.replace('www.', '').split('.')[0]
-    form.shop_logo = `https://www.google.com/s2/favicons?domain=${url.hostname}`
-  } catch (e) {
-    form.shop_name = ''
-    form.shop_logo = ''
-  }
-}
-
-const resetForm = () => {
-  Object.assign(form, {
-    name: '',
-    shop_url: '',
-    shop_name: '',
-    shop_logo: '',
-    origin: '',
-    region: '',
-    altitude_meters: '',
-    botanic_variety: '',
-    farm_producer: '',
-    processing_method: '',
-    sca: '',
-    flavor: '',
-    recipe_ratio: '',
-    recipe_in_grams: null,
-    recipe_out_grams: null,
-    recipe_time_seconds: '',
-    recipe_temperature_c: null,
-    notes: ''
-  })
-}
-
-const calculateRatio = () => {
-  const inGrams = parseFloat(form.recipe_in_grams)
-  const outGrams = parseFloat(form.recipe_out_grams)
-  if (!inGrams || !outGrams) return ''
-  return (outGrams / inGrams).toFixed(2)
-}
-
-const saveCoffee = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    alert('❌ You must be logged in to save coffee.')
-    return
-  }
-
-  form.recipe_ratio = calculateRatio()
-  const plainForm = JSON.parse(JSON.stringify(form))
-
-  const { error } = await supabase.from('coffee_beans').insert({
-    ...plainForm,
-    user_id: user.id
-  }).select()
-
-  if (error) {
-    alert('❌ Failed to save coffee: ' + error.message)
-  } else {
-    alert('✅ Coffee saved!')
-    emit('coffee-saved', form)
-    resetForm()
-    showForm.value = false
-    fetchCoffees()
-  }
-}
-
-const cancelForm = () => {
-  const confirmed = confirm("Are you sure you want to discard this coffee entry?")
-  if (!confirmed) return
-
-  resetForm()
-  emit('cancel')
-}
-
-function validUrl(value) {
-  try {
-    new URL(value)
-    return true
-  } catch (_) {
-    return false
-  }
-}
-
-function isPositiveNumber(value) {
-  return !isNaN(value) && Number(value) > 0
-}
-
-function isFloatInRange(value, min, max) {
-  const num = parseFloat(value)
-  return !isNaN(num) && num >= min && num <= max
-}
-
-function isAltitudeFormat(value) {
-  return /^\d{3,4}(–\d{3,4})?$/.test(value.trim())
-}
-
-function isTimeFormat(value) {
-  return /^\d+$|^\d{1,2}:\d{2}$/.test(value.trim())
-}
-
-const isFormValid = computed(() => {
-  return (
-    form.name &&
-    validUrl(form.shop_url) &&
-    form.origin
-  )
-})
 </script>
 
 <style scoped>
 .input {
   @apply w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500;
+}
+
+/* Container Section Styles */
+.container-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.container-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  opacity: 1;
+}
+
+.container-button.clickable {
+  cursor: pointer;
+}
+
+.container-button.assigned {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 3px #2196f3;
+  border-radius: 50%;
+}
+
+.container-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.green-circle {
+  background-color: #a8d5a2;
+}
+
+.grey-circle {
+  background-color: #ccc;
+}
+
+.bean-icon {
+  width: 28px;
+  height: 28px;
+  filter: brightness(0.7);
+}
+
+.container-label {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.green-label {
+  color: #2b7a2b;
+}
+
+.grey-label {
+  color: #666;
+}
+
+.container-button:hover:not(.disabled) .container-circle {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 </style>
