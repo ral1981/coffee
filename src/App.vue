@@ -37,11 +37,10 @@
 
     <!-- Main Content Area -->
     <div class="flex-1">
-      <div class="flex flex-col items-center mb-6">
-        <!-- <Coffee class="w-12 h-12 text-amber-700 mb-2" /> -->
+      <router-link to="/" class="flex flex-col items-center mb-6 cursor-pointer">
         <img src="./assets/icons/beans_02.svg" alt="Coffee Tracker Logo" class="w-32 h-32 mb-2" />
         <h1 class="text-4xl font-bold">Coffee Tracker</h1>
-      </div>
+      </router-link>
 
       <!-- Controls: Filter Panel -->
       <div class="flex flex-col lg:flex-row lg:items-stretch gap-4 mb-6">
@@ -140,7 +139,7 @@ import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'
 import FilterPanel from './components/FilterPanel.vue'
 import CoffeeCard from './components/CoffeeCard.vue'
-import { ArrowUp, Coffee, Lock, LockOpen, Plus, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { ArrowUp, Lock, LockOpen, Plus, ChevronDown, ChevronRight } from 'lucide-vue-next'
 
 // Reactive state
 const user = ref(null)
