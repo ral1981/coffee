@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-4 flex justify-end gap-2">
+  <div class="mt-4 flex justify-center gap-2">
     <button
       type="button"
       @click="$emit('save')"

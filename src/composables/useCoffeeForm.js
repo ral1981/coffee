@@ -1,4 +1,4 @@
-import { reactive, watch, computed } from 'vue'
+import { reactive, ref, watch, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
 
 export function useCoffeeForm({
@@ -37,6 +37,38 @@ export function useCoffeeForm({
     ...defaults,
     ...initialData,      // for edit, seed existing values
   })
+
+  const shopNameOptions = ref([])
+  const originOptions   = ref([])
+
+    // helper: fetch distinct shop names & origins
+  const fetchSuggestions = async () => {
+    // get all shop_name values
+    const { data: shops, error: shopErr } = await supabase
+      .from('coffee_beans')
+      .select('shop_name')
+      .neq('shop_name', '')
+    if (!shopErr) {
+      // unique & filter out empty/null
+      shopNameOptions.value = Array.from(
+        new Set(shops.map(r => r.shop_name).filter(Boolean))
+      )
+    }
+
+    // get all origin values
+    const { data: origins, error: originErr } = await supabase
+      .from('coffee_beans')
+      .select('origin')
+      .neq('origin', '')
+    if (!originErr) {
+      originOptions.value = Array.from(
+        new Set(origins.map(r => r.origin).filter(Boolean))
+      )
+    }
+  }
+
+  // fetch once when form is mounted
+  onMounted(fetchSuggestions)
 
   function isPositiveNumber(value) {
     return value === null || value === '' || (!isNaN(value) && Number(value) > 0)
@@ -175,6 +207,8 @@ export function useCoffeeForm({
     cancel,
     resetForm,
     validUrl,
-    deriveShopLogo
+    deriveShopLogo,
+    shopNameOptions,
+    originOptions
   }
 }

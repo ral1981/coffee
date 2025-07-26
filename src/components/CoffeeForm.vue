@@ -27,13 +27,23 @@
             />
             
             <!-- Shop name input -->
+            <label for="shop_name">Shop Name</label>
             <input
+              id="shop_name"
               v-model="form.shop_name"
-              placeholder="Shop Name *" 
+              list="shops"
+              placeholder="Start typing... *" 
               required 
               :class="{ 'border-red-500': !form.shop_name }"
               class="text-xl text-gray-500 block w-full bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
             />
+            <datalist id="shops">
+              <option
+                v-for="shop in shopNameOptions"
+                :key="shop"
+                :value="shop"
+              />
+            </datalist>
 
             <!-- Shop URL input -->
             <input
@@ -53,13 +63,23 @@
         <div class="grid rounded-md grid-cols-1 md:grid-cols-2 gap-3 md:gap-2 text-base border-l-4 border-blue-300 pl-3 md:pl-2">
           <div>
             <strong>Origin: </strong>
-            <input 
-              v-model="form.origin" 
-              placeholder="Origin *" 
+            <label for="origin">Origin</label>
+            <input
+              id="origin" 
+              v-model="form.origin"
+              list="origins" 
+              placeholder="e.g. Ethipia, Colombia... *" 
               required 
               :class="{ 'border-red-500': !form.origin }" 
               class="input" 
             />
+            <datalist id="origins">
+              <option
+                v-for="o in originOptions"
+                :key="o"
+                :value="o"
+              />
+            </datalist>
           </div>
           <div>
             <strong>Region: </strong>
@@ -233,7 +253,7 @@ const fetchCoffees = async () => {
 }
 
 // Initialize composable
-const { form, isFormValid, save, cancel, validUrl, deriveShopLogo } = useCoffeeForm({
+const { form, isFormValid, save, cancel, validUrl, deriveShopLogo, shopNameOptions, originOptions } = useCoffeeForm({
   initialData: {},   
   mode: 'add', 
   emit,

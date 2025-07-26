@@ -82,8 +82,7 @@
             ref="menuButton"
             type="button"
             @click.stop="toggleMenu"
-            :class="isLoggedIn ? 'text-gray-600 hover:text-black' : 'text-gray-300 cursor-not-allowed'"
-            class="p-1"
+            class="p-1 text-gray-600 hover:text-black"
           >
             <EllipsisVertical class="w-6 h-6"/>
           </button>
@@ -94,32 +93,47 @@
           v-if="showMenu"
           ref="menuPanel"
           class="absolute top-0 right-0 mt-10 w-40 bg-white border border-gray-200 rounded shadow-md overflow-hidden z-10"
-        >
-          <template v-if="isLoggedIn">
-            <!-- Shop Page option -->
-            <button 
-              v-if="coffee.shop_url" 
-              type="button" 
-              @click="openShopPage" 
-              class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
-            >
-              <Store class="inline-block mr-2 w-4 h-4" /> Shop Page
-            </button>
-            <button type="button" @click="enterEditMode" class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm">
-              <Pencil class="inline-block mr-2 w-4 h-4" /> Edit
-            </button>
-            <button type="button" @click.stop="confirmDelete" class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm text-red-600">
-              <Trash2 class="inline-block mr-2 w-4 h-4" /> Delete
-            </button>
-          </template>
-          <template v-else>
-            <button
-              @click="notifyLogin"
-              class="block w-full text-left px-3 py-2 text-sm text-gray-500 cursor-not-allowed"
-            >
-              🔒 Login required
-            </button>
-          </template>
+          >
+          <!-- Shop Page (available to all users) -->
+          <button
+            v-if="coffee.shop_url"
+            type="button"
+            @click="openShopPage"
+            class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+          >
+            <Store class="inline-block mr-2 w-4 h-4" /> Shop Page
+          </button>
+
+          <!-- Edit (disabled for guests) -->
+          <button
+            type="button"
+            @click="enterEditMode"
+            :disabled="!isLoggedIn"
+            :class="[
+              'block w-full text-left px-3 py-2 text-sm',
+              isLoggedIn ? 'hover:bg-gray-100' : 'text-gray-500 cursor-not-allowed'
+            ]"
+          >
+            <Pencil class="inline-block mr-2 w-4 h-4" /> Edit
+          </button>
+
+          <!-- Delete (disabled for guests) -->
+          <button
+            type="button"
+            @click.stop="confirmDelete"
+            :disabled="!isLoggedIn"
+            :class="[
+              'block w-full text-left px-3 py-2 text-sm text-red-600',
+              isLoggedIn ? 'hover:bg-gray-100' : 'text-gray-400 cursor-not-allowed'
+            ]"
+          >
+            <Trash2 class="inline-block mr-2 w-4 h-4" /> Delete
+          </button>
+        </div>
+
+        <!-- Edit mode icon -->
+        <div v-if="isEditing" class="absolute top-2 right-2">
+          <Pencil class="w-5 h-5 text-blue-500" />
         </div>
       </div>
 
@@ -514,9 +528,8 @@ function notifyLogin() {
   alert('🔒 Please log in to perform this action.')
 }
 
-function toggleMenu() {
-  if (!props.isLoggedIn) { notifyLogin(); return }
-  showMenu.value = !showMenu.value
+function    toggleMenu() {
+  showMenu.value = !showMenu.value;
 }
 
 function openShopPage() {
