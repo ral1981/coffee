@@ -1,9 +1,12 @@
 <template>
   <div v-if="props.coffee" :data-coffee-id="props.coffee.id">
     <div :class="cardClasses">
-      <!-- Header -->
-      <div class="relative flex items-start m-4">
-        <!-- 1) Favicon (left zone) - No link when collapsed -->
+      <!-- Header - Now clickable for expand/collapse -->
+      <div 
+        class="relative flex items-start m-4 cursor-pointer"
+        @click="toggleCollapse"
+      >
+        <!-- 1) Favicon (left zone) -->
         <div class="flex-shrink-0">
           <img
             :src="coffee.shop_logo"
@@ -25,25 +28,11 @@
                   type="text"
                   class="text-2xl font-bold leading-tight w-full border border-gray-300 rounded px-2 py-1"
                   :placeholder="coffee.name"
+                  @click.stop
                 />
               </template>
               <template v-else>
-                <a
-                  v-if="coffee.shop_url && !isCollapsed"
-                  :href="coffee.shop_url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="block text-3xl font-bold leading-tight transition-all duration-300"
-                  :class="[
-                    isCollapsed ? 'truncate' : 'break-words',
-                    !isCollapsed && coffee.shop_url ? 'cursor-pointer hover:text-blue-600 hover:underline' : ''
-                  ]"
-                  :title="coffee.name"
-                >
-                  {{ coffee.name }}
-                </a>
                 <strong
-                  v-else
                   class="block text-2xl font-bold leading-tight transition-all duration-300"
                   :class="[
                     isCollapsed ? 'truncate' : 'break-words'
@@ -53,25 +42,10 @@
                   {{ coffee.name }}
                 </strong>
               </template>
-
-              <!-- External link icon -->
-              <div v-if="!isCollapsed && coffee.shop_url" class="flex-shrink-0">
-                <a
-                  :href="coffee.shop_url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="flex-shrink-0"
-                  :title="`Visit ${coffee.shop_name}`"
-                >
-                  <ExternalLink
-                    class="w-5 h-5 text-gray-400 hover:text-blue-600 cursor-pointer"
-                  />
-                </a>
-              </div>
             </div>
 
             <!-- Shop name and URL inputs (editing mode) -->
-            <div v-if="isEditing" class="space-y-2 mt-2">
+            <div v-if="isEditing" class="space-y-2 mt-2" @click.stop>
               <!-- Shop name input -->
               <input
                 v-model="form.shop_name"
@@ -102,24 +76,16 @@
           </div>
         </div>
 
-        <!-- 3) Actions (right zone) -->
-        <div class="flex flex-col items-center space-y-1 flex-shrink-0">
+        <!-- 3) Actions (right zone) - Reduced margin -->
+        <div class="flex flex-col items-center space-y-1 flex-shrink-0 mr-1">
           <button
             ref="menuButton"
             type="button"
-            @click="toggleMenu"
+            @click.stop="toggleMenu"
             :class="isLoggedIn ? 'text-gray-600 hover:text-black' : 'text-gray-300 cursor-not-allowed'"
             class="p-1"
           >
             <EllipsisVertical class="w-6 h-6"/>
-          </button>
-          <button
-            type="button"
-            @click="toggleCollapse"
-            class="p-1 text-gray-500 hover:text-gray-700"
-          >
-            <ChevronDown v-if="isCollapsed" class="w-6 h-6"/>
-            <ChevronUp   v-else         class="w-6 h-6"/>
           </button>
         </div>
 
@@ -127,11 +93,24 @@
         <div
           v-if="showMenu"
           ref="menuPanel"
-          class="absolute top-0 right-0 mt-10 w-32 bg-white border border-gray-200 rounded shadow-md overflow-hidden z-10"
+          class="absolute top-0 right-0 mt-10 w-40 bg-white border border-gray-200 rounded shadow-md overflow-hidden z-10"
         >
           <template v-if="isLoggedIn">
-            <button type="button" @click="enterEditMode" class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm">✏️ Edit</button>
-            <button type="button" @click.stop="confirmDelete" class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm text-red-600">🗑 Delete</button>
+            <!-- Shop Page option -->
+            <button 
+              v-if="coffee.shop_url" 
+              type="button" 
+              @click="openShopPage" 
+              class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+            >
+              <Store class="inline-block mr-2 w-4 h-4" /> Shop Page
+            </button>
+            <button type="button" @click="enterEditMode" class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm">
+              <Pencil class="inline-block mr-2 w-4 h-4" /> Edit
+            </button>
+            <button type="button" @click.stop="confirmDelete" class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm text-red-600">
+              <Trash2 class="inline-block mr-2 w-4 h-4" /> Delete
+            </button>
           </template>
           <template v-else>
             <button
@@ -150,42 +129,42 @@
           <div>
             <strong>Origin: </strong>
             <template v-if="isEditing">
-              <input v-model="form.origin" class="input" />
+              <input v-model="form.origin" class="input" @click.stop />
             </template>
             <template v-else>{{ coffee.origin }}</template>
           </div>
           <div>
             <strong>Region: </strong>
             <template v-if="isEditing">
-              <input v-model="form.region" class="input" />
+              <input v-model="form.region" class="input" @click.stop />
             </template>
             <template v-else>{{ coffee.region }}</template>
           </div>
           <div>
             <strong>Altitude (m): </strong>
             <template v-if="isEditing">
-              <input v-model="form.altitude_meters" class="input" />
+              <input v-model="form.altitude_meters" class="input" @click.stop />
             </template>
             <template v-else>{{ coffee.altitude_meters }}</template>
           </div>
           <div>
             <strong>Variety: </strong>
             <template v-if="isEditing">
-              <input v-model="form.botanic_variety" class="input" />
+              <input v-model="form.botanic_variety" class="input" @click.stop />
             </template>
             <template v-else>{{ coffee.botanic_variety }}</template>
           </div>
           <div>
             <strong>Farm/Producer: </strong>
             <template v-if="isEditing">
-              <input v-model="form.farm_producer" class="input" />
+              <input v-model="form.farm_producer" class="input" @click.stop />
             </template>
             <template v-else>{{ coffee.farm_producer }}</template>
           </div>
           <div>
             <strong>Processing: </strong>
             <template v-if="isEditing">
-              <input v-model="form.processing_method" class="input" />
+              <input v-model="form.processing_method" class="input" @click.stop />
             </template>
             <template v-else>{{ coffee.processing_method }}</template>
           </div>
@@ -197,6 +176,7 @@
                 step="0.1"
                 placeholder="SCA Score"
                 class="input"
+                @click.stop
               />
             </template>
             <template v-else>{{ coffee.sca }}</template>
@@ -209,7 +189,7 @@
             Flavor Profile
           </h4>
           <template v-if="isEditing">
-            <textarea v-model="form.flavor" class="input w-full resize-none" rows="3"></textarea>
+            <textarea v-model="form.flavor" class="input w-full resize-none" rows="3" @click.stop></textarea>
           </template>
           <template v-else>
             <p class="text-base">{{ coffee.flavor || '–' }}</p>
@@ -222,7 +202,7 @@
             Notes
           </h4>
           <template v-if="isEditing">
-            <textarea v-model="form.notes" class="input w-full resize-none" rows="3"></textarea>
+            <textarea v-model="form.notes" class="input w-full resize-none" rows="3" @click.stop></textarea>
           </template>
           <template v-else>
             <p class="text-base">{{ coffee.notes || 'No notes yet.' }}</p>
@@ -235,7 +215,7 @@
             Espresso Recipe
           </h4>
           <template v-if="isEditing">
-            <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="grid grid-cols-2 gap-2 text-sm" @click.stop>
               <input
                 v-model.number="form.recipe_in_grams"
                 type="number"
@@ -270,7 +250,7 @@
               <div 
                 class="shot-toggle" 
                 :data-state="shotState"
-                @click="toggleShotSize"
+                @click.stop="toggleShotSize"
               >
                 <img 
                   :src="shotIconSrc" 
@@ -328,7 +308,7 @@
           <div class="flex justify-center gap-6">
             <div class="container-option">
               <button
-                @click="handleContainerClick('green')"
+                @click.stop="handleContainerClick('green')"
                 :disabled="!isLoggedIn"
                 :class="[
                   'container-button',
@@ -351,7 +331,7 @@
 
             <div class="container-option">
               <button
-                @click="handleContainerClick('grey')"
+                @click.stop="handleContainerClick('grey')"
                 :disabled="!isLoggedIn"
                 :class="[
                   'container-button',
@@ -391,7 +371,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { supabase } from '../lib/supabase'
 import SaveCancelButtons from './SaveCancelButtons.vue'
 import { useCoffeeForm } from '../composables/useCoffeeForm'
-import { ChevronDown, ChevronUp, EllipsisVertical, ExternalLink } from 'lucide-vue-next'
+import { EllipsisVertical, Store, Pencil, Trash2 } from 'lucide-vue-next'
 import singleShotIcon from '../assets/icons/1shot.svg'
 import doubleShotIcon from '../assets/icons/2shot.svg'
 
@@ -539,6 +519,13 @@ function toggleMenu() {
   showMenu.value = !showMenu.value
 }
 
+function openShopPage() {
+  showMenu.value = false
+  if (props.coffee.shop_url) {
+    window.open(props.coffee.shop_url, '_blank', 'noopener,noreferrer')
+  }
+}
+
 function onClickOutside(e) {
   if (
     showMenu.value &&
@@ -550,6 +537,8 @@ function onClickOutside(e) {
 }
 
 function toggleCollapse() {
+  // Don't toggle if we're in editing mode
+  if (isEditing.value) return
   isCollapsed.value = !isCollapsed.value
 }
 
@@ -576,7 +565,12 @@ watch(() => props.forceExpandState, state => {
 onMounted(() => document.addEventListener('click', onClickOutside))
 onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </script>
+
 <style scoped>
+.input {
+  @apply w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500;
+}
+
 .recipe {
   background: #fff7ed;
   padding: 20px;
