@@ -1,5 +1,5 @@
 <template>
-  <div v-if="props.coffee" :data-coffee-id="props.coffee.id">
+  <div v-if="props.coffee" :data-coffee-id="props.coffee.id" class="coffee-card-wrapper">
     <div :class="cardClasses">
       <!-- Three dots menu - positioned at card level -->
       <div class="absolute top-2 right-2 flex flex-col items-center space-y-1 flex-shrink-0">
@@ -122,7 +122,7 @@
               ]" 
             /> 
             <span>Edit</span>
-            <span v-if="!isLoggedIn" class="text-xs text-gray-300 ml-1">(Login required)</span>
+            <span v-if="!isLoggedIn" class="text-xs text-gray-300 ml-1"></span>
           </button>
 
           <!-- Delete (disabled for guests) -->
@@ -143,8 +143,9 @@
               ]" 
             /> 
             <span>Delete</span>
-            <span v-if="!isLoggedIn" class="text-xs text-gray-300 ml-1">(Login required)</span>
+            <span v-if="!isLoggedIn" class="text-xs text-gray-300 ml-1"></span>
           </button>
+        </div>
 
         <!-- Edit mode icon -->
         <div v-if="isEditing" class="absolute top-2 right-2">
