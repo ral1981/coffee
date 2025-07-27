@@ -292,8 +292,8 @@
                   :data-state="shotState"
                 >
                   <div class="thumb"></div>
-                  <span class="label">Single</span>
-                  <span class="label">Double</span>
+                  <span class="label label-single">Single</span>
+                  <span class="label label-double">Double</span>    
                 </div>
               </div>
 
@@ -692,12 +692,12 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   left: 0%;
 }
 
-.slide-switch[data-state="single"] .label:first-child {
+.slide-switch[data-state="single"] .label-single {
   color: #c2410c;
   font-weight: 600;
 }
 
-.slide-switch[data-state="double"] .label:last-child {
+.slide-switch[data-state="double"] .label-double {
   color: #c2410c;
   font-weight: 600;
 }
