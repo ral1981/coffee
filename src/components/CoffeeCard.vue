@@ -689,7 +689,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 }
 
 .slide-switch[data-state="single"] .thumb {
-  left: 0;
+  left: 0%;
 }
 
 .slide-switch[data-state="single"] .label:first-child {

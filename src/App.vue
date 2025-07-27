@@ -138,9 +138,11 @@
     <!-- Add Coffee Button -->
     <button
       @click="handleAddCoffeeClick"
-      :disabled="!isLoggedIn"
-      class="fixed left-6 bottom-6 z-50 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:cursor-not-allowed rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 disabled:scale-100 disabled:shadow-lg p-3"
-      :class="{ 'opacity-60': !isLoggedIn }"
+      class="fixed left-6 bottom-6 z-50 bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3"
+      :class="{ 
+        'opacity-60 cursor-not-allowed': !isLoggedIn,
+        'disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-lg': !isLoggedIn
+      }"
       :title="isLoggedIn ? 'Add Coffee' : 'Please log in to add coffee'"
     >
       <Plus class="w-6 h-6 text-white" />
@@ -347,8 +349,8 @@ const scrollToFirstCard = async () => {
 
 const handleAddCoffeeClick = () => {
   if (!isLoggedIn.value) {
-    // Show notification to log in
-    alert('Please log in to add coffee entries.')
+    // Use the same login prompt style as CoffeeCard.vue
+    alert('🔒 Please log in to add coffee.')
     return
   }
   
