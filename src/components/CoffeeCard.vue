@@ -107,29 +107,44 @@
           <!-- Edit (disabled for guests) -->
           <button
             type="button"
-            @click="enterEditMode"
-            :disabled="!isLoggedIn"
+            @click="isLoggedIn ? enterEditMode() : showLoginPrompt('edit')"
             :class="[
-              'block w-full text-left px-3 py-2 text-sm',
-              isLoggedIn ? 'hover:bg-gray-100' : 'text-gray-500 cursor-not-allowed'
+              'block w-full text-left px-3 py-2 text-sm transition-colors duration-200',
+              isLoggedIn 
+                ? 'hover:bg-gray-100 text-gray-900 cursor-pointer' 
+                : 'text-gray-400 cursor-not-allowed bg-gray-50'
             ]"
           >
-            <Pencil class="inline-block mr-2 w-4 h-4" /> Edit
+            <Pencil 
+              :class="[
+                'inline-block mr-2 w-4 h-4',
+                isLoggedIn ? 'text-gray-600' : 'text-gray-300'
+              ]" 
+            /> 
+            <span>Edit</span>
+            <span v-if="!isLoggedIn" class="text-xs text-gray-300 ml-1">(Login required)</span>
           </button>
 
           <!-- Delete (disabled for guests) -->
           <button
             type="button"
-            @click.stop="confirmDelete"
-            :disabled="!isLoggedIn"
+            @click.stop="isLoggedIn ? confirmDelete() : showLoginPrompt('delete')"
             :class="[
-              'block w-full text-left px-3 py-2 text-sm text-red-600',
-              isLoggedIn ? 'hover:bg-gray-100' : 'text-gray-400 cursor-not-allowed'
+              'block w-full text-left px-3 py-2 text-sm transition-colors duration-200',
+              isLoggedIn 
+                ? 'hover:bg-gray-100 text-red-600 cursor-pointer' 
+                : 'text-gray-300 cursor-not-allowed bg-gray-50'
             ]"
           >
-            <Trash2 class="inline-block mr-2 w-4 h-4" /> Delete
+            <Trash2 
+              :class="[
+                'inline-block mr-2 w-4 h-4',
+                isLoggedIn ? 'text-red-600' : 'text-gray-300'
+              ]" 
+            /> 
+            <span>Delete</span>
+            <span v-if="!isLoggedIn" class="text-xs text-gray-300 ml-1">(Login required)</span>
           </button>
-        </div>
 
         <!-- Edit mode icon -->
         <div v-if="isEditing" class="absolute top-2 right-2">
@@ -454,6 +469,11 @@ const deriveShopLogo = () => isEditing.value && getCoffeeForm().deriveShopLogo()
 
 // 4) Mode toggle
 function enterEditMode() {
+  if (!props.isLoggedIn) {
+    showLoginPrompt('edit')
+    return
+  }
+  
   isEditing.value = true
   showMenu.value = false
   isCollapsed.value = false
@@ -517,15 +537,23 @@ function handleContainerClick(color) {
 
 // 7) Other handlers
 async function confirmDelete() {
+  if (!props.isLoggedIn) {
+    showLoginPrompt('delete')
+    return
+  }
+  
   showMenu.value = false
   if (!confirm(`Delete "${props.coffee.name}"?`)) return
+  
   const { error } = await supabase.from('coffee_beans').delete().eq('id', props.coffee.id)
   if (error) alert('❌ Delete failed: ' + error.message)
   else emit('deleted')
 }
 
-function notifyLogin() {
-  alert('🔒 Please log in to perform this action.')
+function showLoginPrompt(action) {
+  const actionText = action === 'edit' ? 'edit this coffee' : 'delete this coffee'
+  alert(`🔒 Please log in to ${actionText}.`)
+  showMenu.value = false
 }
 
 function    toggleMenu() {
