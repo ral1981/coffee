@@ -1,6 +1,18 @@
 <template>
   <div v-if="props.coffee" :data-coffee-id="props.coffee.id">
     <div :class="cardClasses">
+      <!-- Three dots menu - positioned at card level -->
+      <div class="absolute top-2 right-2 flex flex-col items-center space-y-1 flex-shrink-0">
+        <button
+          ref="menuButton"
+          type="button"
+          @click.stop="toggleMenu"
+          class="p-1 text-gray-600 hover:text-black"
+        >
+          <EllipsisVertical class="w-6 h-6"/>
+        </button>
+      </div>
+      
       <!-- Header - Now clickable for expand/collapse -->
       <div 
         class="relative flex items-start m-4 cursor-pointer"
@@ -76,23 +88,11 @@
           </div>
         </div>
 
-        <!-- 3) Actions (right zone) - Reduced margin -->
-        <div class="flex flex-col items-center space-y-1 flex-shrink-0 mr-1">
-          <button
-            ref="menuButton"
-            type="button"
-            @click.stop="toggleMenu"
-            class="p-1 text-gray-600 hover:text-black"
-          >
-            <EllipsisVertical class="w-6 h-6"/>
-          </button>
-        </div>
-
-        <!-- menu dropdown -->
+        <!-- Three dots menu dropdown -->
         <div
           v-if="showMenu"
           ref="menuPanel"
-          class="absolute top-0 right-0 mt-10 w-40 bg-white border border-gray-200 rounded shadow-md overflow-hidden z-10"
+          class="absolute top-0 right-0 w-40 bg-white border border-gray-200 rounded shadow-md overflow-hidden z-20"
           >
           <!-- Shop Page (available to all users) -->
           <button

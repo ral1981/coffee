@@ -73,7 +73,7 @@
       </div>
 
       <!-- Coffee Cards Grid -->
-      <div class="grid grid-cols-1 gap-4 mt-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
         <CoffeeCard
           v-for="coffee in filteredCoffees"
           :key="coffee.id"
