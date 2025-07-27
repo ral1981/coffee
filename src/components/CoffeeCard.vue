@@ -477,7 +477,7 @@ const cardClasses = computed(() => {
   } else if (props.coffee.in_grey_container) {
     base.push('bg-gray-100 border-l-gray-500')
   } else {
-    base.push('bg-white border-l-black')
+    base.push('bg-white border-l-violet-500')
   }
   return base
 })

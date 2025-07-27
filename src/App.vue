@@ -54,13 +54,22 @@
     <!-- Main Content Area -->
     <div class="flex-1">
       <router-link to="/" class="flex flex-col items-center mb-6 cursor-pointer">
-        <img src="./assets/icons/beans_02.svg" alt="Coffee Tracker Logo" class="w-32 h-32 mb-2" />
-        <h1 class="text-4xl font-bold">Coffee Tracker</h1>
+        <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" class="mb-2">
+          <defs>
+            <linearGradient id="coffeeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#8D6E63;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <path fill="url(#coffeeGradient)" d="M13.325 0c-.907 1.116-2.442 2.302-.768 4.814.558.628.838 1.953.768 2.372 0 0 2.512-1.464.977-4.116-.907-1.395-1.326-2.582-.977-3.07zm-2.79 2.582c-.628.767-1.605 1.535-.489 3.279.35.349.489 1.256.489 1.535 0 0 1.673-.978.627-2.792-.628-.907-.906-1.743-.627-2.022zm-5.094 6a.699.699 0 0 0-.697.698c0 2.372.349 10.535 3.837 14.512.14.139.28.208.489.208h5.86c.21 0 .35-.069.489-.208 3.488-3.908 3.837-12.07 3.837-14.512a.7.7 0 0 0-.698-.699H12zm2.023 2.163h9.21c.349 0 .697.278.697.697 0 1.953-.348 7.465-2.72 10.326-.21.14-.35.208-.559.208H9.976a.633.633 0 0 1-.488-.208c-2.372-2.79-2.652-8.373-2.722-10.326 0-.35.28-.697.698-.697zm8.792 4.744s-.071.627-1.745 1.255c-2.303.837-6.348.28-6.348.28.349 1.465.906 2.86 1.743 3.907.07.14.28.209.419.209h3.489c.14 0 .279-.07.418-.209 1.186-1.395 1.745-3.558 2.024-5.442z"/>
+        </svg>
+        <div class="w-32 h-2 bg-gray-800 mb-4 rounded"></div>
+        <h1 class="text-4xl font-bold gradient-text">Coffee Tracker</h1>
       </router-link>
     </div>
 
       <!-- Controls: Filter Panel -->
-      <div class="flex flex-col lg:flex-row lg:items-stretch gap-4 mb-6">
+      <div class="flex flex-col lg:flex-row lg:items-stretch gap-4">
         <div class="flex-1">
           <FilterPanel
             :origins="uniqueOrigins"
@@ -73,7 +82,7 @@
       </div>
 
       <!-- Coffee Cards Grid -->
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
+      <div class="grid grid-cols-1 gap-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
         <CoffeeCard
           v-for="coffee in filteredCoffees"
           :key="coffee.id"
@@ -551,6 +560,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.gradient-text {
+  background: linear-gradient(to bottom, #8D6E63, #000000);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 /* Z-index layers */
 .z-60 {
   z-index: 60;
