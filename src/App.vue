@@ -118,7 +118,12 @@
       <button
         v-if="showBackToTop"
         @click="scrollToTop"
-        class="fixed bottom-6 right-6 z-50 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+        :disabled="showCoffeeForm"
+        :class="[
+          'floating-btn bottom-6 right-6',
+          showCoffeeForm ? 'z-10 floating-btn--disabled' : 'z-50',
+          'bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110'
+        ]"
         title="Back to top"
       >
         <ArrowUp class="w-6 h-6" />
@@ -128,7 +133,12 @@
     <!-- Expand/Collapse All Button -->
     <button
       @click="toggleExpandAll"
-      class="fixed left-6 bottom-24 z-50 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3 border border-gray-200 dark:border-gray-600"
+      :disabled="showCoffeeForm"
+      :class="[
+        'floating-btn left-6 bottom-24',
+         showCoffeeForm ? 'z-10 floating-btn--disabled' : 'z-50',
+         'bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3 border border-gray-200 dark:border-gray-600'
+      ]"
       :title="allExpanded ? 'Collapse All Cards' : 'Expand All Cards'"
     >
       <ChevronDown v-if="allExpanded" class="w-6 h-6 text-gray-700 dark:text-gray-300" />
@@ -138,11 +148,13 @@
     <!-- Add Coffee Button -->
     <button
       @click="handleAddCoffeeClick"
-      class="fixed left-6 bottom-6 z-50 bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3"
-      :class="{ 
-        'opacity-60 cursor-not-allowed': !isLoggedIn,
-        'disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-lg': !isLoggedIn
-      }"
+      :disabled="showCoffeeForm || !isLoggedIn"
+      :class="[
+        'floating-btn left-6 bottom-6 ',
+        showCoffeeForm || !isLoggedIn
+        ? 'z-10 floating-btn--disabled'
+        : 'z-50 bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3'
+      ]"
       :title="isLoggedIn ? 'Add Coffee' : 'Please log in to add coffee'"
     >
       <Plus class="w-6 h-6 text-white" />
@@ -572,6 +584,16 @@ onBeforeUnmount(() => {
 /* Z-index layers */
 .z-60 {
   z-index: 60;
+}
+
+.floating-btn {
+  position: fixed;
+  transition: all .3s;
+}
+
+.floating-btn--disabled {
+  pointer-events: none;
+  opacity: .5;
 }
 
 .fade-enter-active, .fade-leave-active {

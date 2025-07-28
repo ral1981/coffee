@@ -1,6 +1,16 @@
 <template>
   <div>
     <div v-if="showForm" class="relative m-4 p-4 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 text-gray-900 space-y-4 flex flex-col h-full">
+      
+      <!-- Top-right close button -->
+      <button
+        @click="cancel"
+        class="absolute top-4 right-4 p-2 text-red-600 hover:text-red-800 dark:text-red-300 dark:hover:text-white"
+        title="Close"
+      >
+        <CircleX class="w-6 h-6" />
+      </button>
+      
       <!-- Header -->
       <div class="relative flex items-start m-4">
         <!-- 1) Favicon (left zone) -->
@@ -27,7 +37,6 @@
             />
             
             <!-- Shop name input -->
-            <label for="shop_name">Shop Name</label>
             <input
               id="shop_name"
               v-model="form.shop_name"
