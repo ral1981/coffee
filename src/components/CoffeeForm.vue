@@ -32,7 +32,7 @@
               id="shop_name"
               v-model="form.shop_name"
               list="shops"
-              placeholder="Start typing... *" 
+              placeholder="Start typing shop name... *" 
               required 
               :class="{ 'border-red-500': !form.shop_name }"
               class="text-xl text-gray-500 block w-full bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
@@ -68,7 +68,7 @@
               id="origin" 
               v-model="form.origin"
               list="origins" 
-              placeholder="e.g. Ethipia, Colombia... *" 
+              placeholder="Start typing country... *" 
               required 
               :class="{ 'border-red-500': !form.origin }" 
               class="input" 

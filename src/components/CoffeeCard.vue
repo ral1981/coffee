@@ -60,11 +60,21 @@
             <div v-if="isEditing" class="space-y-2 mt-2" @click.stop>
               <!-- Shop name input -->
               <input
+                id="shop_name"
                 v-model="form.shop_name"
+                list="shops"
+                placeholder="Start typing shop name... *"
                 type="text"
+                required
                 class="text-lg text-gray-500 border border-gray-300 rounded px-2 py-1 w-full"
-                placeholder="Shop Name"
               />
+              <datalist id="shops">
+                <option
+                  v-for="shop in shopNameOptions"
+                  :key="shop"
+                  :value="shop"
+                />
+              </datalist>
               <!-- Shop URL input -->
               <input
                 v-model="form.shop_url"
@@ -159,7 +169,21 @@
           <div>
             <strong>Origin: </strong>
             <template v-if="isEditing">
-              <input v-model="form.origin" class="input" @click.stop />
+              <input
+                id="origin"
+                v-model="form.origin"
+                list="origins"
+                placeholder="Start typing country... *"
+                required
+                class="input" @click.stop
+              />
+              <datalist id="origins">
+                <option
+                  v-for="o in originOptions"
+                  :key="o"
+                  :value="o"
+                />
+              </datalist>
             </template>
             <template v-else>{{ coffee.origin }}</template>
           </div>
