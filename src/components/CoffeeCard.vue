@@ -664,7 +664,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 10px;
+  padding: 0 5px;
   font-weight: 500;
   font-size: 0.75rem;
   color: #555;
@@ -681,11 +681,15 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   position: absolute;
   width: 50%;
   height: 100%;
-  background-color: #fff;
+  background-color: #2563eb;
   border-radius: 15px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  transition: left 0.3s ease;
+  transition: left 0.3s ease, background-color 0.3s ease;
   left: 50%;
+}
+
+.thumb:hover {
+  background-color: #1d4ed8;
 }
 
 .slide-switch[data-state="single"] .thumb {
@@ -693,12 +697,12 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 }
 
 .slide-switch[data-state="single"] .label-single {
-  color: #c2410c;
+  color: #fff;
   font-weight: 600;
 }
 
 .slide-switch[data-state="double"] .label-double {
-  color: #c2410c;
+  color: #fff;
   font-weight: 600;
 }
 
