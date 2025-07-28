@@ -151,6 +151,28 @@
               </select>
             </div>
 
+            <!-- Coffee Name Filter -->
+            <div
+              class="text-center transform transition-all duration-600 ease-out"
+              :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
+              :style="{ transitionDelay: isOpen ? '700ms' : '0ms' }"
+            >
+              <span class="text-sm font-medium text-gray-600">
+                Coffee Name:
+                  <span v-if="filters.name"
+                    class="absolute -top-1 -left-3 w-2 h-2 bg-red-500 rounded-full"></span>                
+              </span>
+              <input
+                v-model="filters.name"                
+                :disabled="hasContainerFilter"
+                :class="[
+                  'px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 min-w-[120px] transition-all duration-200',
+                  hasContainerFilter ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'text-gray-900 hover:border-gray-400'
+                ]"
+                placeholder="Search by name"
+              />
+            </div>
+
             <!-- Clear Filters Button -->
             <button 
               @click="clearFilters"
@@ -161,7 +183,7 @@
               title="Clear All Filters"
             >
               <X class="w-4 h-4"/>
-              Clear
+              Clear All Filters
             </button>
           </div>
 
@@ -240,6 +262,25 @@
               </select>
             </div>
 
+            <!-- Coffee Name Filter -->
+            <div class="text-center transform transition-all duration-600 ease-out"
+                :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
+                :style="{ transitionDelay: isOpen ? '600ms' : '100ms' }">
+              <label class="text-sm font-medium text-gray-600 block mb-2">Coffee Name
+                <span v-if="filters.name"
+                    class="absolute -top-1 -left-3 w-2 h-2 bg-red-500 rounded-full"></span>
+              </label>
+              <input
+                v-model="filters.name"
+                :disabled="hasContainerFilter"
+                :class="[
+                  'px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 min-w-[120px] transition-all duration-200',
+                  hasContainerFilter ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'text-gray-900 hover:border-gray-400'
+                ]"
+                placeholder="Search by name"
+              />
+            </div>
+
             <!-- Clear Filters Button -->
             <div class="text-center transform transition-all duration-600 ease-out"
                 :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
@@ -314,6 +355,7 @@ const togglePanel = () => {
 const props = defineProps({
   origins: Array,
   shops: Array,
+  names: Array,
   filteredCount: Number,
   totalCount: Number
 })
@@ -324,7 +366,8 @@ const filters = reactive({
   green: false,
   grey: false,
   origin: '',
-  shop: ''
+  shop: '',
+  name: ''
 })
 
 const route = useRoute()
@@ -338,10 +381,10 @@ const activeFilters = computed(() => {
   const arr = []
   if (filters.green)  arr.push({ key: 'green',  label: 'Green' })
   if (filters.grey)   arr.push({ key: 'grey',   label: 'Grey' })
-  // only count origin/shop if no container is active
   if (!hasContainerFilter.value) {
     if (filters.origin) arr.push({ key: 'origin', label: filters.origin })
     if (filters.shop)   arr.push({ key: 'shop',   label: filters.shop })
+    if (filters.name)   arr.push({ key: 'name',   label: filters.name })
   }
   return arr
 })
@@ -349,6 +392,14 @@ const activeFilters = computed(() => {
 // 3) expose the flags you need in the template
 const hasActiveFilters   = computed(() => activeFilters.value.length > 0)
 const activeFilterCount  = computed(() => activeFilters.value.length)
+
+const nameFilteredCoffees = computed(() => {
+  if (!filters.name.trim()) return props.totalCoffees
+  
+  // This would need to be passed from parent, or we need to restructure
+  // For now, we'll emit the filter and let parent handle the actual filtering
+  return props.filteredCount
+})
 
 // Toggle container filter
 const toggleContainer = (container) => {
@@ -380,7 +431,8 @@ const parseUrlFilters = () => {
     green: false,
     grey: false,
     origin: '',
-    shop: ''
+    shop: '',
+    name: ''
   }
 
   // Handle container parameter
@@ -455,6 +507,7 @@ const clearFilters = () => {
   filters.grey = false
   filters.origin = ''
   filters.shop = ''
+  filters.name = ''
 }
 
 // Initialize filters from URL when component mounts

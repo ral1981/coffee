@@ -74,6 +74,7 @@
           <FilterPanel
             :origins="uniqueOrigins"
             :shops="uniqueShops"
+            :names="coffeeNames"
             :filtered-count="filteredCoffees.length"
             :total-count="totalCoffees"
             @filter-change="handleFilterChange"
@@ -177,7 +178,7 @@ const user = ref(null)
 const coffees = ref([])
 const isLoggedIn = ref(false)
 const anyEditing = ref(false)
-const filter = ref({ green: false, grey: false, origin: '', shop: '' })
+const filter = ref({ green: false, grey: false, origin: '', shop: '', name: '' })
 const showBackToTop = ref(false)
 const showAuth = ref(false)
 const showCoffeeForm = ref(false)
@@ -188,6 +189,7 @@ const lastActivityTime = ref(Date.now())
 const allExpanded = ref(false)
 const forceExpandState = ref(null)
 const newlyAddedId = ref(null)
+const coffeeNames = ref([])
 
 // Authentication methods
 const toggleAuth = () => {
@@ -306,7 +308,11 @@ const filteredCoffees = computed(() => {
     // Shop filter
     const shopMatch = !filter.value.shop || coffee.shop_name === filter.value.shop
 
-    return containerMatch && originMatch && shopMatch
+    // Name filter (real-time search)
+    const nameMatch = !filter.value.name || 
+      coffee.name.toLowerCase().includes(filter.value.name.toLowerCase())
+
+    return containerMatch && originMatch && shopMatch && nameMatch
   })
 })
 
@@ -559,7 +565,16 @@ const scrollToTop = () => {
 }
 
 // Lifecycle hooks
-onMounted(() => {
+onMounted(async () => {
+  const { data: names } = await supabase
+    .from('coffee_beans') // Make sure this is the correct table name
+    .select('name') // Make sure this is the correct column name
+    .order('name')
+
+  if (names) {
+    coffeeNames.value = names.map(r => r.name)
+  }
+  
   loadCoffees()
   window.addEventListener('scroll', handleScroll)
   lastScrollY.value = window.scrollY
