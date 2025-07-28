@@ -331,58 +331,13 @@
         </div>
 
         <!-- Container Section -->
-        <div class="bg-purple-50 rounded-md p-4 md:p-3 border-l-4 border-purple-300">
-          <h4 class="uppercase text-base font-semibold text-purple-700 mb-3">
-            Container
-          </h4>
-          <div class="flex justify-center gap-6">
-            <div class="container-option">
-              <button
-                @click.stop="handleContainerClick('green')"
-                :disabled="!isLoggedIn"
-                :class="[
-                  'container-button',
-                  { 
-                    'assigned': props.coffee.in_green_container,
-                    'clickable': isLoggedIn,
-                    'disabled': !isLoggedIn
-                  }
-                ]"
-              >
-                <div 
-                  class="container-circle"
-                  :class="{ 'green-circle': true }"
-                >
-                  <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
-                </div>
-              </button>
-              <span class="container-label green-label">Green</span>
-            </div>
-
-            <div class="container-option">
-              <button
-                @click.stop="handleContainerClick('grey')"
-                :disabled="!isLoggedIn"
-                :class="[
-                  'container-button',
-                  { 
-                    'assigned': props.coffee.in_grey_container,
-                    'clickable': isLoggedIn,
-                    'disabled': !isLoggedIn
-                  }
-                ]"
-              >
-                <div 
-                  class="container-circle"
-                  :class="{ 'grey-circle': true }"
-                >
-                  <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
-                </div>
-              </button>
-              <span class="container-label grey-label">Grey</span>
-            </div>
-          </div>
-        </div>
+        <Container
+          mode="card"
+          :coffee="props.coffee"
+          :container-status="props.containerStatus"
+          :is-logged-in="props.isLoggedIn"
+          @update-container="emit('update-container', $event)"
+        />
 
         <!-- Save/Cancel edit buttons -->      
         <SaveCancelButtons
@@ -399,6 +354,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { supabase } from '../lib/supabase'
+import Container from './Container.vue'
 import SaveCancelButtons from './SaveCancelButtons.vue'
 import { useCoffeeForm } from '../composables/useCoffeeForm'
 import { EllipsisVertical, Store, Pencil, Trash2 } from 'lucide-vue-next'
@@ -515,26 +471,6 @@ const displayedOut = computed(() => {
   const v = props.coffee.recipe_out_grams
   return shotState.value === 'single' ? (v/2).toFixed(1) : v
 })
-
-// 6) Container click handlers
-function handleContainerClick(color) {
-  if (!props.isLoggedIn) return
-  const isAssigned = color === 'green'
-    ? props.coffee.in_green_container
-    : props.coffee.in_grey_container
-  const other = props.containerStatus?.[color]
-
-  if (!isAssigned) {
-    const msg = other
-      ? `Replace "${other.name}" in ${color}?`
-      : `Add "${props.coffee.name}" to ${color}?`
-    if (!confirm(msg)) return
-    emit('update-container', { coffee: props.coffee, container: color, assign: true })
-  } else {
-    if (!confirm(`Remove "${props.coffee.name}" from ${color}?`)) return
-    emit('update-container', { coffee: props.coffee, container: color, assign: false })
-  }
-}
 
 // 7) Other handlers
 async function confirmDelete() {
@@ -744,83 +680,5 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 
 .bg-gradient-both {
   background: linear-gradient(90deg, #dcfce7 0%, #dcfce7 25%, #ffffff 50%, #f3f4f6 75%, #f3f4f6 100%);
-}
-
-/* Container Section Styles */
-.container-option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.container-button {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  opacity: 1;
-}
-
-.container-button.clickable {
-  cursor: pointer;
-}
-
-.container-button.assigned {
-  transform: scale(1.05);
-  box-shadow: 0 0 0 3px #2196f3;
-  border-radius: 50%;
-}
-
-.container-button.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.container-circle {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
-}
-
-.green-circle {
-  background-color: #a8d5a2;
-}
-
-.grey-circle {
-  background-color: #ccc;
-}
-
-.bean-icon {
-  width: 28px;
-  height: 28px;
-  filter: brightness(0.7);
-}
-
-.container-label {
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.green-label {
-  color: #2b7a2b;
-}
-
-.grey-label {
-  color: #666;
-}
-
-.container-button:hover:not(.disabled) .container-circle {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 </style>

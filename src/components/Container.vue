@@ -1,149 +1,218 @@
 <template>
-  <button
-    @click="handleClick"
-    :disabled="!isLoggedIn"
-    :class="[ 
-      'container-card', 
-      containerColorClass,
-      { assigned, clickable: isLoggedIn, disabled: !isLoggedIn }
-    ]"
-  >
-    <div class="icon-label-wrapper">
-      <div class="icon-square" :class="containerColorClass">
-        <img src="../assets/icons/bean_01.svg" alt="bean icon" class="icon" />
+  <div class="bg-purple-50 rounded-md p-4 md:p-3 border-l-4 border-purple-300">
+    <h4 class="uppercase text-base font-semibold text-purple-700 mb-3">
+      Container{{ mode === 'form' ? 's' : '' }}
+    </h4>
+    <div class="flex justify-center gap-6">
+      <div class="container-option">
+        <button
+          @click="handleContainerClick('green')"
+          :class="[
+            'container-button',
+            { 
+              'assigned': isGreenAssigned,
+              'clickable': isLoggedIn || mode === 'form',
+              'disabled': !isLoggedIn && mode === 'card'
+            }
+          ]"
+        >
+          <div class="container-circle green-circle">
+            <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
+          </div>
+        </button>
+        <span class="container-label green-label">Green</span>
       </div>
-      <span class="container-label">{{ containerColorLabel }}</span>
+
+      <div class="container-option">
+        <button
+          @click="handleContainerClick('grey')"
+          :class="[
+            'container-button',
+            { 
+              'assigned': isGreyAssigned,
+              'clickable': isLoggedIn || mode === 'form',
+              'disabled': !isLoggedIn && mode === 'card'
+            }
+          ]"
+        >
+          <div class="container-circle grey-circle">
+            <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
+          </div>
+        </button>
+        <span class="container-label grey-label">Grey</span>
+      </div>
     </div>
-  </button>
+  </div>
 </template>
 
-<script>
-export default {
-  props: {
-    color: {
-      type: String,
-      required: true
-    },
-    assigned: Boolean,
-    activeCoffee: Object,
-    coffee: Object,
-    isLoggedIn: Boolean
-  },
-  computed: {
-    containerColorClass() {
-      return this.color === 'green' ? 'green' : 'grey';
-    },
-    containerColorLabel() {
-      return this.color === 'green' ? 'GREEN' : 'GREY';
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  // For CoffeeCard mode
+  coffee: Object,
+  containerStatus: Object,
+  isLoggedIn: { type: Boolean, default: true },
+  
+  // For CoffeeForm mode  
+  form: Object,
+  coffees: Array,
+  
+  // Mode: 'card' or 'form'
+  mode: { 
+    type: String, 
+    default: 'card',
+    validator: value => ['card', 'form'].includes(value)
+  }
+})
+
+const emit = defineEmits(['update-container', 'form-container-change'])
+
+// Computed properties for assigned state
+const isGreenAssigned = computed(() => {
+  if (props.mode === 'form') {
+    return props.form?.in_green_container || false
+  }
+  return props.coffee?.in_green_container || false
+})
+
+const isGreyAssigned = computed(() => {
+  if (props.mode === 'form') {
+    return props.form?.in_grey_container || false
+  }
+  return props.coffee?.in_grey_container || false
+})
+
+const handleContainerClick = (container) => {
+  if (props.mode === 'card') {
+    handleCardContainerClick(container)
+  } else {
+    handleFormContainerClick(container)
+  }
+}
+
+const handleCardContainerClick = (container) => {
+  if (!props.isLoggedIn) {
+    alert('🔒 Please log in to assign containers.')
+    return
+  }
+
+  const isAssigned = container === 'green' ? isGreenAssigned.value : isGreyAssigned.value
+  const other = props.containerStatus?.[container]
+
+  if (!isAssigned) {
+    const msg = other
+      ? `Replace "${other.name}" in ${container}?`
+      : `Add "${props.coffee.name}" to ${container}?`
+    if (!confirm(msg)) return
+    emit('update-container', { coffee: props.coffee, container, assign: true })
+  } else {
+    if (!confirm(`Remove "${props.coffee.name}" from ${container}?`)) return
+    emit('update-container', { coffee: props.coffee, container, assign: false })
+  }
+}
+
+const handleFormContainerClick = (container) => {
+  const isCurrentlyAssigned = container === 'green' ? isGreenAssigned.value : isGreyAssigned.value
+  
+  if (isCurrentlyAssigned) {
+    // Remove from container
+    if (confirm(`Remove from ${container} container?`)) {
+      emit('form-container-change', { container, assign: false })
     }
-  },
-  methods: {
-    handleClick() {
-      if (!this.isLoggedIn) return;
-
-      const otherCoffee = this.activeCoffee;
-      const isAssigned = this.assigned;
-
-      if (!isAssigned) {
-        if (otherCoffee) {
-          const msg = `Container "${this.color}" is already used by "${otherCoffee.name}". Replace it?`;
-          if (!confirm(msg)) return;
-        } else {
-          const msg = `Add "${this.coffee.name}" to "${this.color}" container?`;
-          if (!confirm(msg)) return;
-        }
-
-        this.$emit('update-container', {
-          coffee: this.coffee,
-          container: this.color,
-          assign: true
-        });
-      } else {
-        const msg = `Remove "${this.coffee.name}" from "${this.color}" container?`;
-        if (!confirm(msg)) return;
-
-        this.$emit('update-container', {
-          coffee: this.coffee,
-          container: this.color,
-          assign: false
-        });
-      }
+  } else {
+    // Add to container - check if another coffee is using it
+    const other = props.coffees?.find(c => 
+      container === 'green' ? c.in_green_container : c.in_grey_container
+    )
+    
+    const msg = other 
+      ? `Replace "${other.name}" in ${container} container?`
+      : `Add to ${container} container?`
+      
+    if (confirm(msg)) {
+      emit('form-container-change', { container, assign: true })
     }
   }
-};
+}
 </script>
 
 <style scoped>
-.container-card {
-  background-color: #fff;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* Container Section Styles */
+.container-option {
   display: flex;
   flex-direction: column;
   align-items: center;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-  opacity: 1;
-  border: none;
+  gap: 8px;
 }
 
-.container-card.clickable {
+.container-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  opacity: 1;
+}
+
+.container-button.clickable {
   cursor: pointer;
 }
 
-/* Only show blue outline when this specific container is assigned */
-.container-card.assigned {
+.container-button.assigned {
+  transform: scale(1.05);
   box-shadow: 0 0 0 3px #2196f3;
-  transform: scale(1.02);
+  border-radius: 50%;
 }
 
-.container-card.disabled {
+.container-button.disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  pointer-events: none;
+  /* Don't use pointer-events: none to allow login prompts */
 }
 
-.icon-label-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.icon-square {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+.container-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 4px;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
 }
 
-.icon {
-  width: 24px;
-  height: 24px;
+.green-circle {
+  background-color: #a8d5a2;
+}
+
+.grey-circle {
+  background-color: #ccc;
+}
+
+.bean-icon {
+  width: 28px;
+  height: 28px;
+  filter: brightness(0.7);
 }
 
 .container-label {
   font-size: 14px;
-  font-weight: bold;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Green container styling */
-.green .icon-square {
-  background-color: #a8d5a2;
-}
-
-.green .container-label {
+.green-label {
   color: #2b7a2b;
 }
 
-/* Grey container styling */
-.grey .icon-square {
-  background-color: #ccc;
+.grey-label {
+  color: #666;
 }
 
-.grey .container-label {
-  color: #666;
+.container-button:hover:not(.disabled) .container-circle {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 </style>

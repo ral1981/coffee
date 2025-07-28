@@ -175,48 +175,12 @@
         </div>
 
         <!-- Containers -->
-        <div class="bg-purple-50 rounded-md p-4 md:p-3 border-l-4 border-purple-300">
-          <h4 class="uppercase text-base font-semibold text-purple-700 mb-3">
-            Containers
-          </h4>
-          <div class="flex justify-center gap-6">
-            <div class="container-option">
-              <button
-                @click="handleContainerClick('green')"
-                :class="[
-                  'container-button',
-                  { 
-                    'assigned': form.in_green_container,
-                    'clickable': true
-                  }
-                ]"
-              >
-                <div class="container-circle green-circle">
-                  <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
-                </div>
-              </button>
-              <span class="container-label green-label">Green</span>
-            </div>
-
-            <div class="container-option">
-              <button
-                @click="handleContainerClick('grey')"
-                :class="[
-                  'container-button',
-                  { 
-                    'assigned': form.in_grey_container,
-                    'clickable': true
-                  }
-                ]"
-              >
-                <div class="container-circle grey-circle">
-                  <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
-                </div>
-              </button>
-              <span class="container-label grey-label">Grey</span>
-            </div>
-          </div>
-        </div>
+        <Container
+          mode="form"
+          :form="form"
+          :coffees="coffees"
+          @form-container-change="handleFormContainerChange"
+        />
 
         <!-- Action buttons -->
         <SaveCancelButtons
@@ -232,6 +196,7 @@
 <script setup>
 import { ref } from 'vue'
 import { supabase } from '../lib/supabase'
+import Container from './Container.vue'
 import SaveCancelButtons from './SaveCancelButtons.vue'
 import { useCoffeeForm } from '../composables/useCoffeeForm'
 
@@ -261,43 +226,6 @@ const { form, isFormValid, save, cancel, validUrl, deriveShopLogo, shopNameOptio
   fetchCoffees: props.fetchCoffees || fetchCoffees
 })
 
-// Container click handlers
-const handleContainerClick = (container) => {
-  if (container === 'green') {
-    const other = coffees.value.find(c => c.in_green_container)
-    if (form.in_green_container) {
-      // Remove from green
-      if (confirm(`Remove from green container?`)) {
-        form.in_green_container = false
-      }
-    } else {
-      // Add to green
-      const msg = other 
-        ? `Replace "${other.name}" in green container?`
-        : `Add to green container?`
-      if (confirm(msg)) {
-        form.in_green_container = true
-      }
-    }
-  } else if (container === 'grey') {
-    const other = coffees.value.find(c => c.in_grey_container)
-    if (form.in_grey_container) {
-      // Remove from grey
-      if (confirm(`Remove from grey container?`)) {
-        form.in_grey_container = false
-      }
-    } else {
-      // Add to grey
-      const msg = other 
-        ? `Replace "${other.name}" in grey container?`
-        : `Add to grey container?`
-      if (confirm(msg)) {
-        form.in_grey_container = true
-      }
-    }
-  }
-}
-
 // Initialize
 fetchCoffees()
 </script>
@@ -305,77 +233,5 @@ fetchCoffees()
 <style scoped>
 .input {
   @apply w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500;
-}
-
-/* Container Section Styles */
-.container-option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.container-button {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  opacity: 1;
-}
-
-.container-button.clickable {
-  cursor: pointer;
-}
-
-.container-button.assigned {
-  transform: scale(1.05);
-  box-shadow: 0 0 0 3px #2196f3;
-  border-radius: 50%;
-}
-
-.container-circle {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
-}
-
-.green-circle {
-  background-color: #a8d5a2;
-}
-
-.grey-circle {
-  background-color: #ccc;
-}
-
-.bean-icon {
-  width: 28px;
-  height: 28px;
-  filter: brightness(0.7);
-}
-
-.container-label {
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.green-label {
-  color: #2b7a2b;
-}
-
-.grey-label {
-  color: #666;
-}
-
-.container-button:hover:not(.disabled) .container-circle {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 </style>
