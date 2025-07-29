@@ -161,7 +161,6 @@ const handleFormContainerClick = (container) => {
 
 .container-button.assigned {
   transform: scale(1.05);
-  box-shadow: 0 0 0 3px #2196f3;
   border-radius: 50%;
 }
 
@@ -178,22 +177,50 @@ const handleFormContainerClick = (container) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   border: 2px solid transparent;
+  position: relative;
 }
 
 .green-circle {
-  background-color: #a8d5a2;
+  background-color: #9fcc97;
+  border-color: #7bb96f;
 }
 
 .grey-circle {
-  background-color: #ccc;
+  background-color: #b8b8b8;
+  border-color: #999999;
+}
+
+/* Active (assigned) state with glow effect */
+.container-button.assigned .green-circle {
+  background-color: #8bc382;
+  border-color: #5ca952;
+  box-shadow: 
+    0 0 0 2px #5ca952,
+    0 0 15px rgba(92, 169, 82, 0.6),
+    0 0 25px rgba(92, 169, 82, 0.3);
+}
+
+.container-button.assigned .grey-circle {
+  background-color: #a5a5a5;
+  border-color: #666666;
+  box-shadow: 
+    0 0 0 2px #666666,
+    0 0 15px rgba(102, 102, 102, 0.6),
+    0 0 25px rgba(102, 102, 102, 0.3);
+}
+
+/* Icon color matching for active state */
+.container-button.assigned .bean-icon {
+  filter: brightness(1.5) sepia(0.3) saturate(0.8) hue-rotate(20deg);
 }
 
 .bean-icon {
   width: 28px;
   height: 28px;
   filter: brightness(0.7);
+  transition: filter 0.3s ease;
 }
 
 .container-label {
