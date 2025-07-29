@@ -68,39 +68,85 @@
       </router-link>
     </div>
 
-      <!-- Controls: Filter Panel -->
-      <div class="flex flex-col lg:flex-row lg:items-stretch gap-4">
-        <div class="flex-1">
-          <FilterPanel
-            :origins="uniqueOrigins"
-            :shops="uniqueShops"
-            :names="coffeeNames"
-            :filtered-count="filteredCoffees.length"
-            :total-count="totalCoffees"
-            @filter-change="handleFilterChange"
-          />
+    <!-- Controls: Filter Panel Tabs -->
+    <div class="flex flex-col lg:flex-row lg:items-stretch gap-4">
+      <div class="flex-1">
+        <div class="w-full bg-white dark:bg-gray-800 rounded-lg">
+          <TabGroup>
+            <!-- Tab list -->
+            <TabList class="flex w-full justify-center items-center p-1 rounded-t-lg bg-transparent">
+              <Tab
+                class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
+                      ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
+              >
+                Filters
+              </Tab>
+              <span class="mx-2 text-gray-400 select-none">|</span>
+              <Tab
+                class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
+                      ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
+              >
+                Containers
+              </Tab>
+              <span class="mx-2 text-gray-400 select-none">|</span>
+              <Tab
+                class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
+                      ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
+              >
+                Shops
+              </Tab>
+            </TabList>
+
+            <!-- Tab panels -->
+            <TabPanels class="p-4">
+              <!-- Filters panel -->
+              <TabPanel>
+                <FilterPanel
+                  :origins="uniqueOrigins"
+                  :shops="uniqueShops"
+                  :names="coffeeNames"
+                  :filtered-count="filteredCoffees.length"
+                  :total-count="totalCoffees"
+                  @filter-change="handleFilterChange"
+                />
+              </TabPanel>
+              <!-- Containers panel (WIP) -->
+              <TabPanel>
+                <div class="flex justify-center items-center h-full text-gray-500 dark:text-gray-400 italic">
+                  🚧 Work in progress…
+                </div>
+              </TabPanel>
+              <!-- Shops panel (WIP) -->
+              <TabPanel>
+                <div class="flex justify-center items-center h-full text-gray-500 dark:text-gray-400 italic">
+                  🚧 Work in progress…
+                </div>
+              </TabPanel>
+            </TabPanels>
+          </TabGroup>
         </div>
       </div>
+    </div>
 
-      <!-- Coffee Cards Grid -->
-      <div class="grid grid-cols-1 gap-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
-        <CoffeeCard
-          v-for="coffee in filteredCoffees"
-          :key="coffee.id"
-          :coffee="coffee"
-          :class="{ 'new-item': coffee.id === newlyAddedId }"
-          :isLoggedIn="isLoggedIn"
-          :containerStatus="containerStatus"
-          :initiallyExpanded="shouldExpandCards"
-          :forceExpandState="forceExpandState"
-          :fetchCoffees="loadCoffees"
-          @editing-changed="onEditingChanged"
-          @update-container="handleContainerUpdate"
-          @deleted="loadCoffees"
-          @saved="loadCoffees"
-          @coffee-updated="handleCoffeeUpdated"
-        />
-      </div>
+    <!-- Coffee Cards Grid -->
+    <div class="grid grid-cols-1 gap-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
+      <CoffeeCard
+        v-for="coffee in filteredCoffees"
+        :key="coffee.id"
+        :coffee="coffee"
+        :class="{ 'new-item': coffee.id === newlyAddedId }"
+        :isLoggedIn="isLoggedIn"
+        :containerStatus="containerStatus"
+        :initiallyExpanded="shouldExpandCards"
+        :forceExpandState="forceExpandState"
+        :fetchCoffees="loadCoffees"
+        @editing-changed="onEditingChanged"
+        @update-container="handleContainerUpdate"
+        @deleted="loadCoffees"
+        @saved="loadCoffees"
+        @coffee-updated="handleCoffeeUpdated"
+      />
+    </div>
 
     <!-- Fixed Footer -->
     <footer class="mt-auto pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
@@ -167,6 +213,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { supabase } from './lib/supabase'
 import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'

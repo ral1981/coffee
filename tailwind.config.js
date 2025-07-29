@@ -1,7 +1,8 @@
 module.exports = {
+  darkMode: 'class',
   content: [
-    "./index.html",
-    "./src/**/*.{vue,js,ts,jsx,tsx}",
+    './index.html',
+    './src/**/*.{vue,js,ts,jsx,tsx}'
   ],
   theme: {
     screens: {
@@ -13,5 +14,8 @@ module.exports = {
     },
     extend: {},
   },
-  plugins: [],
+  plugins: [
+    require('@headlessui/tailwindcss'),  // ← add this
+    // …any other plugins
+  ],
 };
