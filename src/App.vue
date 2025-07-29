@@ -328,11 +328,8 @@ const uniqueShops = computed(() =>
 )
 
 const shouldExpandCards = computed(() => {
-  // Check if we have exactly one container filter and no other filters
-  const containerCount = (filter.value.green ? 1 : 0) + (filter.value.grey ? 1 : 0)
-  const hasOtherFilters = filter.value.origin || filter.value.shop
-  
-  return containerCount === 1 && !hasOtherFilters
+  // Only expand cards if single container came from URL, not manual selection
+  return false // Cards should only expand on initial URL load, handled separately
 })
 
 // Methods
@@ -464,9 +461,14 @@ const handleNewCoffee = async (newCoffee) => {
 const handleFilterChange = (newFilter, isInitialLoad = false) => {
   filter.value = { ...newFilter }
   
-  // If this is initial load from URL and we should expand cards, scroll to first card
-  if (isInitialLoad && shouldExpandCards.value && filteredCoffees.value.length > 0) {
-    scrollToFirstCard()
+  // Only expand and scroll if this is initial URL load with single container
+  if (isInitialLoad && filteredCoffees.value.length > 0) {
+    const containerCount = (newFilter.green ? 1 : 0) + (newFilter.grey ? 1 : 0)
+    const hasOtherFilters = newFilter.origin || newFilter.shop
+    
+    if (containerCount === 1 && !hasOtherFilters) {
+      scrollToFirstCard()
+    }
   }
 }
 
