@@ -104,9 +104,7 @@
 
     <!-- Fixed Footer -->
     <footer class="mt-auto pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
-      <p>© 2025 R.A., all rights reserved unless otherwise noted.</p>
-      <p>This site is for personal, non-commercial use to catalog specialty coffee beans at home.</p>
-      <p>QR codes are intended for private household use and should not be shared externally.</p>
+      <p>© 2025 R.A., all rights reserved unless otherwise noted. This site is for personal, non-commercial use to catalog specialty coffee beans at home. QR codes are intended for private household use and should not be shared externally.</p>
       <p>
         Licensed under 
         <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">
@@ -151,14 +149,17 @@
       @click="handleAddCoffeeClick"
       :disabled="showCoffeeForm || !isLoggedIn"
       :class="[
-        'floating-btn left-6 bottom-6 ',
+        'floating-btn left-6 bottom-6 rounded-full shadow-lg p-3 transition-all duration-300',
         showCoffeeForm || !isLoggedIn
-        ? 'z-10 floating-btn--disabled'
-        : 'z-50 bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3'
+          ? 'z-10 floating-btn--disabled bg-gray-400'
+          : 'z-50 bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:scale-110'
       ]"
       :title="isLoggedIn ? 'Add Coffee' : 'Please log in to add coffee'"
     >
-      <Plus class="w-6 h-6 text-white" />
+      <Plus :class="[
+        'w-6 h-6',
+        showCoffeeForm || !isLoggedIn ? 'text-gray-600' : 'text-white'
+      ]" />
     </button>
 
   </main>
@@ -608,7 +609,8 @@ onBeforeUnmount(() => {
 
 .floating-btn--disabled {
   pointer-events: none;
-  opacity: .5;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .fade-enter-active, .fade-leave-active {
