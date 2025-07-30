@@ -52,7 +52,7 @@
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1">
+    <div class="pt-10 pb-2 text-center">
       <router-link to="/" class="flex flex-col items-center mb-6 cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" class="mb-2">
           <defs>
@@ -99,6 +99,7 @@
 
             <!-- Tab panels -->
             <TabPanels class="p-4">
+              
               <!-- Filters panel -->
               <TabPanel>
                 <FilterPanel
@@ -109,43 +110,49 @@
                   :total-count="totalCoffees"
                   @filter-change="handleFilterChange"
                 />
+                
+                <!-- Coffee Cards Grid -->
+                <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
+                  <CoffeeCard
+                    v-for="coffee in filteredCoffees"
+                    :key="coffee.id"
+                    :coffee="coffee"
+                    :class="{ 'new-item': coffee.id === newlyAddedId }"
+                    :isLoggedIn="isLoggedIn"
+                    :containerStatus="containerStatus"
+                    :initiallyExpanded="shouldExpandCards"
+                    :forceExpandState="forceExpandState"
+                    :fetchCoffees="loadCoffees"
+                    @editing-changed="onEditingChanged"
+                    @update-container="handleContainerUpdate"
+                    @deleted="loadCoffees"
+                    @saved="loadCoffees"
+                    @coffee-updated="handleCoffeeUpdated"
+                  />
+                </div>
               </TabPanel>
+              
               <!-- Containers panel (WIP) -->
               <TabPanel>
                 <div class="flex justify-center items-center h-full text-gray-500 dark:text-gray-400 italic">
                   🚧 Work in progress…
                 </div>
               </TabPanel>
+              
               <!-- Shops panel (WIP) -->
               <TabPanel>
-                <div class="flex justify-center items-center h-full text-gray-500 dark:text-gray-400 italic">
-                  🚧 Work in progress…
+                <div class="flex flex-wrap justify-center gap-4">
+                  <ShopCard
+                    v-for="shop in shops"
+                    :key="shop.shop_url"
+                    :shop="shop"
+                  />
                 </div>
               </TabPanel>
             </TabPanels>
           </TabGroup>
         </div>
       </div>
-    </div>
-
-    <!-- Coffee Cards Grid -->
-    <div class="grid grid-cols-1 gap-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
-      <CoffeeCard
-        v-for="coffee in filteredCoffees"
-        :key="coffee.id"
-        :coffee="coffee"
-        :class="{ 'new-item': coffee.id === newlyAddedId }"
-        :isLoggedIn="isLoggedIn"
-        :containerStatus="containerStatus"
-        :initiallyExpanded="shouldExpandCards"
-        :forceExpandState="forceExpandState"
-        :fetchCoffees="loadCoffees"
-        @editing-changed="onEditingChanged"
-        @update-container="handleContainerUpdate"
-        @deleted="loadCoffees"
-        @saved="loadCoffees"
-        @coffee-updated="handleCoffeeUpdated"
-      />
     </div>
 
     <!-- Fixed Footer -->
@@ -208,6 +215,8 @@
       ]" />
     </button>
 
+    <!-- Toast Notifications -->
+    <ToastContainer />
   </main>
 </template>
 
@@ -215,15 +224,19 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
 import { supabase } from './lib/supabase'
+import { useToast } from './composables/useToast'
+import ToastContainer from './components/ToastContainer.vue'
 import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'
 import FilterPanel from './components/FilterPanel.vue'
 import CoffeeCard from './components/CoffeeCard.vue'
+import ShopCard from './components/ShopCard.vue'
 import { ArrowUp, Lock, LockOpen, Plus, ChevronDown, ChevronRight } from 'lucide-vue-next'
 
 // Reactive state
 const user = ref(null)
 const coffees = ref([])
+const shops = ref([])
 const isLoggedIn = ref(false)
 const anyEditing = ref(false)
 const filter = ref({ green: false, grey: false, origin: '', shop: '', name: '' })
@@ -240,6 +253,7 @@ const newlyAddedId = ref(null)
 const coffeeNames = ref([])
 const shouldExpandFromUrl = ref(false)
 const isInitialUrlLoad = ref(true)
+const { success, error, warning, info } = useToast()
 
 // Authentication methods
 const toggleAuth = () => {
@@ -390,16 +404,81 @@ const shouldExpandCards = computed(() => {
 
 // Methods
 const loadCoffees = async () => {
-  const { data, error } = await supabase
-    .from('coffee_beans')
-    .select('*')
-    .order('created_at', { ascending: false })
+  try {
+    const { data, error } = await supabase
+      .from('coffee_beans')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-  if (error) {
-  } else {
-    coffees.value = data
+    if (error) {
+      throw error
+    } else {
+      coffees.value = data
+    }
+  } catch (err) {
+    error('Failed to load coffees', 'Please check your connection and try again')
+    console.error('Load coffees error:', err)
   }
 }
+
+onMounted(async () => {
+  const { data: names } = await supabase
+    .from('coffee_beans') // Make sure this is the correct table name
+    .select('name') // Make sure this is the correct column name
+    .order('name')
+
+  if (names) {
+    coffeeNames.value = names.map(r => r.name)
+  }
+  
+  loadCoffees()
+  window.addEventListener('scroll', handleScroll)
+  lastScrollY.value = window.scrollY
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', handleScroll)
+  if (autoCollapseTimer.value) {
+    clearTimeout(autoCollapseTimer.value)
+  }
+})
+
+async function loadShops() {
+  // 1) pull every bean’s shop fields
+  const { data: beans, error } = await supabase
+    .from('coffee_beans')
+    .select('shop_name, shop_url')
+  if (error) {
+    console.error('Error loading shops:', error)
+    return
+  }
+
+  // 2) filter out null/empty
+  const valid = beans.filter(
+    (b) => b.shop_name && b.shop_url
+  )
+
+  // 3) dedupe by shop_name
+  const map = new Map()
+  valid.forEach((b) => {
+    if (!map.has(b.shop_name)) {
+      map.set(b.shop_name, b.shop_url)
+    }
+  })
+
+  // 4) turn into array & sort
+  shops.value = Array.from(map, ([shop_name, shop_url]) => ({
+    shop_name,
+    shop_url
+  })).sort((a, b) =>
+    a.shop_name.localeCompare(b.shop_name, undefined, { sensitivity: 'base' })
+  )
+}
+
+onMounted(async () => {
+  await loadCoffees()
+  await loadShops()
+})
 
 const scrollToFirstCard = async () => {
   await nextTick()
@@ -420,12 +499,10 @@ const scrollToFirstCard = async () => {
 
 const handleAddCoffeeClick = () => {
   if (!isLoggedIn.value) {
-    // Use the same login prompt style as CoffeeCard.vue
-    alert('🔒 Please log in to add coffee.')
+    warning('🔒 Please log in first', 'Login required to add coffee')
     return
   }
   
-  // Show the form as an overlay
   showCoffeeForm.value = true
 }
 
@@ -442,16 +519,17 @@ const onUserChanged = (newUser) => {
 
   loadCoffees()
   
+  if (newUser) {
+    success('Welcome back!', 'Successfully logged in')
+  }
+  
   if (!newUser) {
     anyEditing.value = false
     showCoffeeForm.value = false
-    // Don't automatically close auth panel when user logs out
-    // Let them see the login form again
   }
 }
 
 const attemptLogout = async () => {
-  
   if (anyEditing.value) {
     const ok = confirm(
       'You have unsaved changes. Discard them and log out?'
@@ -461,53 +539,45 @@ const attemptLogout = async () => {
     }
   }
 
-  // Clear the app state immediately to provide instant feedback
   isLoggedIn.value = false
   anyEditing.value = false 
   user.value = null
   showCoffeeForm.value = false
   
-  // Clear any running timers
   clearAutoCollapseTimer()
   
-  // Enhanced logout: Force sign out with global scope and clear all session data
   try {
     await supabase.auth.signOut({ scope: 'global' })
-    
-    // Clear all possible storage locations
     localStorage.removeItem('supabase.auth.token')
     localStorage.removeItem('sb-' + supabase.supabaseKey + '-auth-token')
     sessionStorage.clear()
     
+    // Show logout toast
+    info('Logged out', 'See you next time!')
+    
   } catch (error) {
     console.warn('Error during logout cleanup (but continuing):', error)
+    error('Logout error', 'There was an issue logging out, but you\'ve been signed out locally')
   }
   
-  // Close the auth panel
   showAuth.value = false
-  
-  // Reload coffees to show public view
   await loadCoffees()
 }
 
 const handleNewCoffee = async (newCoffee) => {
-  // Refresh the entire list to ensure consistency
   await loadCoffees()
   
-  // Mark as newly added
   newlyAddedId.value = newCoffee.id
-  
-  // Hide the form after successful addition
   showCoffeeForm.value = false
   
-  // Scroll to new item
+  success('Coffee added successfully!', `${newCoffee.name} has been saved to your collection`)
+  
   await nextTick()
   const newElement = document.querySelector(`[data-coffee-id="${newCoffee.id}"]`)
   if (newElement) {
     newElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
   
-  // Remove "new" highlight after 3 seconds
   setTimeout(() => {
     newlyAddedId.value = null
   }, 3000)
@@ -578,10 +648,12 @@ const handleContainerUpdate = async ({ coffee, container, assign }) => {
     )
 
     if (conflicting && conflicting.id !== coffee.id) {
-      // Don't show another prompt here - the Container component already handled it
-      // Just proceed with the unassignment of the conflicting coffee
+      // Show toast instead of silent handling
+      warning(
+        'Container reassigned',
+        `${conflicting.name} moved out of ${container} container`
+      )
       
-      // Unassign the container from the previously assigned coffee
       const unassignUpdate = container === 'green'
         ? { in_green_container: false }
         : { in_grey_container: false }
@@ -598,12 +670,25 @@ const handleContainerUpdate = async ({ coffee, container, assign }) => {
     in_grey_container: container === 'grey' ? assign : coffee.in_grey_container
   }
 
-  await supabase
-    .from('coffee_beans')
-    .update(update)
-    .eq('id', coffee.id)
+  try {
+    await supabase
+      .from('coffee_beans')
+      .update(update)
+      .eq('id', coffee.id)
 
-  await loadCoffees()
+    await loadCoffees()
+    
+    // Show success toast
+    const action = assign ? 'assigned to' : 'removed from'
+    success(
+      `Container ${action} ${coffee.name}`,
+      `${container.charAt(0).toUpperCase() + container.slice(1)} container updated`
+    )
+    
+  } catch (err) {
+    error('Container update failed', 'Please try again')
+    console.error('Container update error:', err)
+  }
 }
 
 const onEditingChanged = (isNowEditing) => {
@@ -637,29 +722,6 @@ const scrollToTop = () => {
     behavior: 'smooth'
   })
 }
-
-// Lifecycle hooks
-onMounted(async () => {
-  const { data: names } = await supabase
-    .from('coffee_beans') // Make sure this is the correct table name
-    .select('name') // Make sure this is the correct column name
-    .order('name')
-
-  if (names) {
-    coffeeNames.value = names.map(r => r.name)
-  }
-  
-  loadCoffees()
-  window.addEventListener('scroll', handleScroll)
-  lastScrollY.value = window.scrollY
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('scroll', handleScroll)
-  if (autoCollapseTimer.value) {
-    clearTimeout(autoCollapseTimer.value)
-  }
-})
 </script>
 
 <style scoped>
