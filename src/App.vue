@@ -79,7 +79,7 @@
                 class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
                       ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
               >
-                Filters
+                Coffees
               </Tab>
               <span class="mx-2 text-gray-400 select-none">|</span>
               <Tab
@@ -238,6 +238,8 @@ const allExpanded = ref(false)
 const forceExpandState = ref(null)
 const newlyAddedId = ref(null)
 const coffeeNames = ref([])
+const shouldExpandFromUrl = ref(false)
+const isInitialUrlLoad = ref(true)
 
 // Authentication methods
 const toggleAuth = () => {
@@ -322,6 +324,14 @@ const toggleExpandAll = () => {
   })
 }
 
+// Reset expansion when manually clearing all filters
+watch(filter, (newFilter) => {
+  const hasAnyFilter = newFilter.green || newFilter.grey || newFilter.origin || newFilter.shop || newFilter.name
+  if (!hasAnyFilter) {
+    shouldExpandFromUrl.value = false
+  }
+}, { deep: true })
+
 // Watch for login state changes to handle auto-expand and auto-collapse
 watch(isLoggedIn, (newValue, oldValue) => {
   if (newValue && !oldValue) {
@@ -375,8 +385,7 @@ const uniqueShops = computed(() =>
 )
 
 const shouldExpandCards = computed(() => {
-  // Only expand cards if single container came from URL, not manual selection
-  return false // Cards should only expand on initial URL load, handled separately
+  return shouldExpandFromUrl.value
 })
 
 // Methods
@@ -387,27 +396,26 @@ const loadCoffees = async () => {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error(error)
   } else {
     coffees.value = data
   }
 }
 
-// Add this method for scrolling to first card
 const scrollToFirstCard = async () => {
   await nextTick()
-  // Wait a bit more for the card to fully render in expanded state
+  
   setTimeout(() => {
-    const firstCard = document.querySelector('[data-coffee-id]')
+    const firstCard = document.querySelector('[data-coffee-id]') || 
+                     document.querySelector('.coffee-card-wrapper')
+    
     if (firstCard) {
       const cardTop = firstCard.offsetTop
-      // Scroll to just above the card (accounting for header/spacing)
       window.scrollTo({
-        top: cardTop - 20,
+        top: Math.max(0, cardTop - 100),
         behavior: 'smooth'
       })
     }
-  }, 300) // Give time for the expand animation
+  }, 800)
 }
 
 const handleAddCoffeeClick = () => {
@@ -505,19 +513,35 @@ const handleNewCoffee = async (newCoffee) => {
   }, 3000)
 }
 
-const handleFilterChange = (newFilter, isInitialLoad = false) => {
+const handleFilterChange = (newFilter, isFromUrl = false) => {
   filter.value = { ...newFilter }
   
-  // Only expand and scroll if this is initial URL load with single container
-  if (isInitialLoad && filteredCoffees.value.length > 0) {
+  // Only expand on URL load with single container (don't reset isInitialUrlLoad yet)
+  if (isFromUrl && isInitialUrlLoad.value) {
     const containerCount = (newFilter.green ? 1 : 0) + (newFilter.grey ? 1 : 0)
     const hasOtherFilters = newFilter.origin || newFilter.shop
-    
+        
     if (containerCount === 1 && !hasOtherFilters) {
-      scrollToFirstCard()
+      shouldExpandFromUrl.value = true
+      isInitialUrlLoad.value = false // Only reset after successful expansion
+    } else if (containerCount === 0) {
+      // Don't reset isInitialUrlLoad if no containers yet (waiting for route watcher)
+    } else {
+      // Multiple containers or other filters - reset flag
+      isInitialUrlLoad.value = false
     }
+  } else if (!isFromUrl) {
+    shouldExpandFromUrl.value = false
+    isInitialUrlLoad.value = false // Reset on any manual change
   }
 }
+
+// Watch for filtered coffees to become available after URL-based expansion
+watch(filteredCoffees, (newFilteredCoffees) => {
+  if (shouldExpandFromUrl.value && newFilteredCoffees.length > 0) {
+    scrollToFirstCard()
+  }
+}, { immediate: true })
 
 // ADD: New event handler for coffee updates
 const handleCoffeeUpdated = async (updatedCoffee) => {

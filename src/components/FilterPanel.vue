@@ -328,8 +328,8 @@
 
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
-import { ref, reactive, watch, onMounted, computed } from 'vue'
-import { ChevronDown, ChevronUp, SlidersHorizontal, X } from 'lucide-vue-next'
+import { ref, reactive, watch, onMounted, computed, nextTick } from 'vue'
+import { SlidersHorizontal, X } from 'lucide-vue-next'
 
 const isOpen = ref(false)
 const isCollapsing = ref(false)
@@ -463,11 +463,8 @@ const parseUrlFilters = () => {
 const loadFiltersFromUrl = () => {
   const urlFilters = parseUrlFilters()
   
-  // Update reactive filters
   Object.assign(filters, urlFilters)
-  
-  // Emit the change to parent
-  emit('filter-change', { ...filters }, true)
+  emit('filter-change', { ...urlFilters }, true)
 }
 
 // Update URL based on current filters
@@ -516,11 +513,17 @@ onMounted(() => {
   initialized.value = true
 })
 
-// Watch for filter changes and update URL
-watch(filters, () => {
+// Watch for filter changes and update URL (but skip if this is from URL loading)
+watch(filters, (newFilters, oldFilters) => {
   if (!initialized.value) return
   
-  emit('filter-change', { ...filters }, false)
+  // Only emit as manual change if this wasn't triggered by URL loading
+  // We can detect URL loading by checking if we're currently processing a route change
+  const isFromUrlChange = !initialized.value || JSON.stringify(newFilters) === JSON.stringify(parseUrlFilters())
+  
+  if (!isFromUrlChange) {
+    emit('filter-change', { ...filters }, false)
+  }
   updateUrl()
 }, { deep: true })
 
@@ -528,9 +531,10 @@ watch(filters, () => {
 watch(() => route.query, () => {
   if (!initialized.value) return
   
-  // Temporarily disable URL updates to prevent infinite loop
+  // Temporarily disable initialized to prevent the filters watcher from firing
+  const wasInitialized = initialized.value
   initialized.value = false
   loadFiltersFromUrl()
-  initialized.value = true
+  initialized.value = wasInitialized
 }, { deep: true })
 </script>
