@@ -378,12 +378,16 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useToast } from '../composables/useToast'
 import Container from './Container.vue'
 import SaveCancelButtons from './SaveCancelButtons.vue'
 import { useCoffeeForm } from '../composables/useCoffeeForm'
 import { EllipsisVertical, Store, Pencil, Trash2 } from 'lucide-vue-next'
 import singleShotIcon from '../assets/icons/1shot.svg'
 import doubleShotIcon from '../assets/icons/2shot.svg'
+
+// Toast composable
+const { success, error, warning, info } = useToast()
 
 // 1) Props & Emits
 const props = defineProps({
@@ -506,25 +510,42 @@ async function confirmDelete() {
   showMenu.value = false
   if (!confirm(`Delete "${props.coffee.name}"?`)) return
   
-  const { error } = await supabase.from('coffee_beans').delete().eq('id', props.coffee.id)
-  if (error) alert('❌ Delete failed: ' + error.message)
-  else emit('deleted')
+  try {
+    const { error: deleteError } = await supabase
+      .from('coffee_beans')
+      .delete()
+      .eq('id', props.coffee.id)
+    
+    if (deleteError) {
+      throw deleteError
+    }
+    
+    success('Coffee deleted', `${props.coffee.name} has been removed from your collection`)
+    emit('deleted')
+    
+  } catch (err) {
+    error('Delete failed', 'Please try again')
+    console.error('Delete error:', err)
+  }
 }
 
 function showLoginPrompt(action) {
   const actionText = action === 'edit' ? 'edit this coffee' : 'delete this coffee'
-  alert(`🔒 Please log in to ${actionText}.`)
+  warning('🔒 Please log in first', `Login required to ${actionText}`)
   showMenu.value = false
 }
 
-function    toggleMenu() {
-  showMenu.value = !showMenu.value;
+function toggleMenu() {
+  showMenu.value = !showMenu.value
 }
 
 function openShopPage() {
   showMenu.value = false
   if (props.coffee.shop_url) {
     window.open(props.coffee.shop_url, '_blank', 'noopener,noreferrer')
+    info('Opening shop page', 'Redirecting to coffee shop website')
+  } else {
+    warning('No shop URL', 'This coffee doesn\'t have a shop page linked')
   }
 }
 

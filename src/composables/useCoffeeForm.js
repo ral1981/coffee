@@ -1,5 +1,6 @@
 import { reactive, ref, watch, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
+import { useToast } from './useToast'
 
 export function useCoffeeForm({
   initialData = {},
@@ -8,6 +9,9 @@ export function useCoffeeForm({
   onClose,             // callback to hide the form UI
   fetchCoffees,        // optional: refresh parent list
 }) {
+  // Toast composable
+  const { success, error, warning, info } = useToast()
+
   // Default values
   const defaults = {
     name: '',
@@ -41,29 +45,43 @@ export function useCoffeeForm({
   const shopNameOptions = ref([])
   const originOptions   = ref([])
 
-    // helper: fetch distinct shop names & origins
+  // helper: fetch distinct shop names & origins
   const fetchSuggestions = async () => {
-    // get all shop_name values
-    const { data: shops, error: shopErr } = await supabase
-      .from('coffee_beans')
-      .select('shop_name')
-      .neq('shop_name', '')
-    if (!shopErr) {
-      // unique & filter out empty/null
-      shopNameOptions.value = Array.from(
-        new Set(shops.map(r => r.shop_name).filter(Boolean))
-      )
-    }
+    try {
+      // get all shop_name values
+      const { data: shops, error: shopErr } = await supabase
+        .from('coffee_beans')
+        .select('shop_name')
+        .neq('shop_name', '')
+      
+      if (shopErr) {
+        console.error('Error fetching shop suggestions:', shopErr)
+        warning('Suggestions unavailable', 'Could not load shop name suggestions')
+      } else {
+        // unique & filter out empty/null
+        shopNameOptions.value = Array.from(
+          new Set(shops.map(r => r.shop_name).filter(Boolean))
+        )
+        info('Suggestions loaded', `${shopNameOptions.value.length} shop names available`)
+      }
 
-    // get all origin values
-    const { data: origins, error: originErr } = await supabase
-      .from('coffee_beans')
-      .select('origin')
-      .neq('origin', '')
-    if (!originErr) {
-      originOptions.value = Array.from(
-        new Set(origins.map(r => r.origin).filter(Boolean))
-      )
+      // get all origin values
+      const { data: origins, error: originErr } = await supabase
+        .from('coffee_beans')
+        .select('origin')
+        .neq('origin', '')
+      
+      if (originErr) {
+        console.error('Error fetching origin suggestions:', originErr)
+        warning('Suggestions unavailable', 'Could not load origin suggestions')
+      } else {
+        originOptions.value = Array.from(
+          new Set(origins.map(r => r.origin).filter(Boolean))
+        )
+      }
+    } catch (err) {
+      console.error('Error in fetchSuggestions:', err)
+      error('Data loading failed', 'Could not load form suggestions')
     }
   }
 
@@ -82,12 +100,20 @@ export function useCoffeeForm({
 
   function isAltitudeFormat(value) {
     if (value === '') return true
-    return /^\d{3,4}(–\d{3,4})?$/.test(value.trim())
+    const isValid = /^\d{3,4}(–\d{3,4})?$/.test(value.trim())
+    if (!isValid && value.trim()) {
+      warning('Invalid altitude format', 'Use format: 1200 or 1200–1400')
+    }
+    return isValid
   }
 
   function isTimeFormat(value) {
     if (value === '') return true
-    return /^\d+$|^\d{1,2}:\d{2}$/.test(value.trim())
+    const isValid = /^\d+$|^\d{1,2}:\d{2}$/.test(value.trim())
+    if (!isValid && value.trim()) {
+      warning('Invalid time format', 'Use seconds (30) or minutes:seconds (2:30)')
+    }
+    return isValid
   }
 
   // Auto-derive shop logo from URL
@@ -97,19 +123,29 @@ export function useCoffeeForm({
       form.shop_logo = ''
       return
     }
+    
     try {
       const u = new URL(url.startsWith('http') ? url : `https://${url}`)
       form.shop_url = u.href
       form.shop_logo = `https://www.google.com/s2/favicons?domain=${u.hostname}`
-    } catch {
+      success('Shop logo updated', 'Logo automatically generated from URL')
+    } catch (err) {
       form.shop_logo = ''
+      warning('Invalid URL', 'Please enter a valid website URL')
     }
   }
 
   // Watch shop_url changes (only for logo derivation)
   watch(
     () => form.shop_url,
-    deriveShopLogo,
+    (newUrl, oldUrl) => {
+      // Only show feedback if URL actually changed and is not empty
+      if (newUrl && newUrl !== oldUrl) {
+        deriveShopLogo()
+      } else if (!newUrl) {
+        form.shop_logo = ''
+      }
+    },
     { immediate: true }
   )
 
@@ -126,89 +162,191 @@ export function useCoffeeForm({
   const recipeRatio = computed(() => {
     const i = parseFloat(form.recipe_in_grams)
     const o = parseFloat(form.recipe_out_grams)
-    return i && o ? (o / i).toFixed(2) : ''
+    if (i && o) {
+      const ratio = (o / i).toFixed(2)
+      // Optional: Show ratio feedback when both values are present
+      // info('Ratio calculated', `Coffee ratio: 1:${ratio}`)
+      return ratio
+    }
+    return ''
   })
 
+  // Enhanced validation with detailed feedback
+  const getValidationErrors = () => {
+    const errors = []
+    
+    if (!form.name.trim()) errors.push('Coffee name is required')
+    if (!form.shop_name.trim()) errors.push('Shop name is required')
+    if (!validUrl(form.shop_url)) errors.push('Valid shop URL is required')
+    if (!form.origin.trim()) errors.push('Origin is required')
+    if (!isPositiveNumber(form.recipe_in_grams)) errors.push('Recipe input must be a positive number')
+    if (!isPositiveNumber(form.recipe_out_grams)) errors.push('Recipe output must be a positive number')
+    if (!isAltitudeFormat(form.altitude_meters)) errors.push('Invalid altitude format')
+    if (!isTimeFormat(form.recipe_time_seconds)) errors.push('Invalid time format')
+    if (form.sca && !isFloatInRange(form.sca, 0, 100)) errors.push('SCA score must be between 0-100')
+    
+    return errors
+  }
+
   const isFormValid = computed(() => {
-    return (
-      form.name.trim().length > 0 &&
-      form.shop_name.trim().length > 0 &&
-      validUrl(form.shop_url) &&
-      form.origin.trim().length > 0 &&
-      isPositiveNumber(form.recipe_in_grams) &&
-      isPositiveNumber(form.recipe_out_grams) &&
-      isAltitudeFormat(form.altitude_meters) &&
-      isTimeFormat(form.recipe_time_seconds) &&
-      (form.sca === '' || form.sca === null || (isFloatInRange(form.sca, 0, 100)))
-    )
+    return getValidationErrors().length === 0
   })
 
   const resetForm = () => {
     Object.assign(form, { ...defaults, ...initialData })
+    info('Form reset', mode === 'add' ? 'Form cleared' : 'Changes reverted')
   }
 
   const save = async () => {
-    if (!isFormValid.value) {
-      alert('❌ Please fill in all required fields correctly.')
+    const validationErrors = getValidationErrors()
+    
+    if (validationErrors.length > 0) {
+      error('Validation failed', validationErrors[0])
+      // Show all errors in console for debugging
+      console.log('All validation errors:', validationErrors)
       return
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      alert('❌ You must be logged in to save coffee.')
-      return
-    }
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError) {
+        throw new Error('Authentication error: ' + userError.message)
+      }
+      
+      if (!user) {
+        warning('Authentication required', 'Please log in to save coffee')
+        return
+      }
 
-    // Set the recipe ratio
-    form.recipe_ratio = recipeRatio.value
+      // Show saving feedback
+      info('Saving...', `${mode === 'add' ? 'Adding' : 'Updating'} coffee entry`)
 
-    const payload = { 
-      ...JSON.parse(JSON.stringify(form)), 
-      user_id: user.id 
-    }
+      // Set the recipe ratio
+      form.recipe_ratio = recipeRatio.value
 
-    let result
-    if (mode === 'add') {
-      result = await supabase.from('coffee_beans').insert(payload).select()
-    } else {
-      result = await supabase
-        .from('coffee_beans')
-        .update(payload)
-        .eq('id', initialData.id)
-        .select()
-    }
+      const payload = { 
+        ...JSON.parse(JSON.stringify(form)), 
+        user_id: user.id 
+      }
 
-    if (result.error) {
-      alert(`❌ Failed to ${mode === 'add' ? 'add' : 'save'} coffee: ${result.error.message}`)
-    } else {
-      alert(`✅ Coffee ${mode === 'add' ? 'added' : 'saved'}!`)
+      let result
+      if (mode === 'add') {
+        result = await supabase.from('coffee_beans').insert(payload).select()
+      } else {
+        result = await supabase
+          .from('coffee_beans')
+          .update(payload)
+          .eq('id', initialData.id)
+          .select()
+      }
+
+      if (result.error) {
+        throw new Error(result.error.message)
+      }
+
+      const actionText = mode === 'add' ? 'added' : 'updated'
+      const coffeeName = result.data[0]?.name || 'Coffee'
+      
+      success(
+        `Coffee ${actionText}!`, 
+        `${coffeeName} has been ${actionText} successfully`
+      )
+      
       emit(mode === 'add' ? 'coffee-saved' : 'coffee-updated', result.data[0])
       onClose?.()
-      fetchCoffees?.()
+      
+      // Refresh the coffee list
+      if (fetchCoffees) {
+        await fetchCoffees()
+      }
+
+    } catch (err) {
+      console.error(`Error ${mode === 'add' ? 'adding' : 'updating'} coffee:`, err)
+      error(
+        `Save failed`, 
+        `Could not ${mode === 'add' ? 'add' : 'update'} coffee: ${err.message}`
+      )
     }
   }
 
   const cancel = () => {
-    const msg = mode === 'add'
-      ? 'Are you sure you want to discard this coffee entry?'
-      : 'Discard all changes?'
-    if (!confirm(msg)) return
+    const hasChanges = Object.keys(form).some(key => {
+      const currentValue = form[key]
+      const initialValue = initialData[key] || defaults[key]
+      return currentValue !== initialValue
+    })
+
+    if (hasChanges) {
+      const msg = mode === 'add'
+        ? 'Are you sure you want to discard this coffee entry?'
+        : 'Discard all changes?'
+      
+      if (!confirm(msg)) {
+        return
+      }
+      
+      warning(
+        'Changes discarded', 
+        mode === 'add' ? 'New coffee entry cancelled' : 'Changes reverted'
+      )
+    } else {
+      info(
+        'Form closed', 
+        mode === 'add' ? 'Add coffee cancelled' : 'Edit mode closed'
+      )
+    }
     
     resetForm()
     onClose?.()
     emit('cancel')
   }
 
+  // Auto-save draft functionality (optional)
+  const saveDraft = () => {
+    try {
+      const draftKey = mode === 'add' ? 'coffee-form-draft' : `coffee-edit-draft-${initialData.id}`
+      localStorage.setItem(draftKey, JSON.stringify(form))
+      info('Draft saved', 'Your progress has been saved locally')
+    } catch (err) {
+      console.error('Error saving draft:', err)
+      warning('Draft save failed', 'Could not save progress locally')
+    }
+  }
+
+  const loadDraft = () => {
+    try {
+      const draftKey = mode === 'add' ? 'coffee-form-draft' : `coffee-edit-draft-${initialData.id}`
+      const draft = localStorage.getItem(draftKey)
+      
+      if (draft) {
+        const draftData = JSON.parse(draft)
+        Object.assign(form, draftData)
+        success('Draft restored', 'Your previous progress has been loaded')
+        localStorage.removeItem(draftKey)
+        return true
+      }
+      return false
+    } catch (err) {
+      console.error('Error loading draft:', err)
+      warning('Draft load failed', 'Could not restore previous progress')
+      return false
+    }
+  }
+
   return {
     form,
     recipeRatio,
     isFormValid,
+    getValidationErrors,
     save,
     cancel,
     resetForm,
     validUrl,
     deriveShopLogo,
     shopNameOptions,
-    originOptions
+    originOptions,
+    saveDraft,
+    loadDraft
   }
 }

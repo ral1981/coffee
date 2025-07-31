@@ -41,9 +41,25 @@
 </template>
 
 <script setup>
-defineProps({
+import { useToast } from '../composables/useToast'
+
+const { warning } = useToast()
+
+const props = defineProps({
   disabled: { type: Boolean, default: false }
 })
 
-defineEmits(['save', 'cancel'])
+const emit = defineEmits(['save', 'cancel'])
+
+const handleSaveClick = () => {
+  if (props.disabled) {
+    warning('Cannot save', 'Please complete all required fields')
+    return
+  }
+  emit('save')
+}
+
+const handleCancel = () => {
+  emit('cancel')
+}
 </script>

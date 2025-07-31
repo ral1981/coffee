@@ -329,7 +329,11 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
 import { ref, reactive, watch, onMounted, computed, nextTick } from 'vue'
+import { useToast } from '../composables/useToast'
 import { SlidersHorizontal, X } from 'lucide-vue-next'
+
+// Toast composable
+const { success, error, warning, info } = useToast()
 
 const isOpen = ref(false)
 const isCollapsing = ref(false)
@@ -376,7 +380,7 @@ const router = useRouter()
 // 1) container‐only check stays the same
 const hasContainerFilter = computed(() => filters.green || filters.grey)
 
-// 2) build a single list of “active” filters
+// 2) build a single list of "active" filters
 const activeFilters = computed(() => {
   const arr = []
   if (filters.green)  arr.push({ key: 'green',  label: 'Green' })
@@ -394,7 +398,7 @@ const hasActiveFilters   = computed(() => activeFilters.value.length > 0)
 const activeFilterCount  = computed(() => activeFilters.value.length)
 
 const nameFilteredCoffees = computed(() => {
-  if (!filters.name.trim()) return props.totalCoffees
+  if (!filters.name.trim()) return props.totalCount
   
   // This would need to be passed from parent, or we need to restructure
   // For now, we'll emit the filter and let parent handle the actual filtering
@@ -403,14 +407,17 @@ const nameFilteredCoffees = computed(() => {
 
 // Toggle container filter
 const toggleContainer = (container) => {
+  const hadOtherFilters = filters.origin || filters.shop
+  
   if (container === 'green') {
     filters.green = !filters.green
   } else if (container === 'grey') {
     filters.grey = !filters.grey
   }
   
-  // Clear other filters when container filter is applied
-  if (hasContainerFilter.value) {
+  // Clear other filters when container filter is applied and show toast
+  if (hasContainerFilter.value && hadOtherFilters) {
+    warning('Filters cleared', 'Origin and shop filters cleared when selecting container')
     filters.origin = ''
     filters.shop = ''
   }
@@ -423,40 +430,69 @@ function removeFilter(key) {
   } else {
     filters[key] = ''
   }
+  
+  // Show feedback when removing filters
+  const filterLabels = {
+    green: 'Green container',
+    grey: 'Grey container',
+    origin: 'Origin',
+    shop: 'Shop',
+    name: 'Name search'
+  }
+  
+  info('Filter removed', `${filterLabels[key]} filter cleared`)
 }
 
 // Parse URL parameters into filter object
 const parseUrlFilters = () => {
-  const urlFilters = {
-    green: false,
-    grey: false,
-    origin: '',
-    shop: '',
-    name: ''
-  }
-
-  // Handle container parameter
-  if (route.query.container) {
-    const containerParam = route.query.container
-    let containers = []
-    
-    if (Array.isArray(containerParam)) {
-      containers = containerParam
-    } else if (typeof containerParam === 'string') {
-      containers = containerParam.split(',').map(c => c.trim()).filter(c => c)
+  try {
+    const urlFilters = {
+      green: false,
+      grey: false,
+      origin: '',
+      shop: '',
+      name: ''
     }
 
-    urlFilters.green = containers.includes('green')
-    urlFilters.grey = containers.includes('grey')
-  }
+    // Handle container parameter
+    if (route.query.container) {
+      const containerParam = route.query.container
+      let containers = []
+      
+      if (Array.isArray(containerParam)) {
+        containers = containerParam
+      } else if (typeof containerParam === 'string') {
+        containers = containerParam.split(',').map(c => c.trim()).filter(c => c)
+      }
 
-  // Handle other filters (only if no container filter)
-  if (!urlFilters.green && !urlFilters.grey) {
-    urlFilters.origin = route.query.origin || ''
-    urlFilters.shop = route.query.shop || ''
-  }
+      // Validate container values
+      const validContainers = containers.filter(c => ['green', 'grey'].includes(c))
+      if (validContainers.length !== containers.length) {
+        warning('Invalid URL parameters', 'Some container filters in URL were invalid')
+      }
 
-  return urlFilters
+      urlFilters.green = validContainers.includes('green')
+      urlFilters.grey = validContainers.includes('grey')
+    }
+
+    // Handle other filters (only if no container filter)
+    if (!urlFilters.green && !urlFilters.grey) {
+      urlFilters.origin = route.query.origin || ''
+      urlFilters.shop = route.query.shop || ''
+    }
+
+    return urlFilters
+  } catch (err) {
+    console.error('Error parsing URL filters:', err)
+    warning('URL error', 'Invalid filter parameters in URL, using defaults')
+    return {
+      green: false,
+      grey: false,  
+      origin: '',
+      shop: '',
+      name: ''
+    }
+  }
 }
 
 // Apply filters from URL to reactive filters
@@ -493,18 +529,29 @@ const updateUrl = () => {
   }
 
   // Use router.replace to avoid adding to history
-  router.replace({
-    path: route.path,
-    query
-  })
+  try {
+    router.replace({
+      path: route.path,
+      query
+    })
+  } catch (err) {
+    console.error('Error updating URL:', err)
+    error('Navigation error', 'Failed to update URL with current filters')
+  }
 }
 
 const clearFilters = () => {
+  const hadFilters = hasActiveFilters.value
+  
   filters.green = false
   filters.grey = false
   filters.origin = ''
   filters.shop = ''
   filters.name = ''
+  
+  if (hadFilters) {
+    success('Filters cleared', 'All filters have been reset')
+  }
 }
 
 // Initialize filters from URL when component mounts
@@ -523,6 +570,19 @@ watch(filters, (newFilters, oldFilters) => {
   
   if (!isFromUrlChange) {
     emit('filter-change', { ...filters }, false)
+    
+    // Show feedback for no results after a brief delay to allow parent to update
+    nextTick(() => {
+      setTimeout(() => {
+        if (hasActiveFilters.value && props.filteredCount === 0) {
+          info('No results found', 'Try adjusting your filters to see more coffees')
+        } else if (hasActiveFilters.value && props.filteredCount > 0) {
+          // Show success feedback when filters return results
+          const resultText = props.filteredCount === 1 ? '1 coffee' : `${props.filteredCount} coffees`
+          success('Filters applied', `Found ${resultText} matching your criteria`)
+        }
+      }, 100) // Small delay to ensure props are updated
+    })
   }
   updateUrl()
 }, { deep: true })
@@ -535,6 +595,28 @@ watch(() => route.query, () => {
   const wasInitialized = initialized.value
   initialized.value = false
   loadFiltersFromUrl()
+  
+  // Show feedback for URL-based filter changes
+  nextTick(() => {
+    if (hasActiveFilters.value) {
+      info('Filters loaded from URL', 'Applied filters from web address')
+    }
+  })
+  
   initialized.value = wasInitialized
 }, { deep: true })
+
+// Watch for prop changes to provide additional feedback
+watch(() => props.filteredCount, (newCount, oldCount) => {
+  // Only show this feedback if filters are active and we're initialized
+  if (!initialized.value || !hasActiveFilters.value) return
+  
+  // Don't show on initial load
+  if (oldCount === undefined) return
+  
+  // Show feedback when filter results change significantly
+  if (oldCount > 0 && newCount === 0) {
+    warning('No matches', 'Your current filters don\'t match any coffees')
+  }
+})
 </script>

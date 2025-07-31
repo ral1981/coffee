@@ -47,6 +47,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useToast } from '../composables/useToast'
 
 const props = defineProps({
   // For CoffeeCard mode
@@ -67,6 +68,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update-container', 'form-container-change'])
+
+// Use toast system
+const { success, warning, info } = useToast()
 
 // Computed properties for assigned state
 const isGreenAssigned = computed(() => {
@@ -93,32 +97,72 @@ const handleContainerClick = (container) => {
 
 const handleCardContainerClick = (container) => {
   if (!props.isLoggedIn) {
-    alert('🔒 Please log in to assign containers.')
+    warning('🔒 Please log in first', 'Login required to assign containers')
     return
   }
 
   const isAssigned = container === 'green' ? isGreenAssigned.value : isGreyAssigned.value
   const other = props.containerStatus?.[container]
+  const containerName = container.charAt(0).toUpperCase() + container.slice(1)
 
   if (!isAssigned) {
-    const msg = other
-      ? `Replace "${other.name}" in ${container}?`
-      : `Add "${props.coffee.name}" to ${container}?`
-    if (!confirm(msg)) return
+    // Assigning to container
+    if (other) {
+      // There's already a coffee in this container - show confirmation
+      const confirmed = confirm(`Replace "${other.name}" in ${container} container with "${props.coffee.name}"?`)
+      if (!confirmed) {
+        info('Assignment cancelled', `${props.coffee.name} not assigned to ${container} container`)
+        return
+      }
+      
+      // Show toast about the replacement
+      warning(
+        'Container reassigned', 
+        `${other.name} will be moved out of ${container} container`
+      )
+    } else {
+      // Container is empty - show success message immediately
+      success(
+        `${containerName} container assigned`,
+        `${props.coffee.name} added to ${container} container`
+      )
+    }
+    
     emit('update-container', { coffee: props.coffee, container, assign: true })
+    
   } else {
-    if (!confirm(`Remove "${props.coffee.name}" from ${container}?`)) return
+    // Removing from container
+    const confirmed = confirm(`Remove "${props.coffee.name}" from ${container} container?`)
+    if (!confirmed) {
+      info('Removal cancelled', `${props.coffee.name} kept in ${container} container`)
+      return
+    }
+    
+    success(
+      `${containerName} container cleared`,
+      `${props.coffee.name} removed from ${container} container`
+    )
+    
     emit('update-container', { coffee: props.coffee, container, assign: false })
   }
 }
 
 const handleFormContainerClick = (container) => {
   const isCurrentlyAssigned = container === 'green' ? isGreenAssigned.value : isGreyAssigned.value
+  const containerName = container.charAt(0).toUpperCase() + container.slice(1)
+  const coffeeName = props.form?.name || 'This coffee'
   
   if (isCurrentlyAssigned) {
     // Remove from container
-    if (confirm(`Remove from ${container} container?`)) {
+    const confirmed = confirm(`Remove ${coffeeName} from ${container} container?`)
+    if (confirmed) {
+      success(
+        `${containerName} container cleared`,
+        `${coffeeName} removed from ${container} container`
+      )
       emit('form-container-change', { container, assign: false })
+    } else {
+      info('Removal cancelled', `${coffeeName} kept in ${container} container`)
     }
   } else {
     // Add to container - check if another coffee is using it
@@ -126,11 +170,24 @@ const handleFormContainerClick = (container) => {
       container === 'green' ? c.in_green_container : c.in_grey_container
     )
     
-    const msg = other 
-      ? `Replace "${other.name}" in ${container} container?`
-      : `Add to ${container} container?`
-      
-    if (confirm(msg)) {
+    if (other) {
+      // There's already a coffee in this container
+      const confirmed = confirm(`Replace "${other.name}" in ${container} container with ${coffeeName}?`)
+      if (confirmed) {
+        warning(
+          'Container reassigned',
+          `${other.name} will be moved out of ${container} container`
+        )
+        emit('form-container-change', { container, assign: true })
+      } else {
+        info('Assignment cancelled', `${coffeeName} not assigned to ${container} container`)
+      }
+    } else {
+      // Container is empty - no confirmation needed, just assign and show success
+      success(
+        `${containerName} container assigned`,
+        `${coffeeName} added to ${container} container`
+      )
       emit('form-container-change', { container, assign: true })
     }
   }
