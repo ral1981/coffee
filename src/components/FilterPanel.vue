@@ -332,30 +332,6 @@ import { ref, reactive, watch, onMounted, computed, nextTick } from 'vue'
 import { useToast } from '../composables/useToast'
 import { SlidersHorizontal, X } from 'lucide-vue-next'
 
-// Toast composable
-const { success, error, warning, info } = useToast()
-
-const isOpen = ref(false)
-const isCollapsing = ref(false)
-const initialized = ref(false)
-
-const togglePanel = () => {
-  if (isOpen.value) {
-    // Starting to collapse
-    isCollapsing.value = true
-    isOpen.value = false
-    
-    // Stop showing overflow after elements have animated out
-    setTimeout(() => {
-      isCollapsing.value = false
-    }, 400)
-  } else {
-    // Opening - no special handling needed
-    isCollapsing.value = false
-    isOpen.value = true
-  }
-}
-
 const props = defineProps({
   origins: Array,
   shops: Array,
@@ -366,6 +342,12 @@ const props = defineProps({
 
 const emit = defineEmits(['filter-change'])
 
+// UI state
+const isOpen = ref(false)
+const isCollapsing = ref(false)
+const initialized = ref(false)
+
+// Filter state
 const filters = reactive({
   green: false,
   grey: false,
@@ -376,46 +358,49 @@ const filters = reactive({
 
 const route = useRoute()
 const router = useRouter()
+const { success, warning, info } = useToast()
 
-// 1) container‐only check stays the same
+// Computed properties
 const hasContainerFilter = computed(() => filters.green || filters.grey)
 
-// 2) build a single list of "active" filters
 const activeFilters = computed(() => {
   const arr = []
-  if (filters.green)  arr.push({ key: 'green',  label: 'Green' })
-  if (filters.grey)   arr.push({ key: 'grey',   label: 'Grey' })
+  if (filters.green) arr.push({ key: 'green', label: 'Green' })
+  if (filters.grey) arr.push({ key: 'grey', label: 'Grey' })
+  
+  // Only show other filters if no container filter is active
   if (!hasContainerFilter.value) {
     if (filters.origin) arr.push({ key: 'origin', label: filters.origin })
-    if (filters.shop)   arr.push({ key: 'shop',   label: filters.shop })
-    if (filters.name)   arr.push({ key: 'name',   label: filters.name })
+    if (filters.shop) arr.push({ key: 'shop', label: filters.shop })
+    if (filters.name) arr.push({ key: 'name', label: filters.name })
   }
   return arr
 })
 
-// 3) expose the flags you need in the template
-const hasActiveFilters   = computed(() => activeFilters.value.length > 0)
-const activeFilterCount  = computed(() => activeFilters.value.length)
+const hasActiveFilters = computed(() => activeFilters.value.length > 0)
+const activeFilterCount = computed(() => activeFilters.value.length)
 
-const nameFilteredCoffees = computed(() => {
-  if (!filters.name.trim()) return props.totalCount
-  
-  // This would need to be passed from parent, or we need to restructure
-  // For now, we'll emit the filter and let parent handle the actual filtering
-  return props.filteredCount
-})
+// UI handlers
+const togglePanel = () => {
+  if (isOpen.value) {
+    isCollapsing.value = true
+    isOpen.value = false
+    setTimeout(() => {
+      isCollapsing.value = false
+    }, 400)
+  } else {
+    isCollapsing.value = false
+    isOpen.value = true
+  }
+}
 
-// Toggle container filter
+// Filter handlers
 const toggleContainer = (container) => {
   const hadOtherFilters = filters.origin || filters.shop
   
-  if (container === 'green') {
-    filters.green = !filters.green
-  } else if (container === 'grey') {
-    filters.grey = !filters.grey
-  }
+  filters[container] = !filters[container]
   
-  // Clear other filters when container filter is applied and show toast
+  // Clear other filters when container filter is applied
   if (hasContainerFilter.value && hadOtherFilters) {
     warning('Filters cleared', 'Origin and shop filters cleared when selecting container')
     filters.origin = ''
@@ -423,15 +408,7 @@ const toggleContainer = (container) => {
   }
 }
 
-// remove a single filter when clicking the × on a chip
-function removeFilter(key) {
-  if (key === 'green' || key === 'grey') {
-    filters[key] = false
-  } else {
-    filters[key] = ''
-  }
-  
-  // Show feedback when removing filters
+const removeFilter = (key) => {
   const filterLabels = {
     green: 'Green container',
     grey: 'Grey container',
@@ -440,10 +417,32 @@ function removeFilter(key) {
     name: 'Name search'
   }
   
+  if (key === 'green' || key === 'grey') {
+    filters[key] = false
+  } else {
+    filters[key] = ''
+  }
+  
   info('Filter removed', `${filterLabels[key]} filter cleared`)
 }
 
-// Parse URL parameters into filter object
+const clearFilters = () => {
+  const hadFilters = hasActiveFilters.value
+  
+  Object.assign(filters, {
+    green: false,
+    grey: false,
+    origin: '',
+    shop: '',
+    name: ''
+  })
+  
+  if (hadFilters) {
+    success('Filters cleared', 'All filters have been reset')
+  }
+}
+
+// URL handling
 const parseUrlFilters = () => {
   try {
     const urlFilters = {
@@ -457,15 +456,10 @@ const parseUrlFilters = () => {
     // Handle container parameter
     if (route.query.container) {
       const containerParam = route.query.container
-      let containers = []
-      
-      if (Array.isArray(containerParam)) {
-        containers = containerParam
-      } else if (typeof containerParam === 'string') {
-        containers = containerParam.split(',').map(c => c.trim()).filter(c => c)
-      }
+      const containers = Array.isArray(containerParam) 
+        ? containerParam 
+        : containerParam.split(',').map(c => c.trim()).filter(c => c)
 
-      // Validate container values
       const validContainers = containers.filter(c => ['green', 'grey'].includes(c))
       if (validContainers.length !== containers.length) {
         warning('Invalid URL parameters', 'Some container filters in URL were invalid')
@@ -485,25 +479,16 @@ const parseUrlFilters = () => {
   } catch (err) {
     console.error('Error parsing URL filters:', err)
     warning('URL error', 'Invalid filter parameters in URL, using defaults')
-    return {
-      green: false,
-      grey: false,  
-      origin: '',
-      shop: '',
-      name: ''
-    }
+    return { green: false, grey: false, origin: '', shop: '', name: '' }
   }
 }
 
-// Apply filters from URL to reactive filters
 const loadFiltersFromUrl = () => {
   const urlFilters = parseUrlFilters()
-  
   Object.assign(filters, urlFilters)
   emit('filter-change', { ...urlFilters }, true)
 }
 
-// Update URL based on current filters
 const updateUrl = () => {
   if (!initialized.value) return
 
@@ -520,101 +505,64 @@ const updateUrl = () => {
 
   // Handle other filters (only if no container filter)
   if (!hasContainerFilter.value) {
-    if (filters.origin) {
-      query.origin = filters.origin
-    }
-    if (filters.shop) {
-      query.shop = filters.shop
-    }
+    if (filters.origin) query.origin = filters.origin
+    if (filters.shop) query.shop = filters.shop
   }
 
-  // Use router.replace to avoid adding to history
   try {
-    router.replace({
-      path: route.path,
-      query
-    })
+    router.replace({ path: route.path, query })
   } catch (err) {
     console.error('Error updating URL:', err)
-    error('Navigation error', 'Failed to update URL with current filters')
   }
 }
 
-const clearFilters = () => {
-  const hadFilters = hasActiveFilters.value
-  
-  filters.green = false
-  filters.grey = false
-  filters.origin = ''
-  filters.shop = ''
-  filters.name = ''
-  
-  if (hadFilters) {
-    success('Filters cleared', 'All filters have been reset')
-  }
+// Feedback helpers
+const showFilterFeedback = () => {
+  nextTick(() => {
+    setTimeout(() => {
+      if (!hasActiveFilters.value) return
+      
+      if (props.filteredCount === 0) {
+        info('No results found', 'Try adjusting your filters to see more coffees')
+      } else if (props.filteredCount > 0) {
+        const resultText = props.filteredCount === 1 ? '1 coffee' : `${props.filteredCount} coffees`
+        success('Filters applied', `Found ${resultText} matching your criteria`)
+      }
+    }, 100)
+  })
 }
 
-// Initialize filters from URL when component mounts
+// Lifecycle
 onMounted(() => {
   loadFiltersFromUrl()
   initialized.value = true
 })
 
-// Watch for filter changes and update URL (but skip if this is from URL loading)
-watch(filters, (newFilters, oldFilters) => {
+// Watchers
+watch(filters, (newFilters) => {
   if (!initialized.value) return
   
-  // Only emit as manual change if this wasn't triggered by URL loading
-  // We can detect URL loading by checking if we're currently processing a route change
-  const isFromUrlChange = !initialized.value || JSON.stringify(newFilters) === JSON.stringify(parseUrlFilters())
+  const isFromUrlChange = JSON.stringify(newFilters) === JSON.stringify(parseUrlFilters())
   
   if (!isFromUrlChange) {
     emit('filter-change', { ...filters }, false)
-    
-    // Show feedback for no results after a brief delay to allow parent to update
-    nextTick(() => {
-      setTimeout(() => {
-        if (hasActiveFilters.value && props.filteredCount === 0) {
-          info('No results found', 'Try adjusting your filters to see more coffees')
-        } else if (hasActiveFilters.value && props.filteredCount > 0) {
-          // Show success feedback when filters return results
-          const resultText = props.filteredCount === 1 ? '1 coffee' : `${props.filteredCount} coffees`
-          success('Filters applied', `Found ${resultText} matching your criteria`)
-        }
-      }, 100) // Small delay to ensure props are updated
-    })
+    showFilterFeedback()
   }
   updateUrl()
 }, { deep: true })
 
-// Watch for route changes (when URL is manually changed)
 watch(() => route.query, () => {
   if (!initialized.value) return
   
-  // Temporarily disable initialized to prevent the filters watcher from firing
   const wasInitialized = initialized.value
   initialized.value = false
   loadFiltersFromUrl()
-  
-  // Show feedback for URL-based filter changes
-  nextTick(() => {
-    if (hasActiveFilters.value) {
-      info('Filters loaded from URL', 'Applied filters from web address')
-    }
-  })
-  
   initialized.value = wasInitialized
 }, { deep: true })
 
-// Watch for prop changes to provide additional feedback
 watch(() => props.filteredCount, (newCount, oldCount) => {
-  // Only show this feedback if filters are active and we're initialized
-  if (!initialized.value || !hasActiveFilters.value) return
+  if (!initialized.value || !hasActiveFilters.value || oldCount === undefined) return
   
-  // Don't show on initial load
-  if (oldCount === undefined) return
-  
-  // Show feedback when filter results change significantly
   if (oldCount > 0 && newCount === 0) {
     warning('No matches', 'Your current filters don\'t match any coffees')
   }

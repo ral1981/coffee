@@ -62,7 +62,6 @@ export function useCoffeeForm({
         shopNameOptions.value = Array.from(
           new Set(shops.map(r => r.shop_name).filter(Boolean))
         )
-        info('Suggestions loaded', `${shopNameOptions.value.length} shop names available`)
       }
 
       // get all origin values

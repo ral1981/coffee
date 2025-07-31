@@ -519,10 +519,6 @@ const onUserChanged = (newUser) => {
 
   loadCoffees()
   
-  if (newUser) {
-    success('Welcome back!', 'Successfully logged in')
-  }
-  
   if (!newUser) {
     anyEditing.value = false
     showCoffeeForm.value = false

@@ -209,8 +209,8 @@ import { useToast } from '../composables/useToast'
 import Container from './Container.vue'
 import SaveCancelButtons from './SaveCancelButtons.vue'
 import { useCoffeeForm } from '../composables/useCoffeeForm'
+import { CircleX } from 'lucide-vue-next'
 
-// Toast composable
 const { success, error, warning, info } = useToast()
 
 const props = defineProps({
@@ -247,74 +247,6 @@ const fetchCoffees = async () => {
   }
 }
 
-// Enhanced form handlers
-const handleSave = async () => {
-  try {
-    // Show immediate feedback that save is starting
-    info('Saving coffee...', 'Adding to your collection')
-    
-    await save()
-    
-    // Success is handled by the composable or parent component
-    // so we don't need to show it here to avoid duplication
-    
-  } catch (err) {
-    console.error('Save error in CoffeeForm:', err)
-    error('Save failed', 'Please check your information and try again')
-  }
-}
-
-const handleCancel = () => {
-  // Check if form has unsaved changes
-  const hasChanges = Object.values(form).some(value => 
-    value !== '' && value !== false && value !== null && value !== undefined
-  )
-  
-  if (hasChanges) {
-    const confirmDiscard = confirm('You have unsaved changes. Are you sure you want to cancel?')
-    if (!confirmDiscard) {
-      return
-    }
-    warning('Changes discarded', 'Form was cancelled without saving')
-  }
-  
-  cancel()
-}
-
-// Enhanced form validation feedback
-const validateAndShowFeedback = () => {
-  if (!isFormValid.value) {
-    const missingFields = []
-    
-    // Check required fields (adjust based on your form requirements)
-    if (!form.name?.trim()) missingFields.push('Coffee name')
-    if (!form.origin?.trim()) missingFields.push('Origin')
-    if (!form.shop_name?.trim()) missingFields.push('Shop name')
-    
-    if (missingFields.length > 0) {
-      warning(
-        'Required fields missing', 
-        `Please fill in: ${missingFields.join(', ')}`
-      )
-      return false
-    }
-    
-    // Check for other validation issues
-    if (form.price && (isNaN(form.price) || form.price <= 0)) {
-      warning('Invalid price', 'Price must be a positive number')
-      return false
-    }
-    
-    if (form.shop_url && !validUrl.value) {
-      warning('Invalid URL', 'Please enter a valid shop website URL')
-      return false
-    }
-  }
-  
-  return true
-}
-
-// Initialize composable with enhanced handlers
 const { 
   form, 
   isFormValid, 
@@ -330,61 +262,16 @@ const {
   emit,
   onClose: () => {
     showForm.value = false
-    info('Form closed', 'Add coffee form was closed')
   },
-  fetchCoffees: props.fetchCoffees || fetchCoffees,
-  // Pass validation handler to composable if it supports it
-  onValidationError: () => validateAndShowFeedback()
+  fetchCoffees: props.fetchCoffees || fetchCoffees
 })
 
-// Auto-save draft functionality (optional enhancement)
-const saveDraft = () => {
-  const draftData = { ...form }
-  localStorage.setItem('coffee-form-draft', JSON.stringify(draftData))
-  info('Draft saved', 'Your progress has been saved locally')
+const handleFormContainerChange = (data) => {
+  // Handle container form changes
+  Object.assign(form, data)
 }
 
-const loadDraft = () => {
-  try {
-    const draft = localStorage.getItem('coffee-form-draft')
-    if (draft) {
-      const draftData = JSON.parse(draft)
-      Object.assign(form, draftData)
-      success('Draft loaded', 'Your previous progress has been restored')
-      localStorage.removeItem('coffee-form-draft')
-    }
-  } catch (err) {
-    console.error('Error loading draft:', err)
-    warning('Draft error', 'Could not restore previous progress')
-  }
-}
-
-// Shop logo derivation with feedback
-const handleShopLogoDerivation = async () => {
-  try {
-    info('Generating logo...', 'Creating shop logo from URL')
-    await deriveShopLogo()
-    success('Logo generated', 'Shop logo has been created automatically')
-  } catch (err) {
-    console.error('Logo derivation error:', err)
-    warning('Logo generation failed', 'Could not automatically create shop logo')
-  }
-}
-
-// Form submission with comprehensive validation
-const handleFormSubmit = async () => {
-  if (!validateAndShowFeedback()) {
-    return
-  }
-  
-  await handleSave()
-}
-
-// Initialize and load any saved draft
 fetchCoffees()
-
-// Optional: Load draft on mount
-// loadDraft()
 </script>
 
 <style scoped>

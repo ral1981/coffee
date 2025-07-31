@@ -14,7 +14,7 @@
             v-model="email"
             type="email"
             placeholder="Email address"
-            @keyup.enter="login"
+            @keyup.enter="onSubmit"
             @input="handleEmailInput"
             @keydown="$emit('user-activity')"
             @focus="$emit('user-activity')"
@@ -28,7 +28,7 @@
             v-model="password"
             type="password"
             placeholder="Password"
-            @keyup.enter="login"
+            @keyup.enter="onSubmit"
             @input="$emit('user-activity')"
             @keydown="$emit('user-activity')"
             @focus="$emit('user-activity')"
@@ -37,7 +37,7 @@
         </div>
         <div class="flex gap-2">
           <button
-            @click.stop="login"
+            @click.stop="onSubmit"
             class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
           >
             <LogIn class="w-4 h-4" />
@@ -73,7 +73,7 @@
       </div>
       <div class="flex gap-2">
         <button
-          @click.stop="handleLogout"
+          @click.stop="onLogout"
           class="w-full bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2"
         >
           <LogOut class="w-4 h-4" />
@@ -89,6 +89,8 @@ import { ref, onMounted, onUnmounted, watch, defineEmits, defineProps } from 'vu
 import { supabase } from '../lib/supabase'
 import { Lock, Mail, KeyRound, LogIn, CheckCircle, User, LogOut } from 'lucide-vue-next'
 import { useToast } from '../composables/useToast'
+import { useAuth } from '../composables/useAuth'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   showToggle: {
@@ -97,255 +99,55 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['user-changed', 'logout', 'user-activity'])
+
 const email = ref('')
 const password = ref('')
-const user = ref(null)
-const showClearSession = ref(false)
-const emit = defineEmits(['user-changed', 'logout', 'user-activity'])
-let authSubscription = null
 
-// Use toast system
-const { success, error, warning, info } = useToast()
+// Pull in everything from your composable
+const { user, isLoggedIn, login, logout, initAuthListener } = useAuth()
+const router = useRouter()
 
-// Email trimming functions
-const handleEmailInput = (event) => {
+// If you still need standalone toasts elsewhere in this component:
+const { warning } = useToast()
+
+// Trim email live and on blur
+const handleEmailInput = (e) => {
   emit('user-activity')
-  // Trim spaces from email input in real-time
-  email.value = event.target.value.trim()
+  email.value = e.target.value.trim()
 }
-
 const trimEmail = () => {
-  // Additional trim on blur to catch any edge cases
   email.value = email.value.trim()
 }
 
-const initializeAuth = async () => {
-  try {
-    // Add a small delay to ensure Supabase is ready
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
-    const { data: { session }, error } = await supabase.auth.getSession()
-    
-    if (error) {
-      console.error('Error getting session:', error)
-      user.value = null
-      return
-    }
-
-    if (session?.user) {
-      // Validate that the session is still valid by making a test request
-      try {
-        const { error: testError } = await supabase.auth.getUser()
-        if (testError) {
-          console.log('Session appears invalid, clearing:', testError.message)
-          warning('Session expired', 'Please log in again')
-          await clearInvalidSession()
-          return
-        }
-        
-        user.value = session.user
-        console.log('Valid user session found:', session.user.email)
-      } catch (validationError) {
-        console.log('Session validation failed, clearing session')
-        warning('Session invalid', 'Please log in again')
-        await clearInvalidSession()
-      }
-    } else {
-      user.value = null
-      console.log('No user session found')
-    }
-  } catch (err) {
-    console.error('Error initializing auth:', err)
-    error('Authentication error', 'Failed to initialize authentication')
-    user.value = null
-  }
-}
-
-const clearInvalidSession = async () => {
-  try {
-    await supabase.auth.signOut({ scope: 'global' })
-    localStorage.removeItem('supabase.auth.token')
-    sessionStorage.clear()
-  } catch (err) {
-    console.warn('Error clearing invalid session:', err)
-  }
-  user.value = null
-}
-
-watch(user, (newUser) => {
-  emit('user-changed', newUser)
+// Emit upward whenever the auth user changes
+watch(user, (u) => {
+  emit('user-changed', u)
 }, { immediate: true })
 
-const login = async () => {
-  // Trim email before attempting login
-  const trimmedEmail = email.value.trim()
+// Login handler wired to your composable
+const onSubmit = async () => {
   
-  if (!trimmedEmail || !password.value) {
-    warning('Missing credentials', 'Please fill in both email and password')
-    return
+  const ok = await login(email.value, password.value)
+  if (ok) {
+    router.push('/dashboard')
   }
+}
 
-  try {
-    console.log('Attempting login for:', trimmedEmail)
-    const { data, loginError } = await supabase.auth.signInWithPassword({
-      email: trimmedEmail,
-      password: password.value
-    })
-    
-    if (loginError) {
-      console.error('Login error:', loginError)
-      
-      // Show specific error messages based on error type
-      if (loginError.message.includes('Invalid login credentials')) {
-        error('Invalid credentials', 'Please check your email and password')
-        showClearSession.value = true
-      } else if (loginError.message.includes('Email not confirmed')) {
-        warning('Email not confirmed', 'Please check your email for a confirmation link')
-        showClearSession.value = true
-      } else if (loginError.message.includes('Too many requests')) {
-        warning('Too many attempts', 'Please wait a moment before trying again')
-      } else {
-        error('Login failed', loginError.message)
-        showClearSession.value = true
-      }
-    } else {
-      console.log('Login successful:', data)
-      success('Welcome back!', `Logged in as ${trimmedEmail}`)
-      
-      // Clear form
-      email.value = ''
-      password.value = ''
-      showClearSession.value = false
+// Logout handler wired to your composable
+const onLogout = () => {
+  logout({
+    confirmIfDirty: true,
+    onSuccess: () => emit('logout'),
+    onFinish: () => {
+      // Optionally let parent know, or refresh any data
+      emit('user-activity')
     }
-  } catch (err) {
-    console.error('Login catch error:', err)
-    error('Login failed', 'An unexpected error occurred')
-    showClearSession.value = true
-  }
+  })
 }
 
-const forceClearSession = async (event) => {
-  console.log('Force clear session clicked')
-  event.preventDefault()
-  event.stopPropagation()
-  
-  try {
-    // Force sign out with global scope
-    await supabase.auth.signOut({ scope: 'global' })
-    
-    // Clear all possible storage locations
-    localStorage.removeItem('supabase.auth.token')
-    localStorage.removeItem('sb-' + supabase.supabaseKey + '-auth-token')
-    sessionStorage.clear()
-    
-    // Clear cookies if any (for extra safety)
-    document.cookie.split(";").forEach(function(c) { 
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-    })
-    
-    user.value = null
-    showClearSession.value = false
-    
-    console.log('All session data cleared')
-    success('Session cleared', 'You can now login with a different account')
-    
-  } catch (err) {
-    console.warn('Error clearing session data:', err)
-    // Still try to clear local state
-    user.value = null
-    showClearSession.value = false
-    info('Session cleared locally', 'Local session data has been cleared')
-  }
-}
-
-const handleLogout = async (event) => {
-  console.log('Logout button clicked')
-  event.preventDefault()
-  event.stopPropagation()
-  
-  try {
-    // Get user email before clearing for toast message
-    const userEmail = user.value?.email
-    
-    // First, clear the local user state immediately
-    user.value = null
-    
-    // Enhanced logout with complete session cleanup
-    const { error: logoutError } = await supabase.auth.signOut({ scope: 'global' })
-    
-    if (logoutError) {
-      console.warn('Supabase logout error (but continuing with local logout):', logoutError)
-      warning('Logout warning', 'Logged out locally, but server logout may have failed')
-    } else {
-      console.log('Supabase logout successful')
-      info('Logged out', userEmail ? `Goodbye, ${userEmail}!` : 'See you next time!')
-    }
-    
-    // Clear all possible storage locations (merged from switch user functionality)
-    localStorage.removeItem('supabase.auth.token')
-    localStorage.removeItem('sb-' + supabase.supabaseKey + '-auth-token')
-    sessionStorage.clear()
-    
-    // Always emit logout event
-    emit('logout')
-    
-  } catch (err) {
-    console.warn('Logout catch error (but continuing with local logout):', err)
-    warning('Logout error', 'An error occurred during logout, but you have been logged out locally')
-    // Still emit logout to clear app state
-    emit('logout')
-  }
-}
-
-onMounted(async () => {
-  console.log('Authentication component mounted')
-  
-  // Check if there might be stale session data
-  const hasStoredData = localStorage.getItem('supabase.auth.token') || 
-                       Object.keys(localStorage).some(key => key.includes('supabase') || key.includes('sb-'))
-  
-  if (hasStoredData && !user.value) {
-    console.log('Detected possible stale session data')
-    showClearSession.value = true
-  }
-  
-  await initializeAuth()
-  
-  try {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email)
-      
-      if (event === 'SIGNED_OUT') {
-        user.value = null
-        showClearSession.value = false
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        user.value = session?.user || null
-        showClearSession.value = false
-        
-        if (event === 'SIGNED_IN' && session?.user?.email) {
-          success('Authentication successful', `Welcome, ${session.user.email}!`)
-        } else if (event === 'TOKEN_REFRESHED') {
-          info('Session refreshed', 'Your session has been updated')
-        }
-      } else if (event === 'TOKEN_EXPIRED') {
-        console.log('Token expired, clearing user state')
-        warning('Session expired', 'Please log in again to continue')
-        user.value = null
-        showClearSession.value = true
-      }
-    })
-
-    authSubscription = subscription
-  } catch (err) {
-    console.error('Error setting up auth state listener:', err)
-    error('Authentication setup failed', 'Failed to set up authentication monitoring')
-  }
-})
-
-onUnmounted(() => {
-  if (authSubscription) {
-    console.log('Cleaning up auth subscription')
-    authSubscription.unsubscribe()
-  }
+// Start listening for Supabase auth‐state changes once
+onMounted(() => {
+  initAuthListener()
 })
 </script>
