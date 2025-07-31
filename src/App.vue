@@ -144,7 +144,7 @@
                 <div class="flex flex-wrap justify-center gap-4">
                   <ShopCard
                     v-for="shop in shops"
-                    :key="shop.shop_url"
+                    :key="shop.bean_url"
                     :shop="shop"
                   />
                 </div>
@@ -447,7 +447,7 @@ async function loadShops() {
   // 1) pull every bean’s shop fields
   const { data: beans, error } = await supabase
     .from('coffee_beans')
-    .select('shop_name, shop_url')
+    .select('shop_name, bean_url')
   if (error) {
     console.error('Error loading shops:', error)
     return
@@ -455,21 +455,21 @@ async function loadShops() {
 
   // 2) filter out null/empty
   const valid = beans.filter(
-    (b) => b.shop_name && b.shop_url
+    (b) => b.shop_name && b.bean_url
   )
 
   // 3) dedupe by shop_name
   const map = new Map()
   valid.forEach((b) => {
     if (!map.has(b.shop_name)) {
-      map.set(b.shop_name, b.shop_url)
+      map.set(b.shop_name, b.bean_url)
     }
   })
 
   // 4) turn into array & sort
-  shops.value = Array.from(map, ([shop_name, shop_url]) => ({
+  shops.value = Array.from(map, ([shop_name, bean_url]) => ({
     shop_name,
-    shop_url
+    bean_url
   })).sort((a, b) =>
     a.shop_name.localeCompare(b.shop_name, undefined, { sensitivity: 'base' })
   )

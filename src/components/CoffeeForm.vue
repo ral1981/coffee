@@ -56,11 +56,11 @@
 
             <!-- Shop URL input -->
             <input
-              v-model="form.shop_url"
+              v-model="form.bean_url"
               @input="deriveShopLogo"
               placeholder="Shop URL *" 
               required 
-              :class="{ 'border-red-500': !validUrl(form.shop_url) }"
+              :class="{ 'border-red-500': !validUrl(form.bean_url) }"
               class="text-lg text-gray-400 block w-full bg-transparent border-b border-gray-300 focus:border-blue-500 focus:outline-none"
             />
           </div>

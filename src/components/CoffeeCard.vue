@@ -77,7 +77,7 @@
               </datalist>
               <!-- Shop URL input -->
               <input
-                v-model="form.shop_url"
+                v-model="form.bean_url"
                 @input="deriveShopLogo"
                 type="text"
                 class="text-sm text-gray-400 border border-gray-300 rounded px-2 py-1 w-full"
@@ -106,7 +106,7 @@
           >
           <!-- Shop Page (available to all users) -->
           <button
-            v-if="coffee.shop_url"
+            v-if="coffee.bean_url"
             type="button"
             @click="openShopPage"
             class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
@@ -541,8 +541,8 @@ function toggleMenu() {
 
 function openShopPage() {
   showMenu.value = false
-  if (props.coffee.shop_url) {
-    window.open(props.coffee.shop_url, '_blank', 'noopener,noreferrer')
+  if (props.coffee.bean_url) {
+    window.open(props.coffee.bean_url, '_blank', 'noopener,noreferrer')
     info('Opening shop page', 'Redirecting to coffee shop website')
   } else {
     warning('No shop URL', 'This coffee doesn\'t have a shop page linked')

@@ -15,7 +15,7 @@ export function useCoffeeForm({
   // Default values
   const defaults = {
     name: '',
-    shop_url: '',
+    bean_url: '',
     shop_name: '',
     shop_logo: '',
     origin: '',
@@ -117,7 +117,7 @@ export function useCoffeeForm({
 
   // Auto-derive shop logo from URL
   const deriveShopLogo = () => {
-    const url = form.shop_url
+    const url = form.bean_url
     if (!url) {
       form.shop_logo = ''
       return
@@ -125,7 +125,7 @@ export function useCoffeeForm({
     
     try {
       const u = new URL(url.startsWith('http') ? url : `https://${url}`)
-      form.shop_url = u.href
+      form.bean_url = u.href
       form.shop_logo = `https://www.google.com/s2/favicons?domain=${u.hostname}`
       success('Shop logo updated', 'Logo automatically generated from URL')
     } catch (err) {
@@ -134,9 +134,9 @@ export function useCoffeeForm({
     }
   }
 
-  // Watch shop_url changes (only for logo derivation)
+  // Watch bean_url changes (only for logo derivation)
   watch(
-    () => form.shop_url,
+    () => form.bean_url,
     (newUrl, oldUrl) => {
       // Only show feedback if URL actually changed and is not empty
       if (newUrl && newUrl !== oldUrl) {
@@ -176,7 +176,7 @@ export function useCoffeeForm({
     
     if (!form.name.trim()) errors.push('Coffee name is required')
     if (!form.shop_name.trim()) errors.push('Shop name is required')
-    if (!validUrl(form.shop_url)) errors.push('Valid shop URL is required')
+    if (!validUrl(form.bean_url)) errors.push('Valid shop URL is required')
     if (!form.origin.trim()) errors.push('Origin is required')
     if (!isPositiveNumber(form.recipe_in_grams)) errors.push('Recipe input must be a positive number')
     if (!isPositiveNumber(form.recipe_out_grams)) errors.push('Recipe output must be a positive number')
