@@ -72,7 +72,6 @@
         <div class="grid rounded-md grid-cols-1 md:grid-cols-2 gap-3 md:gap-2 text-base border-l-4 border-blue-300 pl-3 md:pl-2">
           <div>
             <strong>Origin: </strong>
-            <label for="origin">Origin</label>
             <input
               id="origin" 
               v-model="form.origin"

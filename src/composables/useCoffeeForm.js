@@ -197,77 +197,106 @@ export function useCoffeeForm({
   }
 
   const save = async () => {
-    const validationErrors = getValidationErrors()
-    
+    const validationErrors = getValidationErrors();
     if (validationErrors.length > 0) {
-      error('Validation failed', validationErrors[0])
-      // Show all errors in console for debugging
-      console.log('All validation errors:', validationErrors)
-      return
+      error('Validation failed', validationErrors[0]);
+      console.log('All validation errors:', validationErrors);
+      return;
     }
 
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      
-      if (userError) {
-        throw new Error('Authentication error: ' + userError.message)
-      }
-      
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw new Error('Authentication error: ' + userError.message);
       if (!user) {
-        warning('Authentication required', 'Please log in to save coffee')
-        return
+        warning('Authentication required', 'Please log in to save coffee');
+        return;
       }
 
-      // Show saving feedback
-      info('Saving...', `${mode === 'add' ? 'Adding' : 'Updating'} coffee entry`)
+      info('Saving...', `${mode === 'add' ? 'Adding' : 'Updating'} coffee entry`);
 
-      // Set the recipe ratio
-      form.recipe_ratio = recipeRatio.value
+      // clone form into payload + user_id
+      const payload = {
+        ...JSON.parse(JSON.stringify(form)),
+        user_id: user.id,
+      };
 
-      const payload = { 
-        ...JSON.parse(JSON.stringify(form)), 
-        user_id: user.id 
-      }
-
-      let result
       if (mode === 'add') {
-        result = await supabase.from('coffee_beans').insert(payload).select()
+        // 1. Normalize shop name and full URL
+        const shopName = form.shop_name.trim();
+        const rawUrl = form.bean_url.startsWith('http')
+          ? form.bean_url
+          : `https://${form.bean_url}`;
+        const shopUrl = new URL(rawUrl).href;
+
+        // 2. Extract hostname for favicon
+        const domain = new URL(shopUrl).hostname;
+        const favicon = `https://www.google.com/s2/favicons?domain=${domain}`;
+
+        // 3. Check for existing shop by name
+        const { data: existingShop, error: fetchErr } = await supabase
+          .from('shops')
+          .select('id')
+          .eq('name', shopName)
+          .maybeSingle();
+        if (fetchErr) throw new Error('Error checking shop: ' + fetchErr.message);
+
+        let shopId;
+        if (existingShop) {
+          shopId = existingShop.id;
+        } else {
+          // 4. Insert new shop row
+          const { data: newShop, error: insertErr } = await supabase
+            .from('shops')
+            .insert({
+              name: shopName,
+              url: shopUrl,
+              logo: favicon,
+            })
+            .select('id')
+            .single();
+          if (insertErr) throw new Error('Error inserting shop: ' + insertErr.message);
+          shopId = newShop.id;
+        }
+
+        // 5. Attach FK and remove now-duplicated fields
+        payload.shop_id = shopId;
+        delete payload.shop_name;
+        delete payload.shop_logo;
+      }
+
+      // 6. Insert or update the bean
+      let result;
+      if (mode === 'add') {
+        result = await supabase.from('coffee_beans').insert(payload).select();
       } else {
         result = await supabase
           .from('coffee_beans')
           .update(payload)
           .eq('id', initialData.id)
-          .select()
+          .select();
       }
 
-      if (result.error) {
-        throw new Error(result.error.message)
-      }
+      if (result.error) throw new Error(result.error.message);
 
-      const actionText = mode === 'add' ? 'added' : 'updated'
-      const coffeeName = result.data[0]?.name || 'Coffee'
-      
+      const actionText = mode === 'add' ? 'added' : 'updated';
+      const coffeeName = result.data[0]?.name || 'Coffee';
+
       success(
-        `Coffee ${actionText}!`, 
+        `Coffee ${actionText}!`,
         `${coffeeName} has been ${actionText} successfully`
-      )
+      );
+      emit(mode === 'add' ? 'coffee-saved' : 'coffee-updated', result.data[0]);
+      onClose?.();
+      if (fetchCoffees) await fetchCoffees();
       
-      emit(mode === 'add' ? 'coffee-saved' : 'coffee-updated', result.data[0])
-      onClose?.()
-      
-      // Refresh the coffee list
-      if (fetchCoffees) {
-        await fetchCoffees()
-      }
-
     } catch (err) {
-      console.error(`Error ${mode === 'add' ? 'adding' : 'updating'} coffee:`, err)
+      console.error(`Error ${mode === 'add' ? 'adding' : 'updating'} coffee:`, err);
       error(
-        `Save failed`, 
+        'Save failed',
         `Could not ${mode === 'add' ? 'add' : 'update'} coffee: ${err.message}`
-      )
+      );
     }
-  }
+  };
 
   const cancel = () => {
     const hasChanges = Object.keys(form).some(key => {
