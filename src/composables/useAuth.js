@@ -91,7 +91,6 @@ export function useAuth() {
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         user.value = session.user
-        info('Session refreshed', 'Your session has been updated')
       } else if (event === 'SIGNED_OUT') {
         user.value = null
       } else if (event === 'TOKEN_EXPIRED') {

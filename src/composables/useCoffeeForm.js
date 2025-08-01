@@ -127,7 +127,6 @@ export function useCoffeeForm({
       const u = new URL(url.startsWith('http') ? url : `https://${url}`)
       form.bean_url = u.href
       form.shop_logo = `https://www.google.com/s2/favicons?domain=${u.hostname}`
-      success('Shop logo updated', 'Logo automatically generated from URL')
     } catch (err) {
       form.shop_logo = ''
       warning('Invalid URL', 'Please enter a valid website URL')

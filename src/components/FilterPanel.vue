@@ -422,8 +422,6 @@ const removeFilter = (key) => {
   } else {
     filters[key] = ''
   }
-  
-  info('Filter removed', `${filterLabels[key]} filter cleared`)
 }
 
 const clearFilters = () => {
@@ -436,10 +434,6 @@ const clearFilters = () => {
     shop: '',
     name: ''
   })
-  
-  if (hadFilters) {
-    success('Filters cleared', 'All filters have been reset')
-  }
 }
 
 // URL handling
@@ -526,7 +520,6 @@ const showFilterFeedback = () => {
         info('No results found', 'Try adjusting your filters to see more coffees')
       } else if (props.filteredCount > 0) {
         const resultText = props.filteredCount === 1 ? '1 coffee' : `${props.filteredCount} coffees`
-        success('Filters applied', `Found ${resultText} matching your criteria`)
       }
     }, 100)
   })
