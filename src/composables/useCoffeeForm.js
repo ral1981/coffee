@@ -17,7 +17,6 @@ export function useCoffeeForm({
     name: '',
     bean_url: '',
     shop_name: '',
-    shop_logo: '',
     origin: '',
     region: '',
     altitude_meters: '',
@@ -126,7 +125,6 @@ export function useCoffeeForm({
     try {
       const u = new URL(url.startsWith('http') ? url : `https://${url}`)
       form.bean_url = u.href
-      form.shop_logo = `https://www.google.com/s2/favicons?domain=${u.hostname}`
     } catch (err) {
       form.shop_logo = ''
       warning('Invalid URL', 'Please enter a valid website URL')
@@ -140,8 +138,6 @@ export function useCoffeeForm({
       // Only show feedback if URL actually changed and is not empty
       if (newUrl && newUrl !== oldUrl) {
         deriveShopLogo()
-      } else if (!newUrl) {
-        form.shop_logo = ''
       }
     },
     { immediate: true }

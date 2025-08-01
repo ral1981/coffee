@@ -228,7 +228,15 @@ const fetchCoffees = async () => {
   try {
     const { data, error: fetchError } = await supabase
       .from('coffee_beans')
-      .select('*')
+      .select(`
+        *,
+        shops (
+          id,
+          name,
+          url,
+          logo
+        )
+      `)
     
     if (fetchError) {
       throw fetchError
@@ -264,6 +272,19 @@ const {
   },
   fetchCoffees: props.fetchCoffees || fetchCoffees
 })
+
+const getShopLogo = () => {
+  if (form.bean_url) {
+    try {
+      const fullUrl = form.bean_url.startsWith('http') ? form.bean_url : `https://${form.bean_url}`
+      const domain = new URL(fullUrl).hostname
+      return `https://www.google.com/s2/favicons?domain=${domain}`
+    } catch {
+      return 'https://www.google.com/s2/favicons?domain=example.com'
+    }
+  }
+  return 'https://www.google.com/s2/favicons?domain=example.com'
+}
 
 const handleFormContainerChange = (data) => {
   // Handle container form changes

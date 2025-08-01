@@ -21,7 +21,7 @@
         <!-- 1) Favicon (left zone) -->
         <div class="flex-shrink-0">
           <img
-            :src="coffee.shop_logo"
+            :src="coffee.shops?.logo || `https://www.google.com/s2/favicons?domain=${getDomainFromUrl(coffee.bean_url)}`"
             alt="shop logo"
             width="48"
             height="48"
@@ -451,6 +451,16 @@ const isFormValid = computed(() => isEditing.value ? getCoffeeForm().isFormValid
 const save = () => isEditing.value && getCoffeeForm().save()
 const cancel = () => isEditing.value && getCoffeeForm().cancel()
 const deriveShopLogo = () => isEditing.value && getCoffeeForm().deriveShopLogo()
+
+function getDomainFromUrl(url) {
+  if (!url) return 'example.com'
+  try {
+    const fullUrl = url.startsWith('http') ? url : `https://${url}`
+    return new URL(fullUrl).hostname
+  } catch {
+    return 'example.com'
+  }
+}
 
 // 4) Mode toggle
 function enterEditMode() {
