@@ -9,7 +9,7 @@
 
     <!-- Coffee Form Overlay -->
     <div 
-      v-if="showCoffeeForm"
+      v-if="selectedIndex === 0 && showCoffeeForm"
       @click="handleOverlayClick"
       class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center pt-8 px-4"
     >
@@ -19,6 +19,22 @@
           :fetchCoffees="loadCoffees"
           @coffee-added="handleNewCoffee"
           @cancel="showCoffeeForm = false"
+        />
+      </div>
+    </div>
+
+    <!-- Shop Form Overlay -->
+    <div 
+      v-if="selectedIndex === 2 && showShopForm"
+      @click="handleOverlayClick"
+      class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center pt-8 px-4"
+    >
+      <div @click.stop class="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <ShopForm
+          :user="user"
+          :fetchShops="loadShops"
+          @shop-added="handleNewShop"
+          @cancel="closeForms"
         />
       </div>
     </div>
@@ -72,7 +88,7 @@
     <div class="flex flex-col lg:flex-row lg:items-stretch gap-4">
       <div class="flex-1">
         <div class="w-full bg-white dark:bg-gray-800 rounded-lg">
-          <TabGroup>
+          <TabGroup as="div" :selectedIndex="selectedIndex" @change="handleTabChange" class="flex-1">
             <!-- Tab list -->
             <TabList class="flex w-full justify-center items-center p-1 rounded-t-lg bg-transparent">
               <Tab
@@ -155,16 +171,31 @@
       </div>
     </div>
 
-    <!-- Fixed Footer -->
-    <footer class="mt-auto pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
-      <p>© 2025 R.A., all rights reserved unless otherwise noted. This site is for personal, non-commercial use to catalog specialty coffee beans at home. QR codes are intended for private household use and should not be shared externally.</p>
-      <p>
-        Licensed under 
-        <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">
-          CC BY-NC 4.0
-        </a>.
-      </p>
-    </footer>
+    <!-- Add Button -->
+    <button
+      @click="handleAddClick"
+      :disabled="!isLoggedIn || showCoffeeForm || showShopForm || selectedIndex === 1"
+      :class="[
+        'floating-btn left-6 bottom-6 rounded-full shadow-lg p-3 transition-all duration-300',
+        (!isLoggedIn || showCoffeeForm || showShopForm || selectedIndex === 1)
+          ? 'z-10 floating-btn--disabled bg-gray-400'
+          : 'z-50 bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:scale-110'
+      ]"
+      :title="!isLoggedIn 
+        ? 'Please log in to add items' 
+        : selectedIndex === 0 
+          ? 'Add Coffee' 
+          : selectedIndex === 2 
+            ? 'Add Shop' 
+            : ''"
+    >
+      <Plus :class="[
+        'w-6 h-6',
+        (!isLoggedIn || showCoffeeForm || showShopForm || selectedIndex === 1)
+          ? 'text-gray-600'
+          : 'text-white'
+      ]" />
+    </button>
 
     <Transition name="fade">
       <button
@@ -197,23 +228,16 @@
       <ChevronRight v-else class="w-6 h-6 text-gray-700 dark:text-gray-300" />
     </button>
 
-    <!-- Add Coffee Button -->
-    <button
-      @click="handleAddCoffeeClick"
-      :disabled="showCoffeeForm || !isLoggedIn"
-      :class="[
-        'floating-btn left-6 bottom-6 rounded-full shadow-lg p-3 transition-all duration-300',
-        showCoffeeForm || !isLoggedIn
-          ? 'z-10 floating-btn--disabled bg-gray-400'
-          : 'z-50 bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:scale-110'
-      ]"
-      :title="isLoggedIn ? 'Add Coffee' : 'Please log in to add coffee'"
-    >
-      <Plus :class="[
-        'w-6 h-6',
-        showCoffeeForm || !isLoggedIn ? 'text-gray-600' : 'text-white'
-      ]" />
-    </button>
+    <!-- Fixed Footer -->
+    <footer class="mt-auto pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
+      <p>© 2025 R.A., all rights reserved unless otherwise noted. This site is for personal, non-commercial use to catalog specialty coffee beans at home. QR codes are intended for private household use and should not be shared externally.</p>
+      <p>
+        Licensed under 
+        <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">
+          CC BY-NC 4.0
+        </a>.
+      </p>
+    </footer>
 
     <!-- Toast Notifications -->
     <ToastContainer />
@@ -228,6 +252,7 @@ import { useToast } from './composables/useToast'
 import ToastContainer from './components/ToastContainer.vue'
 import Authentication from './components/Authentication.vue'
 import CoffeeForm from './components/CoffeeForm.vue'
+import ShopForm from './components/ShopForm.vue'
 import FilterPanel from './components/FilterPanel.vue'
 import CoffeeCard from './components/CoffeeCard.vue'
 import ShopCard from './components/ShopCard.vue'
@@ -243,6 +268,7 @@ const filter = ref({ green: false, grey: false, origin: '', shop: '', name: '' }
 const showBackToTop = ref(false)
 const showAuth = ref(false)
 const showCoffeeForm = ref(false)
+const showShopForm = ref(false)
 const autoCollapseTimer = ref(null)
 const lastScrollY = ref(0)
 const userActivityTimer = ref(null)
@@ -254,6 +280,7 @@ const coffeeNames = ref([])
 const shouldExpandFromUrl = ref(false)
 const isInitialUrlLoad = ref(true)
 const { success, error, warning, info } = useToast()
+const selectedIndex = ref(0)
 
 // Authentication methods
 const toggleAuth = () => {
@@ -361,6 +388,12 @@ watch(isLoggedIn, (newValue, oldValue) => {
   if (!newValue && oldValue) {
     showCoffeeForm.value = false
   }
+})
+
+// Watch tab changes to close forms
+watch(selectedIndex, () => {
+  showCoffeeForm.value = false
+  showShopForm.value = false
 })
 
 // Computed properties
@@ -497,20 +530,39 @@ const scrollToFirstCard = async () => {
   }, 800)
 }
 
-const handleAddCoffeeClick = () => {
+/* const handleAddCoffeeClick = () => {
   if (!isLoggedIn.value) {
     warning('🔒 Please log in first', 'Login required to add coffee')
     return
   }
   
   showCoffeeForm.value = true
+} */
+
+function handleAddClick() {
+  if (!isLoggedIn.value) return
+  if (selectedIndex.value === 0) {
+    showCoffeeForm.value = true
+  } else if (selectedIndex.value === 2) {
+    showShopForm.value = true
+  }
+}
+
+const handleTabChange = (index) => {
+  selectedIndex.value = index
+  console.log(`Tab changed to index: ${selectedIndex.value}`)
 }
 
 const handleOverlayClick = (event) => {
   // Close form when clicking on the backdrop
   if (event.target === event.currentTarget) {
-    showCoffeeForm.value = false
+    closeForms()
   }
+}
+
+function closeForms() {
+  showCoffeeForm.value = false
+  showShopForm.value = false
 }
 
 const onUserChanged = (newUser) => {
@@ -570,6 +622,25 @@ const handleNewCoffee = async (newCoffee) => {
   
   await nextTick()
   const newElement = document.querySelector(`[data-coffee-id="${newCoffee.id}"]`)
+  if (newElement) {
+    newElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+  
+  setTimeout(() => {
+    newlyAddedId.value = null
+  }, 3000)
+}
+
+const handleNewShop = async (newShop) => {
+  await loadShops()
+  
+  newlyAddedId.value = newShop.id
+  showShopForm.value = false
+  
+  success('Shop added successfully!', `${newShop.name} has been saved to your collection`)
+  
+  await nextTick()
+  const newElement = document.querySelector(`[data-shop-id="${newShop.id}"]`)
   if (newElement) {
     newElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
