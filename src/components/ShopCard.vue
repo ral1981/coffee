@@ -1,7 +1,7 @@
 <template>
   <div class="shop-card-wrapper relative" :data-shop-id="shop.id">
     <!-- Three dots menu - positioned at card level -->
-    <div class="absolute top-2 right-2 flex flex-col items-center space-y-1 flex-shrink-0 z-10">
+    <div class="absolute top-2 right-0 flex flex-col items-center space-y-1 flex-shrink-0 z-10">
       <button
         ref="menuButton"
         type="button"
@@ -62,7 +62,7 @@
       :href="homepage"
       target="_blank"
       rel="noopener noreferrer"
-      class="shop-card block w-28 h-28 flex flex-col items-center justify-center border rounded-lg p-3 bg-white shadow hover:shadow-md transition-all cursor-pointer no-underline group"
+      :class="['shop-card block w-28 h-28 flex flex-col items-center justify-center border-l-4 border rounded-lg p-3 bg-white shadow hover:shadow-md transition-all cursor-pointer no-underline group', cardBorderClass]"
       @click="handleCardClick"
     >
       <LogoImage
@@ -107,10 +107,15 @@ const emit = defineEmits(['deleted'])
 const showMenu = ref(false)
 const menuButton = ref(null)
 const menuPanel = ref(null)
+const hasRelatedCoffees = ref(false)
 
 // Handle both old and new data structures
 const shopName = computed(() => {
   return props.shop.name || props.shop.shop_name || 'Unknown Shop'
+})
+
+const cardBorderClass = computed(() => {
+  return hasRelatedCoffees.value ? 'border-l-purple-500' : 'border-l-red-500'
 })
 
 const relatedCoffeesUrl = computed(() => {
@@ -145,6 +150,27 @@ const homepage = computed(() => {
 })
 
 // Menu handlers
+// Function to check if the shop has related coffees
+async function checkRelatedCoffees() {
+  try {
+    const { count, error } = await supabase
+      .from('coffee_beans')
+      .select('*', { count: 'exact', head: true })
+      .eq('shop_id', props.shop.id);
+
+    if (error) {
+      throw error;
+    }
+
+    // Update the ref based on the count
+    hasRelatedCoffees.value = count > 0;
+  } catch (err) {
+    console.error('Error checking for related coffees:', err);
+    // Default to false on error
+    hasRelatedCoffees.value = false;
+  }
+}
+
 function toggleMenu() {
   showMenu.value = !showMenu.value
 }
@@ -215,8 +241,12 @@ function onClickOutside(e) {
   }
 }
 
+
 // Lifecycle hooks
-onMounted(() => document.addEventListener('click', onClickOutside))
+onMounted(() => {
+  document.addEventListener('click', onClickOutside);
+  checkRelatedCoffees();
+})
 onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </script>
 
