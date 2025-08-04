@@ -45,9 +45,16 @@
             />
           </div>
           
-          <div v-if="form.logo" class="flex items-center gap-2 text-sm text-gray-600">
-            <span>Favicon Preview:</span>
-            <img :src="form.logo" alt="Favicon Preview" class="w-6 h-6 rounded" />
+          <!-- Updated logo preview section -->
+          <div v-if="form.url" class="flex items-center gap-2 text-sm text-gray-600">
+            <span>Logo Preview:</span>
+            <LogoImage
+              :url="form.url"
+              :custom-logo="form.logo"
+              :size="24"
+              alt="Logo Preview"
+              class-name="w-6 h-6 rounded"
+            />
           </div>
         </div>
       </div>
@@ -66,6 +73,7 @@
 import { useShopForm } from '../composables/useShopForm'
 import { CircleX } from 'lucide-vue-next'
 import SaveCancelButtons from './SaveCancelButtons.vue'
+import LogoImage from './LogoImage.vue'
 
 const emit = defineEmits(['shop-saved', 'cancel'])
 const props = defineProps({ 

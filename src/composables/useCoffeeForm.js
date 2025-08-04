@@ -1,6 +1,7 @@
 import { reactive, ref, watch, computed, onMounted } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useToast } from './useToast'
+import { useLogo } from './useLogo'
 
 export function useCoffeeForm({
   initialData = {},
@@ -11,6 +12,7 @@ export function useCoffeeForm({
 }) {
   // Toast composable
   const { success, error, warning, info } = useToast()
+  const { getLogoUrl, getDomainFromUrl } = useLogo()
 
   // Default values
   const defaults = {
@@ -114,7 +116,7 @@ export function useCoffeeForm({
     return isValid
   }
 
-  // Auto-derive shop logo from URL
+  // Auto-derive shop logo from URL using new logo system
   const deriveShopLogo = () => {
     const url = form.bean_url
     if (!url) {
@@ -125,6 +127,8 @@ export function useCoffeeForm({
     try {
       const u = new URL(url.startsWith('http') ? url : `https://${url}`)
       form.bean_url = u.href
+      // Use the new logo system instead of Google favicon
+      form.shop_logo = getLogoUrl(form.bean_url, null, 128)
     } catch (err) {
       form.shop_logo = ''
       warning('Invalid URL', 'Please enter a valid website URL')
@@ -223,9 +227,8 @@ export function useCoffeeForm({
           : `https://${form.bean_url}`;
         const shopUrl = new URL(rawUrl).href;
 
-        // 2. Extract hostname for favicon
-        const domain = new URL(shopUrl).hostname;
-        const favicon = `https://www.google.com/s2/favicons?domain=${domain}`;
+        // 2. Use new logo system instead of Google favicon
+        const logo = getLogoUrl(shopUrl, null, 128);
 
         // 3. Check for existing shop by name
         const { data: existingShop, error: fetchErr } = await supabase
@@ -239,13 +242,13 @@ export function useCoffeeForm({
         if (existingShop) {
           shopId = existingShop.id;
         } else {
-          // 4. Insert new shop row
+          // 4. Insert new shop row with high-quality logo
           const { data: newShop, error: insertErr } = await supabase
             .from('shops')
             .insert({
               name: shopName,
               url: shopUrl,
-              logo: favicon,
+              logo: logo,
             })
             .select('id')
             .single();

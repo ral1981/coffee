@@ -1,6 +1,7 @@
 import { reactive, ref, watch } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useToast } from './useToast'
+import { useLogo } from './useLogo'
 
 /**
  * Composable for adding a coffee shop.
@@ -8,6 +9,7 @@ import { useToast } from './useToast'
  */
 export function useShopForm({ emit, onClose, fetchShops }) {
   const { success, error, warning } = useToast()
+  const { getLogoUrl, getDomainFromUrl } = useLogo()
 
   // Default form fields
   const defaults = { name: '', url: '', logo: '' }
@@ -24,7 +26,7 @@ export function useShopForm({ emit, onClose, fetchShops }) {
     }
   }
 
-  // Derive favicon based on URL
+  // Derive logo using the new logo system
   const deriveLogo = () => {
     if (!form.url) {
       form.logo = ''
@@ -33,14 +35,15 @@ export function useShopForm({ emit, onClose, fetchShops }) {
     try {
       const u = new URL(form.url.startsWith('http') ? form.url : `https://${form.url}`)
       form.url = u.href
-      form.logo = `https://www.google.com/s2/favicons?domain=${u.hostname}`
+      // Use the new logo system to get high-quality logo
+      form.logo = getLogoUrl(form.url, null, 128)
     } catch {
       form.logo = ''
       warning('Invalid URL', 'Please enter a valid shop URL')
     }
   }
 
-  // Watch for URL changes to update favicon
+  // Watch for URL changes to update logo
   watch(
     () => form.url,
     (newUrl, oldUrl) => {

@@ -15,12 +15,12 @@
       <div class="relative flex items-start m-4">
         <!-- 1) Favicon (left zone) -->
         <div class="flex-shrink-0">
-          <img
-            :src="form.shop_logo || 'https://www.google.com/s2/favicons?domain=example.com'"
+          <LogoImage
+            :url="form.bean_url"
+            :custom-logo="form.shop_logo"
+            :size="48"
             alt="shop logo"
-            width="48"
-            height="48"
-            class="rounded"
+            class-name="rounded"
           />
         </div>
 
@@ -209,6 +209,8 @@ import Container from './Container.vue'
 import SaveCancelButtons from './SaveCancelButtons.vue'
 import { useCoffeeForm } from '../composables/useCoffeeForm'
 import { CircleX } from 'lucide-vue-next'
+import LogoImage from './LogoImage.vue'
+import { useLogo } from '../composables/useLogo'
 
 const { success, error, warning, info } = useToast()
 
@@ -259,8 +261,7 @@ const {
   isFormValid, 
   save, 
   cancel, 
-  validUrl, 
-  deriveShopLogo, 
+  validUrl,
   shopNameOptions, 
   originOptions 
 } = useCoffeeForm({
@@ -273,17 +274,10 @@ const {
   fetchCoffees: props.fetchCoffees || fetchCoffees
 })
 
-const getShopLogo = () => {
-  if (form.bean_url) {
-    try {
-      const fullUrl = form.bean_url.startsWith('http') ? form.bean_url : `https://${form.bean_url}`
-      const domain = new URL(fullUrl).hostname
-      return `https://www.google.com/s2/favicons?domain=${domain}`
-    } catch {
-      return 'https://www.google.com/s2/favicons?domain=example.com'
-    }
-  }
-  return 'https://www.google.com/s2/favicons?domain=example.com'
+const { deriveLogoFromUrl } = useLogo()
+
+const deriveShopLogo = () => {
+  deriveLogoFromUrl(form, 'bean_url', 'shop_logo')
 }
 
 const handleFormContainerChange = (data) => {

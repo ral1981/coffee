@@ -20,12 +20,12 @@
       >
         <!-- 1) Favicon (left zone) -->
         <div class="flex-shrink-0">
-          <img
-            :src="coffee.shops?.logo || `https://www.google.com/s2/favicons?domain=${getDomainFromUrl(coffee.bean_url)}`"
+          <LogoImage
+            :url="coffee.bean_url"
+            :custom-logo="coffee.shops?.logo"
+            :size="48"
             alt="shop logo"
-            width="48"
-            height="48"
-            class="rounded"
+            class-name="rounded"
           />
         </div>
 
@@ -385,6 +385,7 @@ import { useCoffeeForm } from '../composables/useCoffeeForm'
 import { EllipsisVertical, Store, Pencil, Trash2 } from 'lucide-vue-next'
 import singleShotIcon from '../assets/icons/1shot.svg'
 import doubleShotIcon from '../assets/icons/2shot.svg'
+import LogoImage from './LogoImage.vue'
 
 // Toast composable
 const { success, error, warning, info } = useToast()
