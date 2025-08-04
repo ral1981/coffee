@@ -12,13 +12,14 @@ export function useCoffeeForm({
 }) {
   // Toast composable
   const { success, error, warning, info } = useToast()
-  const { getLogoUrl, getDomainFromUrl } = useLogo()
+  const { getLogoUrl } = useLogo()
 
   // Default values
   const defaults = {
     name: '',
     bean_url: '',
     shop_name: '',
+    shop_logo: '',
     origin: '',
     region: '',
     altitude_meters: '',
