@@ -40,7 +40,8 @@
       <!-- Delete (disabled for guests) -->
       <button
         type="button"
-        @click.stop="isLoggedIn ? confirmDelete() : showLoginPrompt('delete')"
+        @click.stop="handleDeleteClick"
+        :disabled="!isLoggedIn"
         :class="[
           'block w-full text-left px-3 py-2 text-sm transition-colors duration-200',
           isLoggedIn 
@@ -108,6 +109,7 @@ const showMenu = ref(false)
 const menuButton = ref(null)
 const menuPanel = ref(null)
 const hasRelatedCoffees = ref(false)
+const isDeleting = ref(false)
 
 // Handle both old and new data structures
 const shopName = computed(() => {
@@ -149,7 +151,6 @@ const homepage = computed(() => {
   }
 })
 
-// Menu handlers
 // Function to check if the shop has related coffees
 async function checkRelatedCoffees() {
   try {
@@ -185,31 +186,52 @@ function visitShop() {
   }
 }
 
-async function confirmDelete() {
+// Fixed delete handler
+function handleDeleteClick(event) {
+  event.preventDefault()
+  event.stopPropagation()
+  
   if (!props.isLoggedIn) {
     showLoginPrompt('delete')
     return
   }
   
+  confirmDelete()
+}
+
+async function confirmDelete() {
+  if (isDeleting.value) return // Prevent multiple delete attempts
+  
   showMenu.value = false
-  if (!confirm(`Delete "${shopName.value}" shop?\n\nNote: This will only delete the shop entry. Coffee beans from this shop will remain in your collection.`)) return
+  
+  const confirmed = confirm(`Delete "${shopName.value}" shop?\n\nNote: This will only delete the shop entry. Coffee beans from this shop will remain in your collection.`)
+  
+  if (!confirmed) return
+  
+  isDeleting.value = true
   
   try {
+    console.log('Attempting to delete shop with ID:', props.shop.id)
+    
     const { error: deleteError } = await supabase
       .from('shops')
       .delete()
       .eq('id', props.shop.id)
     
     if (deleteError) {
+      console.error('Supabase delete error:', deleteError)
       throw deleteError
     }
     
+    console.log('Shop deleted successfully')
     success('Shop deleted', `${shopName.value} has been removed from your shops`)
     emit('deleted', props.shop.id)
     
   } catch (err) {
-    error('Delete failed', 'Please try again')
-    console.error('Delete error:', err)
+    console.error('Delete operation failed:', err)
+    error('Delete failed', `Failed to delete ${shopName.value}. Please try again.`)
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -241,13 +263,15 @@ function onClickOutside(e) {
   }
 }
 
-
 // Lifecycle hooks
 onMounted(() => {
   document.addEventListener('click', onClickOutside);
   checkRelatedCoffees();
 })
-onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onClickOutside)
+})
 </script>
 
 <style scoped>

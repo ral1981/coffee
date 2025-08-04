@@ -623,6 +623,20 @@ const handleNewCoffee = async (newCoffee) => {
   }, 3000)
 }
 
+const handleNewShop = async (newShop) => {
+  newlyAddedId.value = newShop.id
+  
+  await nextTick()
+  const newElement = document.querySelector(`[data-shop-id="${newShop.id}"]`)
+  if (newElement) {
+    newElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+  
+  setTimeout(() => {
+    newlyAddedId.value = null
+  }, 3000)
+}
+
 const handleFilterChange = (newFilter, isFromUrl = false) => {
   filter.value = { ...newFilter }
   
