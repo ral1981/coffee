@@ -33,7 +33,7 @@
         <ShopForm
           :user="user"
           :fetchShops="loadShops"
-          @shop-added="handleNewShop"
+          @shop-saved="handleNewShop"
           @cancel="closeForms"
         />
       </div>
@@ -614,25 +614,6 @@ const handleNewCoffee = async (newCoffee) => {
   
   await nextTick()
   const newElement = document.querySelector(`[data-coffee-id="${newCoffee.id}"]`)
-  if (newElement) {
-    newElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-  
-  setTimeout(() => {
-    newlyAddedId.value = null
-  }, 3000)
-}
-
-const handleNewShop = async (newShop) => {
-  await loadShops()
-  
-  newlyAddedId.value = newShop.id
-  showShopForm.value = false
-  
-  success('Shop added successfully!', `${newShop.name} has been saved to your collection`)
-  
-  await nextTick()
-  const newElement = document.querySelector(`[data-shop-id="${newShop.id}"]`)
   if (newElement) {
     newElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }

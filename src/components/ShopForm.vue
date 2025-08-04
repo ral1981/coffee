@@ -70,6 +70,7 @@
 </template>
 
 <script setup>
+import { defineProps } from 'vue';
 import { useShopForm } from '../composables/useShopForm'
 import { CircleX } from 'lucide-vue-next'
 import SaveCancelButtons from './SaveCancelButtons.vue'

@@ -1,4 +1,4 @@
-import { reactive, ref, watch } from 'vue'
+import { reactive, watch, computed } from 'vue' // 👈 Add 'computed' here
 import { supabase } from '../lib/supabase'
 import { useToast } from './useToast'
 import { useLogo } from './useLogo'
@@ -9,7 +9,7 @@ import { useLogo } from './useLogo'
  */
 export function useShopForm({ emit, onClose, fetchShops }) {
   const { success, error, warning } = useToast()
-  const { getLogoUrl, getDomainFromUrl } = useLogo()
+  const { getLogoUrl } = useLogo()
 
   // Default form fields
   const defaults = { name: '', url: '', logo: '' }
@@ -26,7 +26,7 @@ export function useShopForm({ emit, onClose, fetchShops }) {
     }
   }
 
-  // Derive logo using the new logo system
+  // Derive logo
   const deriveLogo = () => {
     if (!form.url) {
       form.logo = ''
@@ -35,7 +35,6 @@ export function useShopForm({ emit, onClose, fetchShops }) {
     try {
       const u = new URL(form.url.startsWith('http') ? form.url : `https://${form.url}`)
       form.url = u.href
-      // Use the new logo system to get high-quality logo
       form.logo = getLogoUrl(form.url, null, 128)
     } catch {
       form.logo = ''
@@ -59,14 +58,13 @@ export function useShopForm({ emit, onClose, fetchShops }) {
     if (!validUrl(form.url)) errs.push('Valid shop URL is required')
     return errs
   }
-
-  const isFormValid = () => getValidationErrors().length === 0
+ 
+  const isFormValid = computed(() => getValidationErrors().length === 0)
 
   // Save handler: checks uniqueness and inserts
   const save = async () => {
-    const errs = getValidationErrors()
-    if (errs.length) {
-      error('Validation failed', errs[0])
+    if (!isFormValid.value) {
+      error('Validation failed', getValidationErrors()[0])
       return
     }
 
@@ -94,8 +92,12 @@ export function useShopForm({ emit, onClose, fetchShops }) {
 
       success('Shop added', `${newShop[0].name} has been added successfully`)
       emit('shop-saved', newShop[0])
-      onClose?.()
-      if (fetchShops) await fetchShops()
+      
+      if (fetchShops) {
+        await fetchShops()
+      }
+      cancel()
+
     } catch (err) {
       console.error('Error adding shop:', err)
       error('Save failed', err.message)
