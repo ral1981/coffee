@@ -12,9 +12,9 @@
         ] : 'border-gray-200 shadow-sm'
       ]"
       :style="{
-        width: isOpen ? '100%' : '64px',
-        maxWidth: isOpen ? '56rem' : '64px',
-        height: isOpen ? 'auto' : '64px',
+        width: isOpen ? '100%' : '80px',
+        maxWidth: isOpen ? '56rem' : '80px',
+        height: isOpen ? 'auto' : '80px',
         padding: isOpen ? '16px' : '0',
         borderRadius: isOpen ? '12px' : '16px',
         transition: `width 0.7s ease-in-out ${isOpen ? '0ms' : '400ms'}, 
@@ -28,9 +28,13 @@
       class="flex flex-col"
     >
       <!-- Filter Icon with Counter Dot -->
+<!--       <div
+        class="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-in-out flex flex-col items-center flex-shrink-0 z-20"
+        :style="{ top: isOpen ? '32px' : '50%' }"
+      > -->
       <div
-        class="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-in-out flex-shrink-0 z-20"
-        style="top: 32px;"
+        class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-in-out flex flex-col items-center flex-shrink-0 z-20"
+        :style="{ top: isOpen ? '32px' : '50%' }"
       >
         <!-- Icon Container -->
         <div class="relative">
@@ -53,6 +57,18 @@
             :class="isOpen ? 'scale-75' : 'opacity-100 scale-100'"
           >
             {{ activeFilterCount }}
+          </div>
+
+          <!-- Counter (when collapsed and has active filters) -->
+          <div 
+            v-if="!isOpen"
+            :class="[
+              'mt-2 text-xs font-bold transition-all duration-500 ease-in-out text-center',
+              hasActiveFilters ? 'text-red-500' : 'text-gray-500'
+            ]"
+            :style="{ transitionDelay: isOpen ? '0ms' : '400ms' }"
+          >
+            {{ filteredCount }}/{{ totalCount }}
           </div>
         </div>
       </div>
@@ -298,8 +314,11 @@
           </div>
 
           <!-- Result Count with Active Filters Summary -->
-          <div class="pt-3 border-t border-gray-200 text-sm text-gray-600 text-center space-y-2 transform transition-all duration-600 ease-out"
-              :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+          <div class="pt-3 border-t border-gray-200 text-sm text-center space-y-2 transform transition-all duration-600 ease-out"
+              :class="[
+                isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0',
+                hasActiveFilters ? 'text-red-500' : 'text-gray-600'
+              ]"
               :style="{ transitionDelay: isOpen ? '800ms' : '0ms' }">
             <div>
               Showing <span class="font-semibold">{{ filteredCount }}</span> of <span class="font-semibold">{{ totalCount }}</span> coffees
