@@ -24,6 +24,9 @@ export function useShopForm({
     ...(initialData || {})      // for edit mode, seed existing values
   })
 
+  // Store the original values for change detection
+  const originalValues = { ...form }
+
   // URL validation helper
   const validUrl = (value) => {
     if (!value) return false
@@ -141,13 +144,21 @@ export function useShopForm({
     }
   }
 
-  // Cancel handler
+  // Cancel handler with improved change detection
   const cancel = (skipChangeCheck = false) => {
     if (!skipChangeCheck) {
+      // Check for changes by comparing current form values with original values
       const hasChanges = Object.keys(form).some(key => {
-        const currentValue = form[key]
-        const initialValue = initialData[key] || defaults[key]
-        return currentValue !== initialValue
+        const currentValue = form[key] || ''
+        const originalValue = originalValues[key] || ''
+        return currentValue.toString().trim() !== originalValue.toString().trim()
+      })
+
+      console.log('Change detection debug:', {
+        hasChanges,
+        currentForm: { ...form },
+        originalValues: { ...originalValues },
+        mode
       })
 
       if (hasChanges) {

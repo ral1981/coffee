@@ -20,6 +20,8 @@
     <button
       type="button"
       @click="handleCancel"
+      @touchend="handleCancel"
+      @mousedown="handleCancel"
       :class="cancelButtonClasses"
     >
       <svg :class="iconClasses" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,6 +78,7 @@ const cancelButtonClasses = computed(() => {
 })
 
 const handleSaveClick = () => {
+  console.log('Save button clicked - mobile debug')
   if (props.disabled) {
     warning('Cannot save', 'Please complete all required fields')
     return
@@ -83,7 +86,10 @@ const handleSaveClick = () => {
   emit('save')
 }
 
-const handleCancel = () => {
+const handleCancel = (event) => {
+  console.log('Cancel button triggered - mobile debug', event.type)
+  event.preventDefault()
+  event.stopPropagation()
   emit('cancel')
 }
 </script>

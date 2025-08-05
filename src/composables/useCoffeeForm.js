@@ -19,7 +19,6 @@ export function useCoffeeForm({
     name: '',
     bean_url: '',
     shop_name: '',
-    shop_logo: '',
     origin: '',
     region: '',
     altitude_meters: '',
@@ -121,17 +120,16 @@ export function useCoffeeForm({
   const deriveShopLogo = () => {
     const url = form.bean_url
     if (!url) {
-      form.shop_logo = ''
+      // Don't set shop_logo since it doesn't exist in coffee_beans table
       return
     }
     
     try {
       const u = new URL(url.startsWith('http') ? url : `https://${url}`)
       form.bean_url = u.href
-      // Use the new logo system instead of Google favicon
-      form.shop_logo = getLogoUrl(form.bean_url, null, 128)
+      // Note: Logo will be handled in the shops table during save
+      // No need to set form.shop_logo as it doesn't exist in coffee_beans
     } catch (err) {
-      form.shop_logo = ''
       warning('Invalid URL', 'Please enter a valid website URL')
     }
   }
@@ -259,6 +257,72 @@ export function useCoffeeForm({
 
         // 5. Attach FK and remove now-duplicated fields
         payload.shop_id = shopId;
+        delete payload.shop_name;
+        delete payload.shop_logo;
+      } else {
+        // EDIT MODE: Handle shop updates
+        const shopName = form.shop_name.trim();
+        const rawUrl = form.bean_url.startsWith('http')
+          ? form.bean_url
+          : `https://${form.bean_url}`;
+        const shopUrl = new URL(rawUrl).href;
+
+        // Get current coffee's shop_id
+        const { data: currentCoffee, error: fetchErr } = await supabase
+          .from('coffee_beans')
+          .select('shop_id')
+          .eq('id', initialData.id)
+          .single();
+        
+        if (fetchErr) throw new Error('Error fetching current coffee: ' + fetchErr.message);
+
+        // Check if shop name or URL changed
+        const { data: currentShop, error: shopFetchErr } = await supabase
+          .from('shops')
+          .select('name, url')
+          .eq('id', currentCoffee.shop_id)
+          .single();
+        
+        if (shopFetchErr) throw new Error('Error fetching current shop: ' + shopFetchErr.message);
+
+        // If shop details changed, update the shop or create new one
+        if (currentShop.name !== shopName || currentShop.url !== shopUrl) {
+          // Check if a shop with this name already exists (different from current)
+          const { data: existingShop, error: existingErr } = await supabase
+            .from('shops')
+            .select('id')
+            .eq('name', shopName)
+            .neq('id', currentCoffee.shop_id)
+            .maybeSingle();
+          
+          if (existingErr) throw new Error('Error checking existing shop: ' + existingErr.message);
+
+          let shopId;
+          if (existingShop) {
+            // Use existing shop
+            shopId = existingShop.id;
+          } else {
+            // Update current shop or create new one
+            const logo = getLogoUrl(shopUrl, null, 128);
+            
+            // Update the existing shop
+            const { error: updateErr } = await supabase
+              .from('shops')
+              .update({
+                name: shopName,
+                url: shopUrl,
+                logo: logo,
+              })
+              .eq('id', currentCoffee.shop_id);
+            
+            if (updateErr) throw new Error('Error updating shop: ' + updateErr.message);
+            shopId = currentCoffee.shop_id;
+          }
+          
+          payload.shop_id = shopId;
+        }
+
+        // Remove shop fields that don't belong in coffee_beans table
         delete payload.shop_name;
         delete payload.shop_logo;
       }

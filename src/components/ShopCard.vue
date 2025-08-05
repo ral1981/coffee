@@ -91,7 +91,7 @@
     </div>
 
     <!-- Edit mode card -->
-    <div v-if="isEditing" class="shop-card w-28 h-auto flex flex-col items-center justify-start border-l-4 border-l-blue-500 border rounded-lg p-2 bg-blue-50 shadow relative min-h-28">
+    <div v-if="isEditing" class="shop-card w-28 h-auto flex flex-col items-center justify-start border-l-4 border-l-blue-500 border rounded-lg p-2 bg-blue-50 shadow relative min-h-28" @click.stop>
       <!-- Edit mode icon -->
       <div class="absolute top-1 right-1">
         <Pencil class="w-3 h-3 text-blue-500" />
@@ -130,7 +130,7 @@
         />
 
         <!-- Save/Cancel buttons -->
-        <div class="w-full">
+        <div class="w-full" @click.stop @touchend.stop>
           <SaveCancelButtons
             :disabled="!isFormValid"
             :compact="true"
@@ -173,6 +173,7 @@ import { useShopForm } from '../composables/useShopForm'
 import { EllipsisVertical, Store, Trash2, Coffee, Pencil } from 'lucide-vue-next'
 import LogoImage from './LogoImage.vue'
 import SaveCancelButtons from './SaveCancelButtons.vue'
+import { useSharedMenuState } from '../composables/useSharedMenuState'
 
 // Toast composable
 const { success, error, warning, info } = useToast()
@@ -198,12 +199,13 @@ const emit = defineEmits(['deleted', 'shop-updated'])
 const localShop = ref({ ...props.shop })
 
 // Local UI state
-const showMenu = ref(false)
 const menuButton = ref(null)
 const menuPanel = ref(null)
 const hasRelatedCoffees = ref(false)
 const isDeleting = ref(false)
 const isEditing = ref(false)
+
+const { isOpen: showMenu, toggleMenu: toggleMenuState, closeMenu } = useSharedMenuState(`shop-${props.shop.id}`)
 
 // Shop form composable (only initialize when editing)
 let shopForm = null
@@ -320,17 +322,17 @@ function enterEditMode() {
   }
   
   isEditing.value = true
-  showMenu.value = false
+  closeMenu()
   // Reset the form with current shop data
   Object.assign(getShopForm().form, localShop.value)
 }
 
 function toggleMenu() {
-  showMenu.value = !showMenu.value
+  toggleMenuState()
 }
 
 function visitShop() {
-  showMenu.value = false
+  closeMenu()
   if (shopUrl.value) {
     window.open(homepage.value, '_blank', 'noopener,noreferrer')
     info('Opening shop page', `Redirecting to ${shopName.value} website`)
@@ -355,7 +357,7 @@ function handleDeleteClick(event) {
 async function confirmDelete() {
   if (isDeleting.value) return // Prevent multiple delete attempts
   
-  showMenu.value = false
+  closeMenu()
   
   const confirmed = confirm(`Delete "${shopName.value}" shop?\n\nNote: This will only delete the shop entry. Coffee beans from this shop will remain in your collection.`)
   
@@ -391,19 +393,19 @@ async function confirmDelete() {
 function showLoginPrompt(action) {
   const actionText = action === 'edit' ? 'edit this shop' : action === 'delete' ? 'delete this shop' : 'perform this action'
   warning('🔒 Please log in first', `Login required to ${actionText}`)
-  showMenu.value = false
+  closeMenu()
 }
 
 function handleCardClick(event) {
   // Prevent navigation if menu is open or if clicking on menu area
   if (showMenu.value) {
     event.preventDefault()
-    showMenu.value = false
+    closeMenu()
   }
 }
 
 function handleMenuLinkClick() {
-  showMenu.value = false;
+  closeMenu()
 }
 
 function handleRelatedCoffeesClick(event) {
@@ -411,7 +413,7 @@ function handleRelatedCoffeesClick(event) {
     event.preventDefault()
     warning('No related coffees', `No coffee beans found from ${shopName.value}`)
   }
-  showMenu.value = false
+  closeMenu()
 }
 
 function onClickOutside(e) {
@@ -420,7 +422,7 @@ function onClickOutside(e) {
     menuButton.value && !menuButton.value.contains(e.target) &&
     menuPanel.value && !menuPanel.value.contains(e.target)
   ) {
-    showMenu.value = false
+    closeMenu()
   }
 }
 

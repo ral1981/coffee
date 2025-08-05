@@ -386,6 +386,7 @@ import { EllipsisVertical, Store, Pencil, Trash2 } from 'lucide-vue-next'
 import singleShotIcon from '../assets/icons/1shot.svg'
 import doubleShotIcon from '../assets/icons/2shot.svg'
 import LogoImage from './LogoImage.vue'
+import { useSharedMenuState } from '../composables/useSharedMenuState'
 
 // Toast composable
 const { success, error, warning, info } = useToast()
@@ -424,7 +425,6 @@ const emit = defineEmits([
 const isCollapsed = ref(!props.initiallyExpanded)
 const shotState = ref('double')   // 'single' | 'double'
 const isEditing = ref(false)
-const showMenu = ref(false)
 const menuButton = ref(null)
 const menuPanel = ref(null)
 
@@ -453,6 +453,8 @@ const save = () => isEditing.value && getCoffeeForm().save()
 const cancel = () => isEditing.value && getCoffeeForm().cancel()
 const deriveShopLogo = () => isEditing.value && getCoffeeForm().deriveShopLogo()
 
+const { isOpen: showMenu, toggleMenu: toggleMenuState, closeMenu } = useSharedMenuState(`coffee-${props.coffee.id}`)
+
 function getDomainFromUrl(url) {
   if (!url) return 'example.com'
   try {
@@ -471,10 +473,10 @@ function enterEditMode() {
   }
   
   isEditing.value = true
-  showMenu.value = false
+  closeMenu()
   isCollapsed.value = false
   // Reset the form with current coffee data
-  Object.assign(getCoffeeForm().form, props.coffee)
+  Object.assign(getCoffeeForm().form, props.coffee)   
 }
 
 function toggleShotSize() {
@@ -518,7 +520,7 @@ async function confirmDelete() {
     return
   }
   
-  showMenu.value = false
+  closeMenu()
   if (!confirm(`Delete "${props.coffee.name}"?`)) return
   
   try {
@@ -543,15 +545,15 @@ async function confirmDelete() {
 function showLoginPrompt(action) {
   const actionText = action === 'edit' ? 'edit this coffee' : 'delete this coffee'
   warning('🔒 Please log in first', `Login required to ${actionText}`)
-  showMenu.value = false
+  closeMenu()
 }
 
 function toggleMenu() {
-  showMenu.value = !showMenu.value
+  toggleMenuState()
 }
 
 function openShopPage() {
-  showMenu.value = false
+  closeMenu()
   if (props.coffee.bean_url) {
     window.open(props.coffee.bean_url, '_blank', 'noopener,noreferrer')
     info('Opening shop page', 'Redirecting to coffee shop website')
@@ -566,7 +568,7 @@ function onClickOutside(e) {
     menuButton.value && !menuButton.value.contains(e.target) &&
     menuPanel.value && !menuPanel.value.contains(e.target)
   ) {
-    showMenu.value = false
+    closeMenu()
   }
 }
 
@@ -582,7 +584,7 @@ watch(isEditing, now => emit('editing-changed', now))
 watch(() => props.isLoggedIn, loggedIn => {
   if (!loggedIn && isEditing.value) {
     isEditing.value = false
-    showMenu.value = false
+    closeMenu()
   }
 })
 
