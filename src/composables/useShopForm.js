@@ -1,19 +1,28 @@
-import { reactive, watch, computed } from 'vue' // 👈 Add 'computed' here
+import { reactive, watch, computed } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useToast } from './useToast'
 import { useLogo } from './useLogo'
 
 /**
- * Composable for adding a coffee shop.
- * Emits 'shop-saved' on success and 'cancel' on cancel.
+ * Composable for adding or editing a coffee shop.
+ * Emits 'shop-saved' or 'shop-updated' on success and 'cancel' on cancel.
  */
-export function useShopForm({ emit, onClose, fetchShops }) {
+export function useShopForm({ 
+  initialData = {}, 
+  mode = 'add',      // 'add' or 'edit'
+  emit, 
+  onClose, 
+  fetchShops 
+} = {}) {
   const { success, error, warning } = useToast()
   const { getLogoUrl } = useLogo()
 
   // Default form fields
   const defaults = { name: '', url: '', logo: '' }
-  const form = reactive({ ...defaults })
+  const form = reactive({ 
+    ...defaults,
+    ...(initialData || {})      // for edit mode, seed existing values
+  })
 
   // URL validation helper
   const validUrl = (value) => {
@@ -61,7 +70,7 @@ export function useShopForm({ emit, onClose, fetchShops }) {
  
   const isFormValid = computed(() => getValidationErrors().length === 0)
 
-  // Save handler: checks uniqueness and inserts
+  // Save handler: checks uniqueness and inserts/updates
   const save = async () => {
     if (!isFormValid.value) {
       error('Validation failed', getValidationErrors()[0])
@@ -71,44 +80,90 @@ export function useShopForm({ emit, onClose, fetchShops }) {
     try {
       const shopName = form.name.trim()
 
-      // 1. Check for existing shop by name
-      const { data: existing, error: fetchErr } = await supabase
+      // 1. Check for existing shop by name (exclude current shop in edit mode)
+      let query = supabase
         .from('shops')
         .select('id')
         .eq('name', shopName)
-        .maybeSingle()
+        
+      if (mode === 'edit' && initialData.id) {
+        query = query.neq('id', initialData.id)
+      }
+      
+      const { data: existing, error: fetchErr } = await query.maybeSingle()
       if (fetchErr) throw fetchErr
       if (existing) {
         warning('Duplicate shop', 'A shop with this name already exists')
         return
       }
 
-      // 2. Insert new shop
-      const { data: newShop, error: insertErr } = await supabase
-        .from('shops')
-        .insert({ name: shopName, url: form.url, logo: form.logo })
-        .select()
-      if (insertErr) throw insertErr
+      // 2. Insert or update shop
+      let result
+      const payload = { 
+        name: shopName, 
+        url: form.url, 
+        logo: form.logo 
+      }
 
-      success('Shop added', `${newShop[0].name} has been added successfully`)
-      emit('shop-saved', newShop[0])
+      if (mode === 'add') {
+        result = await supabase
+          .from('shops')
+          .insert(payload)
+          .select()
+      } else {
+        result = await supabase
+          .from('shops')
+          .update(payload)
+          .eq('id', initialData.id)
+          .select()
+      }
+
+      if (result.error) throw result.error
+
+      const actionText = mode === 'add' ? 'added' : 'updated'
+      const shopData = result.data[0]
+
+      success(
+        `Shop ${actionText}`, 
+        `${shopData.name} has been ${actionText} successfully`
+      )
+      
+      emit(mode === 'add' ? 'shop-saved' : 'shop-updated', shopData)
       
       if (fetchShops) {
         await fetchShops()
       }
-      cancel()
+      cancel(true) // Skip change check since we just saved successfully
 
     } catch (err) {
-      console.error('Error adding shop:', err)
+      console.error(`Error ${mode === 'add' ? 'adding' : 'updating'} shop:`, err)
       error('Save failed', err.message)
     }
   }
 
   // Cancel handler
-  const cancel = () => {
+  const cancel = (skipChangeCheck = false) => {
+    if (!skipChangeCheck) {
+      const hasChanges = Object.keys(form).some(key => {
+        const currentValue = form[key]
+        const initialValue = initialData[key] || defaults[key]
+        return currentValue !== initialValue
+      })
+
+      if (hasChanges) {
+        const msg = mode === 'add'
+          ? 'Are you sure you want to discard this shop entry?'
+          : 'Discard all changes?'
+        
+        if (!confirm(msg)) {
+          return
+        }
+      }
+    }
+
     onClose?.()
     emit('cancel')
   }
 
-  return { form, isFormValid, save, cancel }
+  return { form, isFormValid, save, cancel, validUrl }
 }

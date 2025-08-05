@@ -30,12 +30,43 @@
 
       <!-- Related Coffees (available to all users) -->
       <a
-        :href="relatedCoffeesUrl"
-        @click="handleMenuLinkClick"
-        class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+        :href="hasRelatedCoffees ? relatedCoffeesUrl : '#'"
+        @click="handleRelatedCoffeesClick"
+        :class="[
+          'block w-full text-left px-3 py-2 text-sm transition-colors duration-200',
+          hasRelatedCoffees 
+            ? 'hover:bg-gray-100 text-gray-900 cursor-pointer' 
+            : 'text-gray-300 cursor-not-allowed bg-gray-50'
+        ]"
       >
-        <Coffee class="inline-block mr-2 w-4 h-4" /> Related Coffees
+        <Coffee 
+          :class="[
+            'inline-block mr-2 w-4 h-4',
+            hasRelatedCoffees ? 'text-gray-700' : 'text-gray-300'
+          ]" 
+        /> 
+        Related Coffees
       </a>
+
+      <!-- Edit (disabled for guests) -->
+      <button
+        type="button"
+        @click="isLoggedIn ? enterEditMode() : showLoginPrompt('edit')"
+        :class="[
+          'block w-full text-left px-3 py-2 text-sm transition-colors duration-200',
+          isLoggedIn 
+            ? 'hover:bg-gray-100 text-gray-900 cursor-pointer' 
+            : 'text-gray-400 cursor-not-allowed bg-gray-50'
+        ]"
+      >
+        <Pencil 
+          :class="[
+            'inline-block mr-2 w-4 h-4',
+            isLoggedIn ? 'text-gray-600' : 'text-gray-300'
+          ]" 
+        /> 
+        <span>Edit</span>
+      </button>
 
       <!-- Delete (disabled for guests) -->
       <button
@@ -59,7 +90,60 @@
       </button>
     </div>
 
+    <!-- Edit mode card -->
+    <div v-if="isEditing" class="shop-card w-28 h-auto flex flex-col items-center justify-start border-l-4 border-l-blue-500 border rounded-lg p-2 bg-blue-50 shadow relative min-h-28">
+      <!-- Edit mode icon -->
+      <div class="absolute top-1 right-1">
+        <Pencil class="w-3 h-3 text-blue-500" />
+      </div>
+
+      <div class="flex flex-col items-center space-y-2 w-full">
+        <!-- Logo preview -->
+        <LogoImage
+          :url="form.url"
+          :custom-logo="form.logo"
+          :size="24"
+          :alt="`${form.name} logo`"
+          class-name="w-8 h-8 mt-1"
+        />
+
+        <!-- Shop name input -->
+        <input
+          v-model="form.name"
+          type="text"
+          placeholder="Shop name *"
+          required
+          :class="{ 'border-red-500': !form.name.trim() }"
+          class="input-edit-small text-center font-medium text-xs w-full"
+          @click.stop
+        />
+
+        <!-- Shop URL input -->
+        <input
+          v-model="form.url"
+          type="url"
+          placeholder="Shop URL *"
+          required
+          :class="{ 'border-red-500': !validUrl(form.url) }"
+          class="input-edit-small text-center text-xs w-full"
+          @click.stop
+        />
+
+        <!-- Save/Cancel buttons -->
+        <div class="w-full">
+          <SaveCancelButtons
+            :disabled="!isFormValid"
+            :compact="true"
+            @save="save"
+            @cancel="cancel"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Normal card view -->
     <a
+      v-if="!isEditing"
       :href="homepage"
       target="_blank"
       rel="noopener noreferrer"
@@ -68,7 +152,7 @@
     >
       <LogoImage
         :url="shopUrl"
-        :custom-logo="shop.logo"
+        :custom-logo="localShop.logo"
         :size="32"
         :alt="`${shopName} logo`"
         class-name="w-16 h-16 mb-1"
@@ -82,11 +166,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../composables/useToast'
-import { EllipsisVertical, Store, Trash2, Coffee } from 'lucide-vue-next'
+import { useShopForm } from '../composables/useShopForm'
+import { EllipsisVertical, Store, Trash2, Coffee, Pencil } from 'lucide-vue-next'
 import LogoImage from './LogoImage.vue'
+import SaveCancelButtons from './SaveCancelButtons.vue'
 
 // Toast composable
 const { success, error, warning, info } = useToast()
@@ -99,10 +185,17 @@ const props = defineProps({
   isLoggedIn: {
     type: Boolean,
     default: false
+  },
+  fetchShops: {
+    type: Function,
+    default: null
   }
 })
 
-const emit = defineEmits(['deleted'])
+const emit = defineEmits(['deleted', 'shop-updated'])
+
+// Create a reactive copy of the shop data
+const localShop = ref({ ...props.shop })
 
 // Local UI state
 const showMenu = ref(false)
@@ -110,10 +203,58 @@ const menuButton = ref(null)
 const menuPanel = ref(null)
 const hasRelatedCoffees = ref(false)
 const isDeleting = ref(false)
+const isEditing = ref(false)
+
+// Shop form composable (only initialize when editing)
+let shopForm = null
+
+const getShopForm = () => {
+  if (!shopForm) {
+    shopForm = useShopForm({
+      initialData: localShop.value,
+      mode: 'edit',
+      emit: (event, data) => {
+        if (event === 'shop-updated') {
+          // Update local shop data immediately
+          Object.assign(localShop.value, data)
+          emit('shop-updated', data)
+        } else {
+          emit(event, data)
+        }
+      },
+      onClose: () => {
+        isEditing.value = false
+      },
+      fetchShops: props.fetchShops
+    })
+  }
+  return shopForm
+}
+
+// Computed properties that conditionally use the form
+const form = computed(() => isEditing.value ? getShopForm().form : {})
+const isFormValid = computed(() => isEditing.value ? getShopForm().isFormValid : true)
+const save = () => isEditing.value && getShopForm().save()
+const cancel = () => {
+  if (isEditing.value) {
+    getShopForm().cancel()
+  }
+}
+
+// URL validation helper
+const validUrl = (value) => {
+  if (!value) return false
+  try {
+    new URL(value.startsWith('http') ? value : `https://${value}`)
+    return true
+  } catch {
+    return false
+  }
+}
 
 // Handle both old and new data structures
 const shopName = computed(() => {
-  return props.shop.name || props.shop.shop_name || 'Unknown Shop'
+  return localShop.value.name || localShop.value.shop_name || 'Unknown Shop'
 })
 
 const cardBorderClass = computed(() => {
@@ -126,7 +267,7 @@ const relatedCoffeesUrl = computed(() => {
 })
 
 const shopUrl = computed(() => {
-  return props.shop.url || props.shop.bean_url || ''
+  return localShop.value.url || localShop.value.bean_url || ''
 })
 
 const domain = computed(() => {
@@ -157,7 +298,7 @@ async function checkRelatedCoffees() {
     const { count, error } = await supabase
       .from('coffee_beans')
       .select('*', { count: 'exact', head: true })
-      .eq('shop_id', props.shop.id);
+      .eq('shop_id', localShop.value.id);
 
     if (error) {
       throw error;
@@ -170,6 +311,18 @@ async function checkRelatedCoffees() {
     // Default to false on error
     hasRelatedCoffees.value = false;
   }
+}
+
+function enterEditMode() {
+  if (!props.isLoggedIn) {
+    showLoginPrompt('edit')
+    return
+  }
+  
+  isEditing.value = true
+  showMenu.value = false
+  // Reset the form with current shop data
+  Object.assign(getShopForm().form, localShop.value)
 }
 
 function toggleMenu() {
@@ -211,12 +364,12 @@ async function confirmDelete() {
   isDeleting.value = true
   
   try {
-    console.log('Attempting to delete shop with ID:', props.shop.id)
+    console.log('Attempting to delete shop with ID:', localShop.value.id)
     
     const { error: deleteError } = await supabase
       .from('shops')
       .delete()
-      .eq('id', props.shop.id)
+      .eq('id', localShop.value.id)
     
     if (deleteError) {
       console.error('Supabase delete error:', deleteError)
@@ -225,7 +378,7 @@ async function confirmDelete() {
     
     console.log('Shop deleted successfully')
     success('Shop deleted', `${shopName.value} has been removed from your shops`)
-    emit('deleted', props.shop.id)
+    emit('deleted', localShop.value.id)
     
   } catch (err) {
     console.error('Delete operation failed:', err)
@@ -236,7 +389,7 @@ async function confirmDelete() {
 }
 
 function showLoginPrompt(action) {
-  const actionText = action === 'delete' ? 'delete this shop' : 'perform this action'
+  const actionText = action === 'edit' ? 'edit this shop' : action === 'delete' ? 'delete this shop' : 'perform this action'
   warning('🔒 Please log in first', `Login required to ${actionText}`)
   showMenu.value = false
 }
@@ -251,6 +404,14 @@ function handleCardClick(event) {
 
 function handleMenuLinkClick() {
   showMenu.value = false;
+}
+
+function handleRelatedCoffeesClick(event) {
+  if (!hasRelatedCoffees.value) {
+    event.preventDefault()
+    warning('No related coffees', `No coffee beans found from ${shopName.value}`)
+  }
+  showMenu.value = false
 }
 
 function onClickOutside(e) {
@@ -272,10 +433,23 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', onClickOutside)
 })
+
+// Watch for prop changes and update local data
+watch(() => props.shop, (newShop) => {
+  Object.assign(localShop.value, newShop)
+}, { deep: true })
 </script>
 
 <style scoped>
 .shop-card {
   min-width: 0;
+}
+
+.input-edit {
+  @apply w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500;
+}
+
+.input-edit-small {
+  @apply w-full px-1 py-0.5 border border-gray-300 rounded text-xs focus:outline-none focus:border-blue-500;
 }
 </style>

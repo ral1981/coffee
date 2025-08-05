@@ -1,17 +1,12 @@
 <template>
-  <div class="mt-4 flex justify-center gap-2">
+  <div :class="containerClasses">
     <button
       type="button"
-      @click="$emit('save')"
+      @click="handleSaveClick"
       :disabled="disabled"
-      :class="[
-        'px-4 py-2 rounded flex items-center gap-2 transition-colors',
-        disabled 
-          ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-          : 'bg-green-500 text-white hover:bg-green-600'
-      ]"
+      :class="saveButtonClasses"
     >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg :class="iconClasses" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -19,15 +14,15 @@
           d="M5 13l4 4L19 7"
         />
       </svg>
-      Save
+      <span v-if="!compact">Save</span>
     </button>
 
     <button
       type="button"
-      @click="$emit('cancel')"
-      class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center gap-2 transition-colors"
+      @click="handleCancel"
+      :class="cancelButtonClasses"
     >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg :class="iconClasses" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -35,21 +30,50 @@
           d="M6 18L18 6M6 6l12 12"
         />
       </svg>
-      Cancel
+      <span v-if="!compact">Cancel</span>
     </button>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useToast } from '../composables/useToast'
 
 const { warning } = useToast()
 
 const props = defineProps({
-  disabled: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false },
+  compact: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['save', 'cancel'])
+
+const containerClasses = computed(() => {
+  return props.compact 
+    ? 'flex justify-center gap-1' 
+    : 'mt-4 flex justify-center gap-2'
+})
+
+const iconClasses = computed(() => {
+  return props.compact ? 'w-3 h-3' : 'w-4 h-4'
+})
+
+const saveButtonClasses = computed(() => {
+  const base = 'rounded flex items-center justify-center gap-2 transition-colors'
+  const size = props.compact ? 'px-2 py-1 text-xs' : 'px-4 py-2'
+  const state = props.disabled 
+    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+    : 'bg-green-500 text-white hover:bg-green-600'
+  
+  return `${base} ${size} ${state}`
+})
+
+const cancelButtonClasses = computed(() => {
+  const base = 'bg-red-500 text-white rounded hover:bg-red-600 flex items-center justify-center gap-2 transition-colors'
+  const size = props.compact ? 'px-2 py-1 text-xs' : 'px-4 py-2'
+  
+  return `${base} ${size}`
+})
 
 const handleSaveClick = () => {
   if (props.disabled) {
