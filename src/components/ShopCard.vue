@@ -45,7 +45,7 @@
             hasRelatedCoffees ? 'text-gray-700' : 'text-gray-300'
           ]" 
         /> 
-        Related Coffees
+        View Coffees
       </a>
 
       <!-- Edit (disabled for guests) -->

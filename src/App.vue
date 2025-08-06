@@ -166,19 +166,7 @@
               
               <!-- Containers panel -->
               <TabPanel>
-                <!-- Debug info (remove this after testing) -->
-                <div v-if="containers.length === 0" class="text-center p-8 text-gray-500">
-                  <p class="mb-2">{{ isLoggedIn ? 'No containers found' : 'Please log in to see containers' }}</p>
-                  <p class="text-sm">Debug: containers.length = {{ containers.length }}, isLoggedIn = {{ isLoggedIn }}</p>
-                  <button 
-                    @click="loadContainers" 
-                    class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                  >
-                    Reload Containers
-                  </button>
-                </div>
-                
-                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+                <div class="flex flex-wrap justify-center gap-4">
                   <ContainerCard
                     v-for="container in containers"
                     :key="container.id"
@@ -193,7 +181,7 @@
                 </div>
               </TabPanel>
               
-              <!-- Shops panel (WIP) -->
+              <!-- Shops panel -->
               <TabPanel>
                 <div class="flex flex-wrap justify-center gap-4">
                   <ShopCard
@@ -541,8 +529,6 @@ async function loadShops() {
 
 async function loadContainers() {
   try {
-    console.log('Loading containers...')
-    
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     let query = supabase
@@ -553,22 +539,16 @@ async function loadContainers() {
       .order('created_at', { ascending: true })
 
     if (user) {
-      console.log('User found:', user.id)
-      // Show user containers and system containers
       query = query.in('user_id', [user.id, 'system'])
     } else {
-      console.log('No user found, showing system containers only')
-      // Show only system containers when not logged in
       query = query.eq('user_id', 'system')
     }
 
     const { data, error } = await query
 
     if (error) {
-      console.error('Supabase error:', error)
       throw error
     } else {
-      console.log('Containers loaded:', data)
       containers.value = data || []
     }
   } catch (err) {

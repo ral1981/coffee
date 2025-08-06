@@ -99,7 +99,7 @@
             @click="viewCoffees"
             class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
           >
-            <Coffee class="inline-block mr-2 w-4 h-4" /> View Coffees ({{ coffeeCount }})
+            <Coffee class="inline-block mr-2 w-4 h-4" /> View Coffees
           </button>
 
           <!-- Edit (disabled for guests) -->
