@@ -191,7 +191,7 @@ export function useCoffeeForm({
 
   const resetForm = () => {
     Object.assign(form, { ...defaults, ...initialData })
-    info('Form reset', mode === 'add' ? 'Form cleared' : 'Changes reverted')
+    // Removed toast notification from resetForm to prevent duplicate notifications
   }
 
   const save = async () => {

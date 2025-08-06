@@ -14,7 +14,7 @@ export function useShopForm({
   onClose, 
   fetchShops 
 } = {}) {
-  const { success, error, warning } = useToast()
+  const { success, error, warning, info } = useToast()
   const { getLogoUrl } = useLogo()
 
   // Default form fields
@@ -144,8 +144,7 @@ export function useShopForm({
     }
   }
 
-  // Cancel handler with improved change detection
-  const cancel = (skipChangeCheck = false) => {
+   const cancel = (skipChangeCheck = false) => {
     if (!skipChangeCheck) {
       // Check for changes by comparing current form values with original values
       const hasChanges = Object.keys(form).some(key => {
@@ -169,7 +168,17 @@ export function useShopForm({
         if (!confirm(msg)) {
           return
         }
-      }
+        
+        warning(
+          'Changes discarded', 
+          mode === 'add' ? 'New shop entry cancelled' : 'Changes reverted'
+        )
+      }/*  else {
+        info(
+          'Form closed', 
+          mode === 'add' ? 'Add shop cancelled' : 'Edit mode closed'
+        )
+      } */
     }
 
     onClose?.()

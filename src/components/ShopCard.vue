@@ -129,14 +129,45 @@
           @click.stop
         />
 
-        <!-- Save/Cancel buttons -->
-        <div class="w-full" @click.stop @touchend.stop>
-          <SaveCancelButtons
-            :disabled="!isFormValid"
-            :compact="true"
-            @save="save"
-            @cancel="cancel"
-          />
+        <!-- Save/Cancel buttons with proper mobile handling -->
+        <div class="w-full" @click.stop>
+          <div class="flex justify-center gap-1">
+            <button
+              type="button"
+              @click="save"
+              :disabled="!isFormValid"
+              :class="[
+                'rounded flex items-center justify-center gap-1 transition-colors px-2 py-1 text-xs',
+                !isFormValid 
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  : 'bg-green-500 text-white hover:bg-green-600'
+              ]"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              @click="cancel"
+              class="bg-red-500 text-white rounded hover:bg-red-600 flex items-center justify-center gap-1 transition-colors px-2 py-1 text-xs"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -172,7 +203,6 @@ import { useToast } from '../composables/useToast'
 import { useShopForm } from '../composables/useShopForm'
 import { EllipsisVertical, Store, Trash2, Coffee, Pencil } from 'lucide-vue-next'
 import LogoImage from './LogoImage.vue'
-import SaveCancelButtons from './SaveCancelButtons.vue'
 import { useSharedMenuState } from '../composables/useSharedMenuState'
 
 // Toast composable
@@ -220,6 +250,9 @@ const getShopForm = () => {
           // Update local shop data immediately
           Object.assign(localShop.value, data)
           emit('shop-updated', data)
+        } else if (event === 'cancel') {
+          // Handle cancel event
+          isEditing.value = false
         } else {
           emit(event, data)
         }
@@ -236,10 +269,23 @@ const getShopForm = () => {
 // Computed properties that conditionally use the form
 const form = computed(() => isEditing.value ? getShopForm().form : {})
 const isFormValid = computed(() => isEditing.value ? getShopForm().isFormValid : true)
-const save = () => isEditing.value && getShopForm().save()
+
+// Enhanced save and cancel handlers with better debug logging
+const save = () => {
+  console.log('ShopCard save called, isEditing:', isEditing.value)
+  if (isEditing.value && getShopForm().isFormValid.value) {
+    console.log('Calling shopForm.save()')
+    getShopForm().save()
+  }
+}
+
 const cancel = () => {
+  console.log('ShopCard cancel called, isEditing:', isEditing.value)
   if (isEditing.value) {
-    getShopForm().cancel()
+    console.log('Calling shopForm.cancel()')
+    // Force the shopForm to be initialized if needed
+    const form = getShopForm()
+    form.cancel()
   }
 }
 
@@ -321,10 +367,13 @@ function enterEditMode() {
     return
   }
   
+  console.log('Entering edit mode for shop:', localShop.value.name)
   isEditing.value = true
   closeMenu()
-  // Reset the form with current shop data
-  Object.assign(getShopForm().form, localShop.value)
+  // Reset the form with current shop data and ensure it's properly initialized
+  const form = getShopForm()
+  Object.assign(form.form, localShop.value)
+  console.log('Form initialized with:', form.form)
 }
 
 function toggleMenu() {
@@ -440,6 +489,15 @@ onBeforeUnmount(() => {
 watch(() => props.shop, (newShop) => {
   Object.assign(localShop.value, newShop)
 }, { deep: true })
+
+// Watch isEditing to ensure proper cleanup
+watch(isEditing, (newVal, oldVal) => {
+  console.log('isEditing changed:', oldVal, '->', newVal)
+  if (!newVal && oldVal) {
+    // Reset shopForm when exiting edit mode to ensure fresh state next time
+    shopForm = null
+  }
+})
 </script>
 
 <style scoped>
