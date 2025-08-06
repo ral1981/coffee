@@ -138,6 +138,7 @@
                   :origins="uniqueOrigins"
                   :shops="uniqueShops"
                   :names="coffeeNames"
+                  :containers="containers"
                   :filtered-count="filteredCoffees.length"
                   :total-count="totalCoffees"
                   @filter-change="handleFilterChange"
@@ -435,12 +436,13 @@ watch(selectedIndex, () => {
 // Computed properties
 const filteredCoffees = computed(() => {
   return coffees.value.filter(coffee => {
-    // Container filter logic - if no containers selected, show all
+    // Container filter logic
     let containerMatch = true
-    if (filter.value.green || filter.value.grey) {
-      containerMatch = 
-        (filter.value.green && coffee.in_green_container) ||
-        (filter.value.grey && coffee.in_grey_container)
+    if (filter.value.containers && filter.value.containers.length > 0) {
+      // This will need to be updated when you migrate to the new container system
+      // For now, this is a placeholder - you'll need to implement the actual filtering
+      // based on the coffee_container_assignments table
+      containerMatch = false // Placeholder
     }
 
     // Origin filter

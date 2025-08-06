@@ -28,10 +28,6 @@
       class="flex flex-col"
     >
       <!-- Filter Icon with Counter Dot -->
-<!--       <div
-        class="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-in-out flex flex-col items-center flex-shrink-0 z-20"
-        :style="{ top: isOpen ? '32px' : '50%' }"
-      > -->
       <div
         class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-in-out flex flex-col items-center flex-shrink-0 z-20"
         :style="{ top: isOpen ? '32px' : '50%' }"
@@ -84,39 +80,43 @@
         <div>
           <!-- Desktop: Single Row Layout -->
           <div class="hidden lg:flex items-center justify-center gap-6 flex-wrap mb-4">
-            <!-- Container Tags -->
+            <!-- Container Tags (Dynamic) -->
             <div class="flex items-center gap-2 transform transition-all duration-600 ease-out"
                 :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
                 :style="{ transitionDelay: isOpen ? '400ms' : '300ms' }">
               <span class="relative text-sm font-medium text-gray-600">
                 Container Quick Filters:
-                <span v-if="filters.green || filters.grey"
+                <span v-if="filters.containers.length > 0"
                       class="absolute -top-1 -left-3 w-2 h-2 bg-red-500 rounded-full"></span>
               </span>
+              
+              <!-- Dynamic container buttons -->
               <button
-                @click="toggleContainer('green')"
+                v-for="container in containers"
+                :key="container.id"
+                @click="toggleContainer(container.id)"
                 :class="[
                   'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1.5 transform hover:scale-105',
-                  filters.green 
-                    ? 'bg-green-100 text-green-800 border-2 border-green-300 shadow-sm' 
+                  filters.containers.includes(container.id)
+                    ? 'text-white border-2 shadow-sm' 
                     : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
                 ]"
+                :style="filters.containers.includes(container.id) ? {
+                  backgroundColor: container.color,
+                  borderColor: `${container.color}80`
+                } : {}"
               >
-                <div class="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
-                Green
+                <div 
+                  class="w-2.5 h-2.5 rounded-full"
+                  :style="{ backgroundColor: container.color }"
+                ></div>
+                {{ container.name }}
               </button>
-              <button
-                @click="toggleContainer('grey')"
-                :class="[
-                  'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1.5 transform hover:scale-105',
-                  filters.grey 
-                    ? 'bg-gray-200 text-gray-800 border-2 border-gray-400 shadow-sm' 
-                    : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
-                ]"
-              >
-                <div class="w-2.5 h-2.5 bg-gray-500 rounded-full"></div>
-                Grey
-              </button>
+              
+              <!-- Show message if no containers -->
+              <span v-if="!containers || containers.length === 0" class="text-sm text-gray-400 italic">
+                No containers available
+              </span>
             </div>
 
               <!-- Origin Filter -->
@@ -205,35 +205,32 @@
 
           <!-- Mobile: Stacked Layout -->
           <div class="lg:hidden space-y-4 mb-4">
-          <!-- Container Tags -->
-          <div class="text-center transform transition-all duration-600 ease-out"
-              :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
-              :style="{ transitionDelay: isOpen ? '400ms' : '300ms' }">
+            <!-- Container Tags -->
+            <div class="text-center transform transition-all duration-600 ease-out"
+                :class="isOpen ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
+                :style="{ transitionDelay: isOpen ? '400ms' : '300ms' }">
               <span class="text-sm font-medium text-gray-600 block mb-2">Container Quick Filters</span>
-              <div class="flex justify-center gap-2">
+              <div class="flex flex-wrap justify-center gap-2">
                 <button
-                  @click="toggleContainer('green')"
+                  v-for="container in containers"
+                  :key="container.id"
+                  @click="toggleContainer(container.id)"
                   :class="[
                     'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1.5 transform hover:scale-105',
-                    filters.green 
-                      ? 'bg-green-100 text-green-800 border-2 border-green-300 shadow-sm' 
+                    filters.containers.includes(container.id)
+                      ? 'text-white border-2 shadow-sm' 
                       : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
                   ]"
+                  :style="filters.containers.includes(container.id) ? {
+                    backgroundColor: container.color,
+                    borderColor: `${container.color}80`
+                  } : {}"
                 >
-                  <div class="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
-                  Green
-                </button>
-                <button
-                  @click="toggleContainer('grey')"
-                  :class="[
-                    'px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-1.5 transform hover:scale-105',
-                    filters.grey 
-                      ? 'bg-gray-200 text-gray-800 border-2 border-gray-400 shadow-sm' 
-                      : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
-                  ]"
-                >
-                  <div class="w-2.5 h-2.5 bg-gray-500 rounded-full"></div>
-                  Grey
+                  <div 
+                    class="w-2.5 h-2.5 rounded-full"
+                    :style="{ backgroundColor: container.color }"
+                  ></div>
+                  {{ container.name }}
                 </button>
               </div>
             </div>
@@ -355,6 +352,7 @@ const props = defineProps({
   origins: Array,
   shops: Array,
   names: Array,
+  containers: Array,
   filteredCount: Number,
   totalCount: Number
 })
@@ -368,11 +366,10 @@ const initialized = ref(false)
 
 // Filter state
 const filters = reactive({
-  green: false,
-  grey: false,
   origin: '',
   shop: '',
-  name: ''
+  name: '',
+  containers: []
 })
 
 const route = useRoute()
@@ -380,12 +377,22 @@ const router = useRouter()
 const { success, warning, info } = useToast()
 
 // Computed properties
-const hasContainerFilter = computed(() => filters.green || filters.grey)
+const hasContainerFilter = computed(() => filters.containers.length > 0)
 
 const activeFilters = computed(() => {
   const arr = []
-  if (filters.green) arr.push({ key: 'green', label: 'Green' })
-  if (filters.grey) arr.push({ key: 'grey', label: 'Grey' })
+  
+  // Add container filters
+  filters.containers.forEach(containerId => {
+    const container = props.containers?.find(c => c.id === containerId)
+    if (container) {
+      arr.push({ 
+        key: `container-${containerId}`, 
+        label: container.name,
+        color: container.color 
+      })
+    }
+  })
   
   // Only show other filters if no container filter is active
   if (!hasContainerFilter.value) {
@@ -414,10 +421,15 @@ const togglePanel = () => {
 }
 
 // Filter handlers
-const toggleContainer = (container) => {
+const toggleContainer = (containerId) => {
   const hadOtherFilters = filters.origin || filters.shop
   
-  filters[container] = !filters[container]
+  const index = filters.containers.indexOf(containerId)
+  if (index > -1) {
+    filters.containers.splice(index, 1)
+  } else {
+    filters.containers.push(containerId)
+  }
   
   // Clear other filters when container filter is applied
   if (hasContainerFilter.value && hadOtherFilters) {
@@ -428,27 +440,22 @@ const toggleContainer = (container) => {
 }
 
 const removeFilter = (key) => {
-  const filterLabels = {
-    green: 'Green container',
-    grey: 'Grey container',
-    origin: 'Origin',
-    shop: 'Shop',
-    name: 'Name search'
-  }
-  
-  if (key === 'green' || key === 'grey') {
-    filters[key] = false
-  } else {
+  if (key.startsWith('container-')) {
+    const containerId = key.replace('container-', '')
+    const index = filters.containers.indexOf(containerId)
+    if (index > -1) {
+      filters.containers.splice(index, 1)
+    }
+  } else if (key === 'origin' || key === 'shop') {
+    filters[key] = ''
+  } else if (key === 'name') {
     filters[key] = ''
   }
 }
 
 const clearFilters = () => {
-  const hadFilters = hasActiveFilters.value
-  
   Object.assign(filters, {
-    green: false,
-    grey: false,
+    containers: [],
     origin: '',
     shop: '',
     name: ''
@@ -459,8 +466,7 @@ const clearFilters = () => {
 const parseUrlFilters = () => {
   try {
     const urlFilters = {
-      green: false,
-      grey: false,
+      containers: [],
       origin: '',
       shop: '',
       name: ''
@@ -469,21 +475,21 @@ const parseUrlFilters = () => {
     // Handle container parameter
     if (route.query.container) {
       const containerParam = route.query.container
-      const containers = Array.isArray(containerParam) 
+      const containerNames = Array.isArray(containerParam) 
         ? containerParam 
         : containerParam.split(',').map(c => c.trim()).filter(c => c)
 
-      const validContainers = containers.filter(c => ['green', 'grey'].includes(c))
-      if (validContainers.length !== containers.length) {
-        warning('Invalid URL parameters', 'Some container filters in URL were invalid')
-      }
-
-      urlFilters.green = validContainers.includes('green')
-      urlFilters.grey = validContainers.includes('grey')
+      // Convert container names to IDs
+      containerNames.forEach(name => {
+        const container = props.containers?.find(c => c.name.toLowerCase() === name.toLowerCase())
+        if (container) {
+          urlFilters.containers.push(container.id)
+        }
+      })
     }
 
     // Handle other filters (only if no container filter)
-    if (!urlFilters.green && !urlFilters.grey) {
+    if (urlFilters.containers.length === 0) {
       urlFilters.origin = route.query.origin || ''
       urlFilters.shop = route.query.shop || ''
     }
@@ -492,7 +498,7 @@ const parseUrlFilters = () => {
   } catch (err) {
     console.error('Error parsing URL filters:', err)
     warning('URL error', 'Invalid filter parameters in URL, using defaults')
-    return { green: false, grey: false, origin: '', shop: '', name: '' }
+    return { containers: [], origin: '', shop: '', name: '' }
   }
 }
 
