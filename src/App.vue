@@ -39,6 +39,22 @@
       </div>
     </div>
 
+    <!-- Container Form Overlay -->
+    <div 
+      v-if="selectedIndex === 1 && showContainerForm"
+      @click="handleOverlayClick"
+      class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center pt-8 px-4"
+    >
+      <div @click.stop class="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <ContainerForm
+          :user="user"
+          :fetch-containers="loadContainers"
+          @container-saved="handleNewContainer"
+          @cancel="closeForms"
+        />
+      </div>
+    </div>
+
     <!-- Unified Authentication Panel -->
     <div class="fixed top-4 right-4 z-50">
       <button 
@@ -148,10 +164,32 @@
                 </div>
               </TabPanel>
               
-              <!-- Containers panel (WIP) -->
+              <!-- Containers panel -->
               <TabPanel>
-                <div class="flex justify-center items-center h-full text-gray-500 dark:text-gray-400 italic">
-                  🚧 Work in progress…
+                <!-- Debug info (remove this after testing) -->
+                <div v-if="containers.length === 0" class="text-center p-8 text-gray-500">
+                  <p class="mb-2">{{ isLoggedIn ? 'No containers found' : 'Please log in to see containers' }}</p>
+                  <p class="text-sm">Debug: containers.length = {{ containers.length }}, isLoggedIn = {{ isLoggedIn }}</p>
+                  <button 
+                    @click="loadContainers" 
+                    class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Reload Containers
+                  </button>
+                </div>
+                
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+                  <ContainerCard
+                    v-for="container in containers"
+                    :key="container.id"
+                    :container="container"
+                    :class="{ 'new-item': container.id === newlyAddedId }"
+                    :is-logged-in="isLoggedIn"
+                    :fetch-containers="loadContainers"
+                    @deleted="loadContainers"
+                    @container-updated="handleContainerUpdated"
+                    @view-coffees="handleViewContainerCoffees"
+                  />
                 </div>
               </TabPanel>
               
@@ -176,10 +214,10 @@
     <!-- Add Button -->
     <button
       @click="handleAddClick"
-      :disabled="!isLoggedIn || showCoffeeForm || showShopForm || selectedIndex === 1"
+      :disabled="!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm"
       :class="[
         'floating-btn left-6 bottom-6 rounded-full shadow-lg p-3 transition-all duration-300',
-        (!isLoggedIn || showCoffeeForm || showShopForm || selectedIndex === 1)
+        (!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm)
           ? 'z-10 floating-btn--disabled bg-gray-400'
           : 'z-50 bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:scale-110'
       ]"
@@ -187,13 +225,15 @@
         ? 'Please log in to add items' 
         : selectedIndex === 0 
           ? 'Add Coffee' 
+          : selectedIndex === 1
+            ? 'Add Container'
           : selectedIndex === 2 
             ? 'Add Shop' 
             : ''"
     >
       <Plus :class="[
         'w-6 h-6',
-        (!isLoggedIn || showCoffeeForm || showShopForm || selectedIndex === 1)
+        (!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm)
           ? 'text-gray-600'
           : 'text-white'
       ]" />
@@ -203,10 +243,10 @@
       <button
         v-if="showBackToTop"
         @click="scrollToTop"
-        :disabled="showCoffeeForm"
+        :disabled="showCoffeeForm || showContainerForm"
         :class="[
           'floating-btn bottom-6 right-6',
-          showCoffeeForm ? 'z-10 floating-btn--disabled' : 'z-50',
+          (showCoffeeForm || showContainerForm) ? 'z-10 floating-btn--disabled' : 'z-50',
           'bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110'
         ]"
         title="Back to top"
@@ -258,6 +298,8 @@ import ShopForm from './components/ShopForm.vue'
 import FilterPanel from './components/FilterPanel.vue'
 import CoffeeCard from './components/CoffeeCard.vue'
 import ShopCard from './components/ShopCard.vue'
+import ContainerCard from './components/ContainerCard.vue'
+import ContainerForm from './components/ContainerForm.vue'
 import { ArrowUp, Lock, LockOpen, Plus, ChevronDown, ChevronRight } from 'lucide-vue-next'
 
 // Reactive state
@@ -283,6 +325,8 @@ const shouldExpandFromUrl = ref(false)
 const isInitialUrlLoad = ref(true)
 const { success, error, warning, info } = useToast()
 const selectedIndex = ref(0)
+const showContainerForm = ref(false)
+const containers = ref([])
 
 // Authentication methods
 const toggleAuth = () => {
@@ -389,12 +433,14 @@ watch(isLoggedIn, (newValue, oldValue) => {
   // Hide coffee form when logging out
   if (!newValue && oldValue) {
     showCoffeeForm.value = false
+    showContainerForm.value = false
   }
 })
 
 // Watch tab changes to close forms
 watch(selectedIndex, () => {
   showCoffeeForm.value = false
+  showContainerForm.value = false
   showShopForm.value = false
 })
 
@@ -493,9 +539,49 @@ async function loadShops() {
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
 }
 
+async function loadContainers() {
+  try {
+    console.log('Loading containers...')
+    
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    let query = supabase
+      .from('containers')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .order('created_at', { ascending: true })
+
+    if (user) {
+      console.log('User found:', user.id)
+      // Show user containers and system containers
+      query = query.in('user_id', [user.id, 'system'])
+    } else {
+      console.log('No user found, showing system containers only')
+      // Show only system containers when not logged in
+      query = query.eq('user_id', 'system')
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Supabase error:', error)
+      throw error
+    } else {
+      console.log('Containers loaded:', data)
+      containers.value = data || []
+    }
+  } catch (err) {
+    error('Failed to load containers', 'Please check your connection and try again')
+    console.error('Load containers error:', err)
+    containers.value = []
+  }
+}
+
 onMounted(async () => {
   await loadCoffees()
   await loadShops()
+  await loadContainers()
 })
 
 const scrollToFirstCard = async () => {
@@ -515,19 +601,12 @@ const scrollToFirstCard = async () => {
   }, 800)
 }
 
-/* const handleAddCoffeeClick = () => {
-  if (!isLoggedIn.value) {
-    warning('🔒 Please log in first', 'Login required to add coffee')
-    return
-  }
-  
-  showCoffeeForm.value = true
-} */
-
 function handleAddClick() {
   if (!isLoggedIn.value) return
   if (selectedIndex.value === 0) {
     showCoffeeForm.value = true
+  } else if (selectedIndex.value === 1) {
+    showContainerForm.value = true
   } else if (selectedIndex.value === 2) {
     showShopForm.value = true
   }
@@ -554,6 +633,7 @@ const handleOverlayClick = (event) => {
 
 function closeForms() {
   showCoffeeForm.value = false
+  showContainerForm.value = false
   showShopForm.value = false
 }
 
@@ -562,6 +642,7 @@ const onUserChanged = (newUser) => {
   isLoggedIn.value = !!newUser
 
   loadCoffees()
+  loadContainers() // Add this line
   
   if (!newUser) {
     anyEditing.value = false
@@ -743,6 +824,44 @@ const handleContainerUpdate = async ({ coffee, container, assign }) => {
     error('Container update failed', 'Please try again')
     console.error('Container update error:', err)
   }
+}
+
+const handleNewContainer = async (newContainer) => {
+  await loadContainers()
+  
+  newlyAddedId.value = newContainer.id
+  showContainerForm.value = false
+  
+  success('Container added successfully!', `${newContainer.name} has been added to your containers`)
+  
+  await nextTick()
+  const newElement = document.querySelector(`[data-container-id="${newContainer.id}"]`)
+  if (newElement) {
+    newElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+  
+  setTimeout(() => {
+    newlyAddedId.value = null
+  }, 3000)
+}
+
+const handleContainerUpdated = async (updatedContainer) => {
+  // Refresh container list to get latest data
+  await loadContainers()
+  
+  // Update specific item in containers array
+  const index = containers.value.findIndex(c => c.id === updatedContainer.id)
+  if (index !== -1) {
+    containers.value[index] = updatedContainer
+  }
+}
+
+const handleViewContainerCoffees = (container) => {
+  // Switch to coffees tab and apply container filter
+  selectedIndex.value = 0
+  // You'll need to implement container filtering in FilterPanel
+  // For now, just show info message
+  info(`Viewing ${container.name} coffees`, 'Container-specific filtering coming soon')
 }
 
 const onEditingChanged = (isNowEditing) => {
