@@ -486,7 +486,7 @@ function toggleShotSize() {
 // 5) Computed display classes / icons
 const cardClasses = computed(() => {
   const base = [
-    'relative m-4 p-4 rounded-xl border border-gray-200 shadow-sm text-gray-900 space-y-4 flex flex-col h-full border-l-4'
+    'relative w-full m-1 p-4 rounded-xl border border-gray-200 shadow-sm text-gray-900 space-y-4 flex flex-col h-full border-l-4'
   ]
   if (props.coffee.in_green_container && props.coffee.in_grey_container) {
     base.push('bg-gradient-both border-l-blue-500')

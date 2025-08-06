@@ -114,7 +114,7 @@
             </TabList>
 
             <!-- Tab panels -->
-            <TabPanels class="p-4">
+            <TabPanels class="p-0">
               
               <!-- Filters panel -->
               <TabPanel>
@@ -128,7 +128,7 @@
                 />
                 
                 <!-- Coffee Cards Grid -->
-                <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
+                <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
                   <CoffeeCard
                     v-for="coffee in filteredCoffees"
                     :key="coffee.id"
