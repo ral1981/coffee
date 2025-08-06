@@ -347,6 +347,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ref, reactive, watch, onMounted, computed, nextTick } from 'vue'
 import { useToast } from '../composables/useToast'
 import { SlidersHorizontal, X } from 'lucide-vue-next'
+import { debounce } from 'lodash-es'
 
 const props = defineProps({
   origins: Array,
@@ -508,6 +509,7 @@ const loadFiltersFromUrl = () => {
   emit('filter-change', { ...urlFilters }, true)
 }
 
+// In FilterPanel.vue, update the updateUrl function:
 const updateUrl = () => {
   if (!initialized.value) return
 
@@ -515,8 +517,15 @@ const updateUrl = () => {
 
   // Handle container filters
   const containerList = []
-  if (filters.green) containerList.push('green')
-  if (filters.grey) containerList.push('grey')
+  if (filters.containers && filters.containers.length > 0) {
+    // Convert container IDs back to names for URL
+    filters.containers.forEach(containerId => {
+      const container = props.containers?.find(c => c.id === containerId)
+      if (container) {
+        containerList.push(container.name)
+      }
+    })
+  }
   
   if (containerList.length > 0) {
     query.container = containerList.join(',')
@@ -529,11 +538,24 @@ const updateUrl = () => {
   }
 
   try {
-    router.replace({ path: route.path, query })
+    // Add check to prevent infinite loops
+    const currentQuery = JSON.stringify(route.query)
+    const newQuery = JSON.stringify(query)
+    
+    if (currentQuery !== newQuery) {
+      router.replace({ path: route.path, query }).catch(err => {
+        // Silently handle router errors to prevent console spam
+        if (!err.message.includes('redundant navigation')) {
+          console.error('Router navigation error:', err)
+        }
+      })
+    }
   } catch (err) {
     console.error('Error updating URL:', err)
   }
 }
+
+const debouncedUpdateUrl = debounce(updateUrl, 100)
 
 // Feedback helpers
 const showFilterFeedback = () => {
@@ -565,12 +587,17 @@ watch(filters, (newFilters) => {
   if (!isFromUrlChange) {
     emit('filter-change', { ...filters }, false)
     showFilterFeedback()
+    debouncedUpdateUrl()
   }
-  updateUrl()
 }, { deep: true })
 
-watch(() => route.query, () => {
+watch(() => route.query, (newQuery, oldQuery) => {
   if (!initialized.value) return
+  
+  // Prevent infinite loops by checking if query actually changed
+  if (JSON.stringify(newQuery) === JSON.stringify(oldQuery)) {
+    return
+  }
   
   const wasInitialized = initialized.value
   initialized.value = false

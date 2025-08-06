@@ -85,12 +85,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, defineEmits, defineProps } from 'vue'
-import { supabase } from '../lib/supabase'
+import { ref, onMounted, watch, defineEmits, defineProps } from 'vue'
 import { Lock, Mail, KeyRound, LogIn, CheckCircle, User, LogOut } from 'lucide-vue-next'
-import { useToast } from '../composables/useToast'
 import { useAuth } from '../composables/useAuth'
-import { useRouter } from 'vue-router'
 
 const props = defineProps({
   showToggle: {
@@ -105,11 +102,7 @@ const email = ref('')
 const password = ref('')
 
 // Pull in everything from your composable
-const { user, isLoggedIn, login, logout, initAuthListener } = useAuth()
-const router = useRouter()
-
-// If you still need standalone toasts elsewhere in this component:
-const { warning } = useToast()
+const { user, login, logout, initAuthListener } = useAuth()
 
 // Trim email live and on blur
 const handleEmailInput = (e) => {
@@ -130,7 +123,6 @@ const onSubmit = async () => {
   
   const ok = await login(email.value, password.value)
   if (ok) {
-    router.push('/dashboard')
   }
 }
 

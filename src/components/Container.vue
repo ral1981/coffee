@@ -1,63 +1,65 @@
 <template>
   <div class="bg-purple-50 rounded-md p-4 md:p-3 border-l-4 border-purple-300">
     <h4 class="uppercase text-base font-semibold text-purple-700 mb-3">
-      Container{{ mode === 'form' ? 's' : '' }}
+      Container{{ containers.length !== 1 ? 's' : '' }}
     </h4>
-    <div class="flex justify-center gap-6">
-      <div class="container-option">
+    
+    <div v-if="isLoading" class="text-center py-4">
+      <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+      <span class="ml-2 text-sm text-gray-600">Loading containers...</span>
+    </div>
+    
+    <div v-else-if="containers.length === 0" class="text-center py-4 text-gray-500">
+      <p class="text-sm">No containers available</p>
+      <p class="text-xs mt-1">
+        {{ props.mode === 'card' && !isLoggedIn ? 'Log in to see your containers' : 'Create containers to organize your coffee' }}
+      </p>
+    </div>
+    
+    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <div v-for="container in containers" :key="container.id" class="container-option">
         <button
-          @click="handleContainerClick('green')"
+          @click="handleContainerClick(container)"
           :class="[
             'container-button',
             { 
-              'assigned': isGreenAssigned,
+              'assigned': isContainerAssigned(container.id),
               'clickable': isLoggedIn || mode === 'form',
               'disabled': !isLoggedIn && mode === 'card'
             }
           ]"
+          :style="{
+            '--container-color': container.color,
+            '--container-color-light': `${container.color}40`,
+            '--container-color-dark': `${container.color}80`
+          }"
         >
-          <div class="container-circle green-circle">
-            <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
+          <div class="container-circle" :style="{ backgroundColor: `${container.color}20`, borderColor: container.color }">
+            <div class="container-icon" :style="{ backgroundColor: container.color }">
+              <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
+            </div>
           </div>
         </button>
-        <span class="container-label green-label">Green</span>
-      </div>
-
-      <div class="container-option">
-        <button
-          @click="handleContainerClick('grey')"
-          :class="[
-            'container-button',
-            { 
-              'assigned': isGreyAssigned,
-              'clickable': isLoggedIn || mode === 'form',
-              'disabled': !isLoggedIn && mode === 'card'
-            }
-          ]"
-        >
-          <div class="container-circle grey-circle">
-            <img src="../assets/icons/bean_01.svg" alt="bean icon" class="bean-icon" />
-          </div>
-        </button>
-        <span class="container-label grey-label">Grey</span>
+        <span class="container-label" :style="{ color: container.color }">
+          {{ container.name }}
+        </span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { supabase } from '../lib/supabase'
 import { useToast } from '../composables/useToast'
 
 const props = defineProps({
   // For CoffeeCard mode
   coffee: Object,
-  containerStatus: Object,
   isLoggedIn: { type: Boolean, default: true },
   
   // For CoffeeForm mode  
   form: Object,
-  coffees: Array,
   
   // Mode: 'card' or 'form'
   mode: { 
@@ -71,6 +73,67 @@ const emit = defineEmits(['update-container', 'form-container-change'])
 
 // Use toast system - only import what we need
 const { success, warning, info } = useToast()
+
+// Local state for containers and assignments
+const containers = ref([])
+const coffeeAssignments = ref([])
+const isLoading = ref(false)
+
+// Load all active containers for the current user
+const loadContainers = async () => {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (!user && props.mode === 'card') return
+
+    let query = supabase
+      .from('containers')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+
+    if (user) {
+      query = query.in('user_id', [user.id, 'system'])
+    } else {
+      query = query.eq('user_id', 'system')
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    containers.value = data || []
+  } catch (err) {
+    console.error('Error loading containers:', err)
+    containers.value = []
+  }
+}
+
+// Load container assignments for the current coffee
+const loadCoffeeAssignments = async () => {
+  if (!props.coffee?.id) return
+
+  try {
+    const { data, error } = await supabase
+      .from('coffee_container_assignments')
+      .select('container_id')
+      .eq('coffee_id', props.coffee.id)
+
+    if (error) throw error
+
+    coffeeAssignments.value = (data || []).map(a => a.container_id)
+  } catch (err) {
+    console.error('Error loading coffee assignments:', err)
+    coffeeAssignments.value = []
+  }
+}
+
+// Check if container is assigned to the coffee
+const isContainerAssigned = (containerId) => {
+  if (props.mode === 'form') {
+    // For form mode, check form state (you'll need to implement this)
+    return false // Placeholder
+  }
+  return coffeeAssignments.value.includes(containerId)
+}
 
 // Computed properties for assigned state
 const isGreenAssigned = computed(() => {
@@ -105,44 +168,36 @@ const handleContainerClick = (container) => {
 }
 
 // Handle container operations in card mode
-const handleCardMode = (container) => {
+const handleCardMode = async (container) => {
   if (!props.isLoggedIn) {
     warning('🔒 Please log in first', 'Login required to assign containers')
     return
   }
 
-  const isAssigned = container === 'green' ? isGreenAssigned.value : isGreyAssigned.value
-  const conflictingCoffee = props.containerStatus?.[container]
+  const isAssigned = isContainerAssigned(container.id)
   
   if (isAssigned) {
-    // Removing from container
-    handleRemoveFromContainer(container, currentCoffeeName.value, () => {
-      emit('update-container', { coffee: props.coffee, container, assign: false })
-    })
+    await removeFromContainer(container)
   } else {
-    // Adding to container
-    handleAddToContainer(container, currentCoffeeName.value, conflictingCoffee, () => {
-      emit('update-container', { coffee: props.coffee, container, assign: true })
-    })
+    await addToContainer(container)
   }
 }
 
 // Handle container operations in form mode
 const handleFormMode = (container) => {
-  const isAssigned = container === 'green' ? isGreenAssigned.value : isGreyAssigned.value
-  const conflictingCoffee = props.coffees?.find(c => 
-    container === 'green' ? c.in_green_container : c.in_grey_container
-  )
+  // For form mode - you'll need to implement form state management
+  // This is a placeholder for now
+  const isAssigned = false // Get from form state
   
   if (isAssigned) {
-    // Removing from container
-    handleRemoveFromContainer(container, currentCoffeeName.value, () => {
-      emit('form-container-change', { container, assign: false })
+    handleRemoveFromContainer(container.name, () => {
+      // Remove from form state
+      emit('form-container-change', { containerId: container.id, assign: false })
     })
   } else {
-    // Adding to container
-    handleAddToContainer(container, currentCoffeeName.value, conflictingCoffee, () => {
-      emit('form-container-change', { container, assign: true })
+    handleAddToContainer(container.name, null, () => {
+      // Add to form state
+      emit('form-container-change', { containerId: container.id, assign: true })
     })
   }
 }
@@ -187,7 +242,99 @@ const handleAddToContainer = (container, coffeeName, conflictingCoffee, onConfir
     )
     onConfirm()
   }
-}</script>
+}
+
+// Add coffee to container (database operation)
+const addToContainer = async (container) => {
+  if (!props.coffee?.id) return
+
+  isLoading.value = true
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) throw new Error('User not authenticated')
+
+    // Insert assignment
+    const { error: insertError } = await supabase
+      .from('coffee_container_assignments')
+      .insert({
+        coffee_id: props.coffee.id,
+        container_id: container.id,
+        assigned_by: user.id
+      })
+
+    if (insertError) throw insertError
+
+    // Reload assignments
+    await loadCoffeeAssignments()
+
+    success(
+      `${container.name} container assigned`,
+      `${props.coffee.name} added to ${container.name} container`
+    )
+
+    // Emit update for parent component
+    emit('update-container', { 
+      coffee: props.coffee, 
+      container: container.id, 
+      assign: true 
+    })
+
+  } catch (err) {
+    console.error('Error adding to container:', err)
+    warning('Assignment failed', `Could not add to ${container.name} container`)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Remove coffee from container (database operation)
+const removeFromContainer = async (container) => {
+  if (!props.coffee?.id) return
+
+  const confirmed = confirm(`Remove "${props.coffee.name}" from ${container.name} container?`)
+  if (!confirmed) return
+
+  isLoading.value = true
+  try {
+    const { error } = await supabase
+      .from('coffee_container_assignments')
+      .delete()
+      .eq('coffee_id', props.coffee.id)
+      .eq('container_id', container.id)
+
+    if (error) throw error
+
+    // Reload assignments
+    await loadCoffeeAssignments()
+
+    success(
+      `${container.name} container cleared`,
+      `${props.coffee.name} removed from ${container.name} container`
+    )
+
+    // Emit update for parent component
+    emit('update-container', { 
+      coffee: props.coffee, 
+      container: container.id, 
+      assign: false 
+    })
+
+  } catch (err) {
+    console.error('Error removing from container:', err)
+    warning('Removal failed', `Could not remove from ${container.name} container`)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Load data when component mounts
+onMounted(async () => {
+  await loadContainers()
+  if (props.mode === 'card') {
+    await loadCoffeeAssignments()
+  }
+})
+</script>
 
 <style scoped>
 /* Container Section Styles */
@@ -219,7 +366,6 @@ const handleAddToContainer = (container, coffeeName, conflictingCoffee, onConfir
 .container-button.disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  /* Don't use pointer-events: none to allow login prompts */
 }
 
 .container-circle {
@@ -230,68 +376,60 @@ const handleAddToContainer = (container, coffeeName, conflictingCoffee, onConfir
   justify-content: center;
   align-items: center;
   transition: all 0.3s ease;
-  border: 2px solid transparent;
+  border: 2px solid;
   position: relative;
+  padding: 4px;
 }
 
-.green-circle {
-  background-color: #9fcc97;
-  border-color: #7bb96f;
-}
-
-.grey-circle {
-  background-color: #b8b8b8;
-  border-color: #999999;
+.container-icon {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Active (assigned) state with glow effect */
-.container-button.assigned .green-circle {
-  background-color: #8bc382;
-  border-color: #5ca952;
+.container-button.assigned .container-circle {
   box-shadow: 
-    0 0 0 2px #5ca952,
-    0 0 15px rgba(92, 169, 82, 0.6),
-    0 0 25px rgba(92, 169, 82, 0.3);
-}
-
-.container-button.assigned .grey-circle {
-  background-color: #a5a5a5;
-  border-color: #666666;
-  box-shadow: 
-    0 0 0 2px #666666,
-    0 0 15px rgba(102, 102, 102, 0.6),
-    0 0 25px rgba(102, 102, 102, 0.3);
+    0 0 0 2px var(--container-color),
+    0 0 15px var(--container-color-light),
+    0 0 25px var(--container-color-light);
 }
 
 /* Icon color matching for active state */
 .container-button.assigned .bean-icon {
-  filter: brightness(1.5) sepia(0.3) saturate(0.8) hue-rotate(20deg);
+  filter: brightness(1.5) sepia(0.3) saturate(0.8);
 }
 
 .bean-icon {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   filter: brightness(0.7);
   transition: filter 0.3s ease;
 }
 
 .container-label {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-.green-label {
-  color: #2b7a2b;
-}
-
-.grey-label {
-  color: #666;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .container-button:hover:not(.disabled) .container-circle {
   transform: scale(1.05);
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Loading animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 </style>
