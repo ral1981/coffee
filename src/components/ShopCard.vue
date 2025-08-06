@@ -370,10 +370,15 @@ function enterEditMode() {
   console.log('Entering edit mode for shop:', localShop.value.name)
   isEditing.value = true
   closeMenu()
-  // Reset the form with current shop data and ensure it's properly initialized
+  
   const form = getShopForm()
+  
   Object.assign(form.form, localShop.value)
+  
+  form.resetOriginalValues()
+  
   console.log('Form initialized with:', form.form)
+  console.log('Original values set to:', form.form)
 }
 
 function toggleMenu() {

@@ -20,9 +20,8 @@
     <button
       type="button"
       @click="handleCancel"
-      @touchend="handleCancel"
-      @mousedown="handleCancel"
       :class="cancelButtonClasses"
+      style="touch-action: manipulation;"
     >
       <svg :class="iconClasses" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -65,13 +64,13 @@ const saveButtonClasses = computed(() => {
   const size = props.compact ? 'px-2 py-1 text-xs' : 'px-4 py-2'
   const state = props.disabled 
     ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-    : 'bg-green-500 text-white hover:bg-green-600'
+    : 'bg-green-500 text-white hover:bg-green-600 active:bg-green-700'
   
   return `${base} ${size} ${state}`
 })
 
 const cancelButtonClasses = computed(() => {
-  const base = 'bg-red-500 text-white rounded hover:bg-red-600 flex items-center justify-center gap-2 transition-colors'
+  const base = 'bg-red-500 text-white rounded hover:bg-red-600 active:bg-red-700 flex items-center justify-center gap-2 transition-colors'
   const size = props.compact ? 'px-2 py-1 text-xs' : 'px-4 py-2'
   
   return `${base} ${size}`
@@ -87,9 +86,18 @@ const handleSaveClick = () => {
 }
 
 const handleCancel = (event) => {
-  console.log('Cancel button triggered - mobile debug', event.type)
-  event.preventDefault()
-  event.stopPropagation()
-  emit('cancel')
+  console.log('Cancel button triggered - mobile debug', event?.type || 'no-event')
+  
+  // Prevent any default behavior and stop propagation
+  if (event) {
+    event.preventDefault()
+    event.stopPropagation()
+    event.stopImmediatePropagation()
+  }
+  
+  // Use setTimeout to ensure the event handling is complete before emitting
+  setTimeout(() => {
+    emit('cancel')
+  }, 0)
 }
 </script>

@@ -24,8 +24,16 @@ export function useShopForm({
     ...(initialData || {})      // for edit mode, seed existing values
   })
 
-  // Store the original values for change detection
-  const originalValues = { ...form }
+  // Store the original values for change detection - create a deep copy
+  const originalValues = reactive({ ...form })
+
+  // Function to reset original values (for when form data changes externally)
+  const resetOriginalValues = () => {
+    Object.keys(form).forEach(key => {
+      originalValues[key] = form[key]
+    })
+    console.log('Original values reset to:', { ...originalValues })
+  }
 
   // URL validation helper
   const validUrl = (value) => {
@@ -144,46 +152,40 @@ export function useShopForm({
     }
   }
 
-   const cancel = (skipChangeCheck = false) => {
-    if (!skipChangeCheck) {
-      // Check for changes by comparing current form values with original values
-      const hasChanges = Object.keys(form).some(key => {
-        const currentValue = form[key] || ''
-        const originalValue = originalValues[key] || ''
-        return currentValue.toString().trim() !== originalValue.toString().trim()
-      })
-
-      console.log('Change detection debug:', {
-        hasChanges,
-        currentForm: { ...form },
-        originalValues: { ...originalValues },
-        mode
-      })
-
-      if (hasChanges) {
-        const msg = mode === 'add'
-          ? 'Are you sure you want to discard this shop entry?'
-          : 'Discard all changes?'
-        
-        if (!confirm(msg)) {
-          return
-        }
-        
-        warning(
-          'Changes discarded', 
-          mode === 'add' ? 'New shop entry cancelled' : 'Changes reverted'
-        )
-      }/*  else {
-        info(
-          'Form closed', 
-          mode === 'add' ? 'Add shop cancelled' : 'Edit mode closed'
-        )
-      } */
+  const cancel = async (skipChangeCheck = false) => {
+    console.log('=== CANCEL DEBUG START ===')
+    console.log('Cancel called with skipChangeCheck:', skipChangeCheck)
+    console.log('Current form values:', { ...form })
+    console.log('Original values:', { ...originalValues })
+    console.log('Mode:', mode)
+    
+    // Always show a notification for edit mode, regardless of change detection
+    if (mode === 'edit' && !skipChangeCheck) {
+      console.log('Edit mode: showing changes discarded notification')
+      warning('Changes discarded', 'Edit mode cancelled')
+    } else if (mode === 'add' && !skipChangeCheck) {
+      console.log('Add mode: showing entry cancelled notification') 
+      info('Entry cancelled', 'New shop entry cancelled')
     }
 
-    onClose?.()
-    emit('cancel')
+    console.log('Calling onClose and emitting cancel after 150ms delay')
+    
+    // Use setTimeout to ensure the toast notification displays before closing
+    setTimeout(() => {
+      console.log('Executing onClose and emit cancel')
+      onClose?.()
+      emit('cancel')
+    }, 150)
+    
+    console.log('=== CANCEL DEBUG END ===')
   }
 
-  return { form, isFormValid, save, cancel, validUrl }
+  return { 
+    form, 
+    isFormValid, 
+    save, 
+    cancel, 
+    validUrl,
+    resetOriginalValues  // Expose this function so external components can reset the baseline
+  }
 }

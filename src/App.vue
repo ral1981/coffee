@@ -755,16 +755,27 @@ const handleScroll = () => {
   // Show back to top button after scrolling down 300px
   showBackToTop.value = currentScrollY > 300
   
-  // Close auth panel quickly when scrolling (after 1 second delay)
+  // Only close auth panel on scroll if user isn't actively interacting with it
   if (showAuth.value && Math.abs(currentScrollY - lastScrollY.value) > 10) {
-    // Clear existing timers
-    clearAutoCollapseTimer()
+    // Check if user is actively focused on auth panel
+    const authPanel = document.querySelector('[data-auth-panel]')
+    const activeElement = document.activeElement
+    const isUsingAuthPanel = authPanel && (
+      authPanel.contains(activeElement) || 
+      authPanel.matches(':hover') ||
+      activeElement.closest('[data-auth-panel]')
+    )
     
-    // Set short timer for scroll-based closing (1 second)
-    autoCollapseTimer.value = setTimeout(() => {
-      showAuth.value = false
-      autoCollapseTimer.value = null
-    }, 1000) // 1 second when scrolling
+    if (!isUsingAuthPanel) {
+      // Clear existing timers
+      clearAutoCollapseTimer()
+      
+      // Set short timer for scroll-based closing (1 second)
+      autoCollapseTimer.value = setTimeout(() => {
+        showAuth.value = false
+        autoCollapseTimer.value = null
+      }, 1000)
+    }
   }
   
   lastScrollY.value = currentScrollY
