@@ -1,0 +1,181 @@
+/* Mobile-First Design System */
+:root {
+  /* Mobile-first breakpoints */
+  --mobile: 320px;
+  --tablet: 768px;
+  --desktop: 1024px;
+  
+  /* New color palette */
+  --primary-green: #22c55e;
+  --primary-green-hover: #16a34a;
+  --background: #f5f5f5;
+  --card-background: #ffffff;
+  --border-light: #f0f0f0;
+  --border-dark: #374151;
+  
+  /* Typography scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  
+  /* Text colors */
+  --text-primary: #333;
+  --text-secondary: #666;
+  --text-tertiary: #999;
+  --text-primary-dark: #f9fafb;
+  --text-secondary-dark: #d1d5db;
+  
+  /* Spacing scale */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  
+  /* Component specific */
+  --header-height: 60px;
+  --header-height-mobile: 56px;
+  --header-background: #ffffff;
+  --header-background-dark: #1f2937;
+  --header-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --header-padding: 1rem;
+  --header-padding-mobile: 0.75rem 1rem;
+  --header-z-index: 100;
+  
+  --tab-height: 48px;
+  --nav-background: #ffffff;
+  --nav-background-dark: #1f2937;
+  --nav-z-index: 90;
+  --nav-margin-bottom: 1rem;
+  --nav-margin-bottom-desktop: 1.5rem;
+  
+  --card-radius: 12px;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --card-hover-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  
+  /* Button styles */
+  --button-secondary-bg: #f0f0f0;
+  --button-secondary-bg-dark: #374151;
+  --button-secondary-hover: #e0e0e0;
+  --button-secondary-hover-dark: #4b5563;
+  --button-secondary-color: #666;
+  --button-secondary-color-dark: #d1d5db;
+  
+  /* Focus and interaction */
+  --focus-color: #22c55e;
+  --focus-ring: 0 0 0 3px rgba(34, 197, 94, 0.1);
+  
+  /* Badge/notification */
+  --badge-background: #ef4444;
+  --badge-color: #ffffff;
+  --badge-font-size: 0.75rem;
+  --badge-font-weight: 600;
+  --badge-padding: 0.25rem 0.5rem;
+  --badge-border-radius: 12px;
+  --badge-min-width: 1.25rem;
+  --badge-height: 1.25rem;
+  
+  /* Layout */
+  --max-content-width: 1200px;
+  
+  /* Tab specific */
+  --tab-padding: 1rem;
+  --tab-padding-mobile: 0.75rem 0.5rem;
+  --tab-padding-large: 1.25rem 1.5rem;
+  --tab-font-size: 1rem;
+  --tab-font-size-mobile: 0.875rem;
+  --tab-font-weight: 500;
+  --tab-active-font-weight: 600;
+  --tab-color: #666;
+  --tab-color-dark: #9ca3af;
+  --tab-active-color: #333;
+  --tab-active-color-dark: #f9fafb;
+  --tab-hover-color: #333;
+  --tab-hover-color-dark: #f3f4f6;
+  --tab-hover-background: rgba(0, 0, 0, 0.04);
+  --tab-hover-background-dark: rgba(255, 255, 255, 0.1);
+  --tab-disabled-color: #ccc;
+  --tab-active-border-height: 3px;
+  --tab-active-border-radius: 2px 2px 0 0;
+  --tab-gap: 0.25rem;
+  --tab-gap-mobile: 0.125rem;
+  --tab-gap-medium: 0.5rem;
+  --tab-gap-large: 0.75rem;
+  
+  /* Pills variant */
+  --pills-padding: 0.5rem;
+  --pills-gap: 0.5rem;
+  --pills-background: #f8f9fa;
+  --pills-background-dark: #374151;
+  --pills-border-radius: 8px;
+  --pills-item-padding: 0.5rem 1rem;
+  --pills-item-color-dark: #d1d5db;
+}
+
+/* Base reset for new components */
+.app-container * {
+  box-sizing: border-box;
+}
+
+/* Utility classes */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Focus management */
+.focus-visible-only:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Smooth scrolling for tab navigation */
+.tab-list {
+  scroll-behavior: smooth;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --header-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .tab-list {
+    scroll-behavior: auto;
+  }
+}

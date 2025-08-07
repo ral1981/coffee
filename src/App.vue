@@ -1,278 +1,288 @@
 <template>
-  <main class="min-h-screen bg-gray-35 dark:bg-white dark:text-gray-900 p-6 relative flex flex-col">
-    <!-- Backdrop to close menu when clicking outside -->
-    <div 
-      v-if="showAuth"
-      @click="closeAuth"
-      class="fixed inset-0 z-40 bg-black bg-opacity-20"
-    ></div>
+  <div id="app">
+    <!-- New UI with feature flag -->
+    <router-view v-if="flags.newUI" />
+    
+    <!-- Old UI fallback -->
+    <div v-else class="old-ui">
 
-    <!-- Coffee Form Overlay -->
-    <div 
-      v-if="selectedIndex === 0 && showCoffeeForm"
-      @click="handleOverlayClick"
-      class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center pt-8 px-4"
-    >
-      <div @click.stop class="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CoffeeForm
-          :user="user"
-          :fetchCoffees="loadCoffees"
-          @coffee-added="handleNewCoffee"
-          @cancel="showCoffeeForm = false"
-        />
-      </div>
-    </div>
-
-    <!-- Shop Form Overlay -->
-    <div 
-      v-if="selectedIndex === 2 && showShopForm"
-      @click="handleOverlayClick"
-      class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center pt-8 px-4"
-    >
-      <div @click.stop class="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <ShopForm
-          :user="user"
-          :fetchShops="loadShops"
-          @shop-saved="handleNewShop"
-          @cancel="closeForms"
-        />
-      </div>
-    </div>
-
-    <!-- Container Form Overlay -->
-    <div 
-      v-if="selectedIndex === 1 && showContainerForm"
-      @click="handleOverlayClick"
-      class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center pt-8 px-4"
-    >
-      <div @click.stop class="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <ContainerForm
-          :user="user"
-          :fetch-containers="loadContainers"
-          @container-saved="handleNewContainer"
-          @cancel="closeForms"
-        />
-      </div>
-    </div>
-
-    <!-- Unified Authentication Panel -->
-    <div class="fixed top-4 right-4 z-50">
-      <button 
-        @click.stop="toggleAuth"
-        class="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
-        :class="{ 'bg-green-50 dark:bg-green-900': isLoggedIn }"
-        :title="isLoggedIn ? 'Account Menu' : 'Login'"
-      >
-        <LockOpen v-if="isLoggedIn" class="w-6 h-6 text-green-600 dark:text-green-400" />
-        <Lock v-else class="w-6 h-6 text-gray-700 dark:text-gray-300" />
-      </button>
-      <Transition name="slide-fade">
+      <main class="min-h-screen bg-gray-35 dark:bg-white dark:text-gray-900 p-6 relative flex flex-col">
+        <!-- Backdrop to close menu when clicking outside -->
         <div 
-          v-if="showAuth" 
-          @click.stop
-          data-auth-panel
-          class="absolute top-16 right-0 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 overflow-hidden z-60"
+          v-if="showAuth"
+          @click="closeAuth"
+          class="fixed inset-0 z-40 bg-black bg-opacity-20"
+        ></div>
+
+        <!-- Coffee Form Overlay -->
+        <div 
+          v-if="selectedIndex === 0 && showCoffeeForm"
+          @click="handleOverlayClick"
+          class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center pt-8 px-4"
         >
-          <Authentication
-            @user-changed="onUserChanged"
-            @logout="attemptLogout"
-            :show-toggle="false"
-            @user-activity="resetActivityTimer"
-          />
+          <div @click.stop class="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CoffeeForm
+              :user="user"
+              :fetchCoffees="loadCoffees"
+              @coffee-added="handleNewCoffee"
+              @cancel="showCoffeeForm = false"
+            />
+          </div>
         </div>
-      </Transition>
-    </div>
 
-    <!-- Main Content Area -->
-    <div class="pt-10 pb-2 text-center">
-      <router-link to="/" class="flex flex-col items-center mb-6 cursor-pointer">
-        <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" class="mb-2">
-          <defs>
-            <linearGradient id="coffeeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style="stop-color:#8D6E63;stop-opacity:1" />
-              <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
-            </linearGradient>
-          </defs>
-          <path fill="url(#coffeeGradient)" d="M13.325 0c-.907 1.116-2.442 2.302-.768 4.814.558.628.838 1.953.768 2.372 0 0 2.512-1.464.977-4.116-.907-1.395-1.326-2.582-.977-3.07zm-2.79 2.582c-.628.767-1.605 1.535-.489 3.279.35.349.489 1.256.489 1.535 0 0 1.673-.978.627-2.792-.628-.907-.906-1.743-.627-2.022zm-5.094 6a.699.699 0 0 0-.697.698c0 2.372.349 10.535 3.837 14.512.14.139.28.208.489.208h5.86c.21 0 .35-.069.489-.208 3.488-3.908 3.837-12.07 3.837-14.512a.7.7 0 0 0-.698-.699H12zm2.023 2.163h9.21c.349 0 .697.278.697.697 0 1.953-.348 7.465-2.72 10.326-.21.14-.35.208-.559.208H9.976a.633.633 0 0 1-.488-.208c-2.372-2.79-2.652-8.373-2.722-10.326 0-.35.28-.697.698-.697zm8.792 4.744s-.071.627-1.745 1.255c-2.303.837-6.348.28-6.348.28.349 1.465.906 2.86 1.743 3.907.07.14.28.209.419.209h3.489c.14 0 .279-.07.418-.209 1.186-1.395 1.745-3.558 2.024-5.442z"/>
-        </svg>
-        <div class="w-32 h-2 bg-gray-800 mb-4 rounded"></div>
-        <h1 class="text-4xl font-bold gradient-text">Coffee Tracker</h1>
-      </router-link>
-    </div>
-
-    <!-- Controls: Filter Panel Tabs -->
-    <div class="flex flex-col lg:flex-row lg:items-stretch gap-4">
-      <div class="flex-1">
-        <div class="w-full bg-white dark:bg-gray-800 rounded-lg">
-          <TabGroup as="div" :selectedIndex="selectedIndex" @change="handleTabChange" class="flex-1">
-            <!-- Tab list -->
-            <TabList class="flex w-full justify-center items-center p-1 rounded-t-lg bg-transparent">
-              <Tab
-                class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
-                      ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
-              >
-                Coffees
-              </Tab>
-              <span class="mx-2 text-gray-400 select-none">|</span>
-              <Tab
-                class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
-                      ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
-              >
-                Containers
-              </Tab>
-              <span class="mx-2 text-gray-400 select-none">|</span>
-              <Tab
-                class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
-                      ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
-              >
-                Shops
-              </Tab>
-            </TabList>
-
-            <!-- Tab panels -->
-            <TabPanels class="p-0">
-              
-              <!-- Filters panel -->
-              <TabPanel>
-                <FilterPanel
-                  :origins="uniqueOrigins"
-                  :shops="uniqueShops"
-                  :names="coffeeNames"
-                  :containers="containers"
-                  :filtered-count="filteredCoffees.length"
-                  :total-count="totalCoffees"
-                  @filter-change="handleFilterChange"
-                />
-                
-                <!-- Coffee Cards Grid -->
-                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
-                  <CoffeeCard
-                    v-for="coffee in filteredCoffees"
-                    :key="coffee.id"
-                    :coffee="coffee"
-                    :class="{ 'new-item': coffee.id === newlyAddedId }"
-                    :isLoggedIn="isLoggedIn"
-                    :containerStatus="containerStatus"
-                    :initiallyExpanded="shouldExpandCards"
-                    :forceExpandState="forceExpandState"
-                    :fetchCoffees="loadCoffees"
-                    @editing-changed="onEditingChanged"
-                    @update-container="handleContainerUpdate"
-                    @deleted="loadCoffees"
-                    @saved="loadCoffees"
-                    @coffee-updated="handleCoffeeUpdated"
-                  />
-                </div>
-              </TabPanel>
-              
-              <!-- Containers panel -->
-              <TabPanel>
-                <div class="flex flex-wrap justify-center gap-4 px-4 py-4">
-                  <ContainerCard
-                    v-for="container in containers"
-                    :key="container.id"
-                    :container="container"
-                    :class="{ 'new-item': container.id === newlyAddedId }"
-                    :is-logged-in="isLoggedIn"
-                    :fetch-containers="loadContainers"
-                    @deleted="loadContainers"
-                    @container-updated="handleContainerUpdated"
-                    @view-coffees="handleViewContainerCoffees"
-                  />
-                </div>
-              </TabPanel>
-              
-              <!-- Shops panel -->
-              <TabPanel>
-                <div class="flex flex-wrap justify-center gap-4  px-4 py-4">
-                  <ShopCard
-                    v-for="shop in shops"
-                    :key="shop.bean_url"
-                    :shop="shop"
-                    :is-logged-in="isLoggedIn"
-                    @deleted="handleShopDeleted"
-                  />
-                </div>
-              </TabPanel>
-            </TabPanels>
-          </TabGroup>
+        <!-- Shop Form Overlay -->
+        <div 
+          v-if="selectedIndex === 2 && showShopForm"
+          @click="handleOverlayClick"
+          class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center pt-8 px-4"
+        >
+          <div @click.stop class="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <ShopForm
+              :user="user"
+              :fetchShops="loadShops"
+              @shop-saved="handleNewShop"
+              @cancel="closeForms"
+            />
+          </div>
         </div>
-      </div>
+
+        <!-- Container Form Overlay -->
+        <div 
+          v-if="selectedIndex === 1 && showContainerForm"
+          @click="handleOverlayClick"
+          class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center pt-8 px-4"
+        >
+          <div @click.stop class="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <ContainerForm
+              :user="user"
+              :fetch-containers="loadContainers"
+              @container-saved="handleNewContainer"
+              @cancel="closeForms"
+            />
+          </div>
+        </div>
+
+        <!-- Unified Authentication Panel -->
+        <div class="fixed top-4 right-4 z-50">
+          <button 
+            @click.stop="toggleAuth"
+            class="p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
+            :class="{ 'bg-green-50 dark:bg-green-900': isLoggedIn }"
+            :title="isLoggedIn ? 'Account Menu' : 'Login'"
+          >
+            <LockOpen v-if="isLoggedIn" class="w-6 h-6 text-green-600 dark:text-green-400" />
+            <Lock v-else class="w-6 h-6 text-gray-700 dark:text-gray-300" />
+          </button>
+          <Transition name="slide-fade">
+            <div 
+              v-if="showAuth" 
+              @click.stop
+              data-auth-panel
+              class="absolute top-16 right-0 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-600 overflow-hidden z-60"
+            >
+              <Authentication
+                @user-changed="onUserChanged"
+                @logout="attemptLogout"
+                :show-toggle="false"
+                @user-activity="resetActivityTimer"
+              />
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="pt-10 pb-2 text-center">
+          <router-link to="/" class="flex flex-col items-center mb-6 cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" class="mb-2">
+              <defs>
+                <linearGradient id="coffeeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" style="stop-color:#8D6E63;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+              <path fill="url(#coffeeGradient)" d="M13.325 0c-.907 1.116-2.442 2.302-.768 4.814.558.628.838 1.953.768 2.372 0 0 2.512-1.464.977-4.116-.907-1.395-1.326-2.582-.977-3.07zm-2.79 2.582c-.628.767-1.605 1.535-.489 3.279.35.349.489 1.256.489 1.535 0 0 1.673-.978.627-2.792-.628-.907-.906-1.743-.627-2.022zm-5.094 6a.699.699 0 0 0-.697.698c0 2.372.349 10.535 3.837 14.512.14.139.28.208.489.208h5.86c.21 0 .35-.069.489-.208 3.488-3.908 3.837-12.07 3.837-14.512a.7.7 0 0 0-.698-.699H12zm2.023 2.163h9.21c.349 0 .697.278.697.697 0 1.953-.348 7.465-2.72 10.326-.21.14-.35.208-.559.208H9.976a.633.633 0 0 1-.488-.208c-2.372-2.79-2.652-8.373-2.722-10.326 0-.35.28-.697.698-.697zm8.792 4.744s-.071.627-1.745 1.255c-2.303.837-6.348.28-6.348.28.349 1.465.906 2.86 1.743 3.907.07.14.28.209.419.209h3.489c.14 0 .279-.07.418-.209 1.186-1.395 1.745-3.558 2.024-5.442z"/>
+            </svg>
+            <div class="w-32 h-2 bg-gray-800 mb-4 rounded"></div>
+            <h1 class="text-4xl font-bold gradient-text">Coffee Tracker</h1>
+          </router-link>
+        </div>
+
+        <!-- Controls: Filter Panel Tabs -->
+        <div class="flex flex-col lg:flex-row lg:items-stretch gap-4">
+          <div class="flex-1">
+            <div class="w-full bg-white dark:bg-gray-800 rounded-lg">
+              <TabGroup as="div" :selectedIndex="selectedIndex" @change="handleTabChange" class="flex-1">
+                <!-- Tab list -->
+                <TabList class="flex w-full justify-center items-center p-1 rounded-t-lg bg-transparent">
+                  <Tab
+                    class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
+                          ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
+                  >
+                    Coffees
+                  </Tab>
+                  <span class="mx-2 text-gray-400 select-none">|</span>
+                  <Tab
+                    class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
+                          ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
+                  >
+                    Containers
+                  </Tab>
+                  <span class="mx-2 text-gray-400 select-none">|</span>
+                  <Tab
+                    class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
+                          ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
+                  >
+                    Shops
+                  </Tab>
+                </TabList>
+
+                <!-- Tab panels -->
+                <TabPanels class="p-0">
+                  
+                  <!-- Filters panel -->
+                  <TabPanel>
+                    <FilterPanel
+                      :origins="uniqueOrigins"
+                      :shops="uniqueShops"
+                      :names="coffeeNames"
+                      :containers="containers"
+                      :filtered-count="filteredCoffees.length"
+                      :total-count="totalCoffees"
+                      @filter-change="handleFilterChange"
+                    />
+                    
+                    <!-- Coffee Cards Grid -->
+                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
+                      <CoffeeCard
+                        v-for="coffee in filteredCoffees"
+                        :key="coffee.id"
+                        :coffee="coffee"
+                        :class="{ 'new-item': coffee.id === newlyAddedId }"
+                        :isLoggedIn="isLoggedIn"
+                        :containerStatus="containerStatus"
+                        :initiallyExpanded="shouldExpandCards"
+                        :forceExpandState="forceExpandState"
+                        :fetchCoffees="loadCoffees"
+                        @editing-changed="onEditingChanged"
+                        @update-container="handleContainerUpdate"
+                        @deleted="loadCoffees"
+                        @saved="loadCoffees"
+                        @coffee-updated="handleCoffeeUpdated"
+                      />
+                    </div>
+                  </TabPanel>
+                  
+                  <!-- Containers panel -->
+                  <TabPanel>
+                    <div class="flex flex-wrap justify-center gap-4 px-4 py-4">
+                      <ContainerCard
+                        v-for="container in containers"
+                        :key="container.id"
+                        :container="container"
+                        :class="{ 'new-item': container.id === newlyAddedId }"
+                        :is-logged-in="isLoggedIn"
+                        :fetch-containers="loadContainers"
+                        @deleted="loadContainers"
+                        @container-updated="handleContainerUpdated"
+                        @view-coffees="handleViewContainerCoffees"
+                      />
+                    </div>
+                  </TabPanel>
+                  
+                  <!-- Shops panel -->
+                  <TabPanel>
+                    <div class="flex flex-wrap justify-center gap-4  px-4 py-4">
+                      <ShopCard
+                        v-for="shop in shops"
+                        :key="shop.bean_url"
+                        :shop="shop"
+                        :is-logged-in="isLoggedIn"
+                        @deleted="handleShopDeleted"
+                      />
+                    </div>
+                  </TabPanel>
+                </TabPanels>
+              </TabGroup>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Button -->
+        <button
+          @click="handleAddClick"
+          :disabled="!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm"
+          :class="[
+            'floating-btn left-6 bottom-6 rounded-full shadow-lg p-3 transition-all duration-300',
+            (!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm)
+              ? 'z-10 floating-btn--disabled bg-gray-400'
+              : 'z-50 bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:scale-110'
+          ]"
+          :title="!isLoggedIn 
+            ? 'Please log in to add items' 
+            : selectedIndex === 0 
+              ? 'Add Coffee' 
+              : selectedIndex === 1
+                ? 'Add Container'
+              : selectedIndex === 2 
+                ? 'Add Shop' 
+                : ''"
+        >
+          <Plus :class="[
+            'w-6 h-6',
+            (!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm)
+              ? 'text-gray-600'
+              : 'text-white'
+          ]" />
+        </button>
+
+        <Transition name="fade">
+          <button
+            v-if="showBackToTop"
+            @click="scrollToTop"
+            :disabled="showCoffeeForm || showContainerForm"
+            :class="[
+              'floating-btn bottom-6 right-6',
+              (showCoffeeForm || showContainerForm) ? 'z-10 floating-btn--disabled' : 'z-50',
+              'bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110'
+            ]"
+            title="Back to top"
+          >
+            <ArrowUp class="w-6 h-6" />
+          </button>
+        </Transition>
+
+        <!-- Expand/Collapse All Button -->
+        <button
+          @click="toggleExpandAll"
+          :disabled="showCoffeeForm"
+          :class="[
+            'floating-btn left-6 bottom-24',
+            showCoffeeForm ? 'z-10 floating-btn--disabled' : 'z-50',
+            'bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3 border border-gray-200 dark:border-gray-600'
+          ]"
+          :title="allExpanded ? 'Collapse All Cards' : 'Expand All Cards'"
+        >
+          <ChevronDown v-if="allExpanded" class="w-6 h-6 text-gray-700 dark:text-gray-300" />
+          <ChevronRight v-else class="w-6 h-6 text-gray-700 dark:text-gray-300" />
+        </button>
+
+        <!-- Fixed Footer -->
+        <footer class="mt-auto pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p>© 2025 R.A., all rights reserved unless otherwise noted. This site is for personal, non-commercial use to catalog specialty coffee beans at home. QR codes are intended for private household use and should not be shared externally.</p>
+          <p>
+            Licensed under 
+            <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">
+              CC BY-NC 4.0
+            </a>.
+          </p>
+        </footer>
+
+        <!-- Toast Notifications -->
+        <ToastContainer />
+      </main>
+      <route  r-view />
     </div>
-
-    <!-- Add Button -->
-    <button
-      @click="handleAddClick"
-      :disabled="!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm"
-      :class="[
-        'floating-btn left-6 bottom-6 rounded-full shadow-lg p-3 transition-all duration-300',
-        (!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm)
-          ? 'z-10 floating-btn--disabled bg-gray-400'
-          : 'z-50 bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:scale-110'
-      ]"
-      :title="!isLoggedIn 
-        ? 'Please log in to add items' 
-        : selectedIndex === 0 
-          ? 'Add Coffee' 
-          : selectedIndex === 1
-            ? 'Add Container'
-          : selectedIndex === 2 
-            ? 'Add Shop' 
-            : ''"
-    >
-      <Plus :class="[
-        'w-6 h-6',
-        (!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm)
-          ? 'text-gray-600'
-          : 'text-white'
-      ]" />
-    </button>
-
-    <Transition name="fade">
-      <button
-        v-if="showBackToTop"
-        @click="scrollToTop"
-        :disabled="showCoffeeForm || showContainerForm"
-        :class="[
-          'floating-btn bottom-6 right-6',
-          (showCoffeeForm || showContainerForm) ? 'z-10 floating-btn--disabled' : 'z-50',
-          'bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110'
-        ]"
-        title="Back to top"
-      >
-        <ArrowUp class="w-6 h-6" />
-      </button>
-    </Transition>
-
-    <!-- Expand/Collapse All Button -->
-    <button
-      @click="toggleExpandAll"
-      :disabled="showCoffeeForm"
-      :class="[
-        'floating-btn left-6 bottom-24',
-         showCoffeeForm ? 'z-10 floating-btn--disabled' : 'z-50',
-         'bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 p-3 border border-gray-200 dark:border-gray-600'
-      ]"
-      :title="allExpanded ? 'Collapse All Cards' : 'Expand All Cards'"
-    >
-      <ChevronDown v-if="allExpanded" class="w-6 h-6 text-gray-700 dark:text-gray-300" />
-      <ChevronRight v-else class="w-6 h-6 text-gray-700 dark:text-gray-300" />
-    </button>
-
-    <!-- Fixed Footer -->
-    <footer class="mt-auto pt-8 pb-4 text-center text-sm text-gray-600 dark:text-gray-400">
-      <p>© 2025 R.A., all rights reserved unless otherwise noted. This site is for personal, non-commercial use to catalog specialty coffee beans at home. QR codes are intended for private household use and should not be shared externally.</p>
-      <p>
-        Licensed under 
-        <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener" class="text-blue-600 dark:text-blue-400 hover:underline">
-          CC BY-NC 4.0
-        </a>.
-      </p>
-    </footer>
-
-    <!-- Toast Notifications -->
-    <ToastContainer />
-  </main>
+  </div>
 </template>
 
 <script setup>
@@ -291,6 +301,9 @@ import ContainerCard from './components/ContainerCard.vue'
 import ContainerForm from './components/ContainerForm.vue'
 import { ArrowUp, Lock, LockOpen, Plus, ChevronDown, ChevronRight } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import { useFeatureFlags } from './composables/useFeatureFlags'
+
+const { flags } = useFeatureFlags()
 
 // Reactive state
 const user = ref(null)
