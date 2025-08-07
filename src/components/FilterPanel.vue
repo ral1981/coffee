@@ -482,7 +482,9 @@ const parseUrlFilters = () => {
 
       // Convert container names to IDs
       containerNames.forEach(name => {
-        const container = props.containers?.find(c => c.name.toLowerCase() === name.toLowerCase())
+        const container = props.containers?.find(c => 
+          c.name.toLowerCase() === name.toLowerCase()
+        )
         if (container) {
           urlFilters.containers.push(container.id)
         }
@@ -494,6 +496,7 @@ const parseUrlFilters = () => {
       urlFilters.origin = route.query.origin || ''
       urlFilters.shop = route.query.shop || ''
     }
+    urlFilters.name = route.query.name || ''
 
     return urlFilters
   } catch (err) {

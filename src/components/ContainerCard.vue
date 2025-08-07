@@ -1,6 +1,6 @@
 <template>
   <div v-if="props.container" :data-container-id="props.container.id" class="container-card-wrapper">
-    <div :class="cardClasses">
+    <div :class="cardClasses" class="container-card-base">
       <!-- Three dots menu - positioned at card level -->
       <div class="absolute top-2 right-2 flex flex-col items-center space-y-1 flex-shrink-0">
         <button
@@ -93,13 +93,13 @@
           ref="menuPanel"
           class="absolute top-8 right-2 w-40 bg-white border border-gray-200 rounded shadow-md overflow-hidden z-20"
         >
-          <!-- View Coffees (available to all users) -->
+          <!-- View Coffee (available to all users) -->
           <button
             type="button"
             @click="viewCoffees"
             class="block w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
           >
-            <Coffee class="inline-block mr-2 w-4 h-4" /> View Coffees
+            <Coffee class="inline-block mr-2 w-4 h-4" />View Coffee
           </button>
 
           <!-- Edit (disabled for guests) -->
@@ -156,23 +156,20 @@
           
           <!-- Container info -->
           <div class="flex-1">
-            <h3 class="text-xl font-bold text-gray-900">
+            <h3 class="text-xl font-bold text-gray-900 leading-tight break-words">
               {{ container.name }}
-              <span v-if="isSystemContainer" class="text-xs font-normal text-gray-500 ml-2">(default)</span>
+              <span v-if="isSystemContainer" class="block text-xs font-normal text-gray-500 mt-1">(default)</span>
             </h3>
-            <p class="text-sm text-gray-600">
-              {{ coffeeCount }} {{ coffeeCount === 1 ? 'coffee' : 'coffees' }}
-            </p>
           </div>
         </div>
 
-        <!-- Coffee count details -->
-        <div class="bg-gray-50 rounded-lg p-4 border-l-4" :style="{ borderLeftColor: container.color }">
-          <div class="flex items-center justify-between">
+        <!-- Coffee details -->
+        <div class="bg-gray-50 rounded-lg p-4 border-l-4 flex-grow" :style="{ borderLeftColor: container.color }">
+          <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-gray-700">Current Status</span>
             <span 
               :class="[
-                'px-2 py-1 rounded-full text-xs font-medium',
+                'px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap',
                 coffeeCount > 0 
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-gray-100 text-gray-600'
@@ -181,24 +178,11 @@
               {{ coffeeCount > 0 ? 'In Use' : 'Empty' }}
             </span>
           </div>
-          <p class="text-sm text-gray-600 mt-2">
-            {{ coffeeCount > 0 
-              ? `Contains ${coffeeCount} coffee${coffeeCount > 1 ? 's' : ''} ready for brewing` 
-              : 'No coffees assigned to this container yet' 
-            }}
+          <p class="text-sm text-gray-600 leading-snug break-words hyphens-auto">
+            {{ getStatusText() }}
           </p>
         </div>
 
-        <!-- Quick actions (if has coffees) -->
-        <div v-if="coffeeCount > 0" class="flex gap-2">
-          <button
-            @click="viewCoffees"
-            class="flex-1 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
-          >
-            <Coffee class="w-4 h-4" />
-            View All Coffees
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -240,6 +224,7 @@ const isEditing = ref(false)
 const menuButton = ref(null)
 const menuPanel = ref(null)
 const coffeeCount = ref(0)
+const coffeeNames = ref([])
 
 // Form state for editing
 const form = ref({
@@ -253,7 +238,7 @@ const { isOpen: showMenu, toggleMenu: toggleMenuState, closeMenu } = useSharedMe
 // Computed properties
 const cardClasses = computed(() => {
   const baseClasses = [
-    'relative w-full p-6 rounded-xl border-2 shadow-sm text-gray-900 space-y-4 flex flex-col h-full transition-all duration-200 hover:shadow-md'
+    'relative p-6 rounded-xl border-2 shadow-sm text-gray-900 flex flex-col transition-all duration-200 hover:shadow-md container-card-base'
   ]
   
   if (isEditing.value) {
@@ -282,23 +267,43 @@ const toggleMenu = () => {
   toggleMenuState()
 }
 
-// Load coffee count for this container
+// Load coffee count and name for this container
 const loadCoffeeCount = async () => {
   try {
-    const { count, error: countError } = await supabase
+    const { data, error: countError } = await supabase
       .from('coffee_container_assignments')
-      .select('*', { count: 'exact', head: true })
+      .select(`
+        container_id,
+        coffee_beans!inner(
+          id,
+          name
+        )
+      `)
       .eq('container_id', props.container.id)
     
     if (countError) {
       throw countError
     }
     
-    coffeeCount.value = count || 0
+    coffeeCount.value = data?.length || 0
+    coffeeNames.value = data?.map(item => item.coffee_beans.name) || []
     
   } catch (err) {
     console.error('Error loading coffee count:', err)
     coffeeCount.value = 0
+    coffeeNames.value = []
+  }
+}
+
+const getStatusText = () => {
+  if (coffeeCount.value === 0) {
+    return 'No coffees assigned to this container yet'
+  } else if (coffeeCount.value === 1) {
+    return `Contains: ${coffeeNames.value[0] || 'coffee'}`
+  } else {
+    // For multiple coffees, show first one and count
+    const firstName = coffeeNames.value[0] || 'coffee'
+    return `Contains: ${firstName} and ${coffeeCount.value - 1} other${coffeeCount.value - 1 > 1 ? 's' : ''}`
   }
 }
 
@@ -400,7 +405,6 @@ const confirmDelete = async () => {
   if (!confirm(confirmMessage)) return
   
   try {
-    // First, remove all coffee assignments
     if (coffeeCount.value > 0) {
       const { error: assignmentError } = await supabase
         .from('coffee_container_assignments')
@@ -409,11 +413,10 @@ const confirmDelete = async () => {
       
       if (assignmentError) throw assignmentError
     }
-    
-    // Then delete the container (soft delete)
+  
     const { error: deleteError } = await supabase
       .from('containers')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .delete()
       .eq('id', props.container.id)
     
     if (deleteError) throw deleteError
@@ -422,15 +425,21 @@ const confirmDelete = async () => {
     emit('deleted', props.container.id)
     
   } catch (err) {
-    error('Delete failed', 'Please try again')
+    error('Delete failed', `Failed to delete ${props.container.name}: ${err.message}`)
     console.error('Delete error:', err)
   }
 }
 
 const viewCoffees = () => {
   closeMenu()
-  emit('view-coffees', props.container)
-  info('Viewing coffees', `Showing coffees in ${props.container.name} container`)
+  
+  // Pass the container with coffee count
+  const containerWithCount = {
+    ...props.container,
+    coffeeCount: coffeeCount.value
+  }
+  
+  emit('view-coffees', containerWithCount)
 }
 
 const showLoginPrompt = (action) => {
@@ -466,7 +475,16 @@ onBeforeUnmount(() => {
 }
 
 .container-card-wrapper {
-  min-width: 280px;
+  width: 100%;
+  max-width: 320px; /* Ensure consistent card width */
+}
+
+.container-card-base {
+  width: 100%;
+  min-height: 240px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Color picker styling */

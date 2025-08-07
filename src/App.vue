@@ -167,7 +167,7 @@
               
               <!-- Containers panel -->
               <TabPanel>
-                <div class="flex flex-wrap justify-center gap-4">
+                <div class="flex flex-wrap justify-center gap-6 px-4 py-8">
                   <ContainerCard
                     v-for="container in containers"
                     :key="container.id"
@@ -290,6 +290,7 @@ import ShopCard from './components/ShopCard.vue'
 import ContainerCard from './components/ContainerCard.vue'
 import ContainerForm from './components/ContainerForm.vue'
 import { ArrowUp, Lock, LockOpen, Plus, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 
 // Reactive state
 const user = ref(null)
@@ -297,7 +298,12 @@ const coffees = ref([])
 const shops = ref([])
 const isLoggedIn = ref(false)
 const anyEditing = ref(false)
-const filter = ref({ green: false, grey: false, origin: '', shop: '', name: '' })
+const filter = ref({ 
+  containers: [],
+  origin: '', 
+  shop: '', 
+  name: '' 
+})
 const showBackToTop = ref(false)
 const showAuth = ref(false)
 const showCoffeeForm = ref(false)
@@ -316,6 +322,7 @@ const { success, error, warning, info } = useToast()
 const selectedIndex = ref(0)
 const showContainerForm = ref(false)
 const containers = ref([])
+const router = useRouter()
 
 // Authentication methods
 const toggleAuth = () => {
@@ -436,30 +443,21 @@ watch(selectedIndex, () => {
 // Computed properties
 const filteredCoffees = computed(() => {
   return coffees.value.filter(coffee => {
-    // Container filter logic - updated for new system
+    // Container filter logic
     let containerMatch = true
     if (filter.value.containers && filter.value.containers.length > 0) {
-      // This requires coffee assignments to be loaded
-      // For now, fall back to old boolean system during transition
       if (coffee.containerAssignments && coffee.containerAssignments.length > 0) {
-        // New system: check if coffee has any of the selected containers
+        // Check if coffee has any of the selected containers
         containerMatch = filter.value.containers.some(containerId => 
           coffee.containerAssignments.includes(containerId)
         )
       } else {
-        // Fallback to old system during migration
-        const greenContainer = containers.value.find(c => c.name === 'Green')
-        const greyContainer = containers.value.find(c => c.name === 'Grey')
-        
-        containerMatch = filter.value.containers.some(containerId => {
-          if (containerId === greenContainer?.id && coffee.in_green_container) return true
-          if (containerId === greyContainer?.id && coffee.in_grey_container) return true
-          return false
-        })
+        // Coffee has no container assignments - exclude when container filter is active
+        containerMatch = false
       }
     }
 
-    // Other filters remain the same
+    // Other filters
     const originMatch = !filter.value.origin || coffee.origin === filter.value.origin
     const shopMatch = !filter.value.shop || coffee.shop_name === filter.value.shop
     const nameMatch = !filter.value.name || 
@@ -490,9 +488,9 @@ const loadCoffees = async () => {
       .from('coffee_beans')
       .select(`
         *,
-        coffee_container_assignments!inner(
+        coffee_container_assignments(
           container_id,
-          containers!inner(
+          containers(
             id,
             name,
             color
@@ -501,31 +499,19 @@ const loadCoffees = async () => {
       `)
       .order('created_at', { ascending: false })
 
-    if (error) {
-      throw error
-    } else {
-      // Process the data to include containerAssignments array and container info
-      coffees.value = (data || []).map(coffee => ({
-        ...coffee,
-        containerAssignments: coffee.coffee_container_assignments?.map(a => a.container_id) || [],
-        containerDetails: coffee.coffee_container_assignments?.map(a => a.containers) || []
-      }))
-    }
+    if (error) throw error
+
+    // Process the data to include containerAssignments array and container info
+    coffees.value = (data || []).map(coffee => ({
+      ...coffee,
+      containerAssignments: coffee.coffee_container_assignments?.map(a => a.container_id) || [],
+      containerDetails: coffee.coffee_container_assignments?.map(a => a.containers) || []
+    }))
+
   } catch (err) {
     console.error('Load coffees error:', err)
-    // Fallback: load without container data if join fails
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from('coffee_beans')
-      .select('*')
-      .order('created_at', { ascending: false })
-    
-    if (!fallbackError) {
-      coffees.value = (fallbackData || []).map(coffee => ({
-        ...coffee,
-        containerAssignments: [],
-        containerDetails: []
-      }))
-    }
+    error('Failed to load coffees', 'Please check your connection and try again')
+    coffees.value = []
   }
 }
 
@@ -740,23 +726,23 @@ const handleNewShop = async (newShop) => {
 const handleFilterChange = (newFilter, isFromUrl = false) => {
   filter.value = { ...newFilter }
   
-  // Only expand on URL load with single container (don't reset isInitialUrlLoad yet)
+  // Handle URL expansion logic if needed
   if (isFromUrl && isInitialUrlLoad.value) {
-    const containerCount = (newFilter.green ? 1 : 0) + (newFilter.grey ? 1 : 0)
+    const containerCount = newFilter.containers?.length || 0
     const hasOtherFilters = newFilter.origin || newFilter.shop
         
     if (containerCount === 1 && !hasOtherFilters) {
       shouldExpandFromUrl.value = true
-      isInitialUrlLoad.value = false // Only reset after successful expansion
+      isInitialUrlLoad.value = false
     } else if (containerCount === 0) {
-      // Don't reset isInitialUrlLoad if no containers yet (waiting for route watcher)
+      // No containers selected
     } else {
-      // Multiple containers or other filters - reset flag
+      // Multiple containers or other filters
       isInitialUrlLoad.value = false
     }
   } else if (!isFromUrl) {
     shouldExpandFromUrl.value = false
-    isInitialUrlLoad.value = false // Reset on any manual change
+    isInitialUrlLoad.value = false
   }
 }
 
@@ -851,11 +837,33 @@ const handleContainerUpdated = async (updatedContainer) => {
 }
 
 const handleViewContainerCoffees = (container) => {
-  // Switch to coffees tab and apply container filter
+  // Switch to coffees tab
   selectedIndex.value = 0
-  // You'll need to implement container filtering in FilterPanel
-  // For now, just show info message
-  info(`Viewing ${container.name} coffees`, 'Container-specific filtering coming soon')
+  
+  // Navigate to the URL with container filter using container name
+  const containerName = container.name.toLowerCase()
+  
+  // Use router to navigate with query parameter
+  router.push({
+    path: '/coffee/',
+    query: { container: containerName }
+  }).catch(() => {
+    // If router navigation fails, fall back to manual filter setting
+    const newFilter = {
+      containers: [container.id],
+      origin: '',
+      shop: '',
+      name: ''
+    }
+    
+    filter.value = newFilter
+    handleFilterChange(newFilter, false)
+  })
+  
+  success(
+    `Viewing ${container.name} coffees`,
+    `Filtering for coffees in ${container.name} container`
+  )
 }
 
 const onEditingChanged = (isNowEditing) => {
@@ -908,6 +916,32 @@ const scrollToTop = () => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.break-words {
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.hyphens-auto {
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  -ms-hyphens: auto;
+}
+
+/* Ensure consistent card heights */
+.container-card-base {
+  min-height: 240px;
+  max-height: 280px;
+}
+
+.container-card-base .space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+.flex-grow {
+  flex-grow: 1;
 }
 
 /* Z-index layers */
