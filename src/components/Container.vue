@@ -16,7 +16,7 @@
       </p>
     </div>
     
-    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 j">
       <div v-for="container in containers" :key="container.id" class="container-option">
         <button
           @click="handleContainerClick(container)"
