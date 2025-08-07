@@ -436,22 +436,32 @@ watch(selectedIndex, () => {
 // Computed properties
 const filteredCoffees = computed(() => {
   return coffees.value.filter(coffee => {
-    // Container filter logic
+    // Container filter logic - updated for new system
     let containerMatch = true
     if (filter.value.containers && filter.value.containers.length > 0) {
-      // This will need to be updated when you migrate to the new container system
-      // For now, this is a placeholder - you'll need to implement the actual filtering
-      // based on the coffee_container_assignments table
-      containerMatch = false // Placeholder
+      // This requires coffee assignments to be loaded
+      // For now, fall back to old boolean system during transition
+      if (coffee.containerAssignments && coffee.containerAssignments.length > 0) {
+        // New system: check if coffee has any of the selected containers
+        containerMatch = filter.value.containers.some(containerId => 
+          coffee.containerAssignments.includes(containerId)
+        )
+      } else {
+        // Fallback to old system during migration
+        const greenContainer = containers.value.find(c => c.name === 'Green')
+        const greyContainer = containers.value.find(c => c.name === 'Grey')
+        
+        containerMatch = filter.value.containers.some(containerId => {
+          if (containerId === greenContainer?.id && coffee.in_green_container) return true
+          if (containerId === greyContainer?.id && coffee.in_grey_container) return true
+          return false
+        })
+      }
     }
 
-    // Origin filter
+    // Other filters remain the same
     const originMatch = !filter.value.origin || coffee.origin === filter.value.origin
-    
-    // Shop filter
     const shopMatch = !filter.value.shop || coffee.shop_name === filter.value.shop
-
-    // Name filter (real-time search)
     const nameMatch = !filter.value.name || 
       coffee.name.toLowerCase().includes(filter.value.name.toLowerCase())
 
@@ -478,17 +488,44 @@ const loadCoffees = async () => {
   try {
     const { data, error } = await supabase
       .from('coffee_beans')
-      .select('*')
+      .select(`
+        *,
+        coffee_container_assignments!inner(
+          container_id,
+          containers!inner(
+            id,
+            name,
+            color
+          )
+        )
+      `)
       .order('created_at', { ascending: false })
 
     if (error) {
       throw error
     } else {
-      coffees.value = data
+      // Process the data to include containerAssignments array and container info
+      coffees.value = (data || []).map(coffee => ({
+        ...coffee,
+        containerAssignments: coffee.coffee_container_assignments?.map(a => a.container_id) || [],
+        containerDetails: coffee.coffee_container_assignments?.map(a => a.containers) || []
+      }))
     }
   } catch (err) {
-    error('Failed to load coffees', 'Please check your connection and try again')
     console.error('Load coffees error:', err)
+    // Fallback: load without container data if join fails
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('coffee_beans')
+      .select('*')
+      .order('created_at', { ascending: false })
+    
+    if (!fallbackError) {
+      coffees.value = (fallbackData || []).map(coffee => ({
+        ...coffee,
+        containerAssignments: [],
+        containerDetails: []
+      }))
+    }
   }
 }
 
@@ -759,47 +796,22 @@ const containerStatus = computed(() => {
 })
 
 const handleContainerUpdate = async ({ coffee, container, assign }) => {
-  if (assign) {
-    const conflicting = coffees.value.find(c =>
-      container === 'green' ? c.in_green_container : c.in_grey_container
-    )
-
-    if (conflicting && conflicting.id !== coffee.id) {
-      // Show toast instead of silent handling
-      warning(
-        'Container reassigned',
-        `${conflicting.name} moved out of ${container} container`
-      )
-      
-      const unassignUpdate = container === 'green'
-        ? { in_green_container: false }
-        : { in_grey_container: false }
-
-      await supabase
-        .from('coffee_beans')
-        .update(unassignUpdate)
-        .eq('id', conflicting.id)
-    }
-  }
-
-  const update = {
-    in_green_container: container === 'green' ? assign : coffee.in_green_container,
-    in_grey_container: container === 'grey' ? assign : coffee.in_grey_container
-  }
-
   try {
-    await supabase
-      .from('coffee_beans')
-      .update(update)
-      .eq('id', coffee.id)
-
-    await loadCoffees()
+    if (assign) {
+      // Add assignment through Container.vue logic (already handled)
+      // Just refresh the coffee list
+      await loadCoffees()
+    } else {
+      // Remove assignment through Container.vue logic (already handled)
+      // Just refresh the coffee list
+      await loadCoffees()
+    }
     
-    // Show success toast
+    // Show success feedback
     const action = assign ? 'assigned to' : 'removed from'
     success(
       `Container ${action} ${coffee.name}`,
-      `${container.charAt(0).toUpperCase() + container.slice(1)} container updated`
+      `${container.name} container updated`
     )
     
   } catch (err) {

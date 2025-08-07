@@ -129,26 +129,11 @@ const loadCoffeeAssignments = async () => {
 // Check if container is assigned to the coffee
 const isContainerAssigned = (containerId) => {
   if (props.mode === 'form') {
-    // For form mode, check form state (you'll need to implement this)
-    return false // Placeholder
+    // For form mode, check form state
+    return props.form?.containerAssignments?.includes(containerId) || false
   }
   return coffeeAssignments.value.includes(containerId)
 }
-
-// Computed properties for assigned state
-const isGreenAssigned = computed(() => {
-  if (props.mode === 'form') {
-    return props.form?.in_green_container || false
-  }
-  return props.coffee?.in_green_container || false
-})
-
-const isGreyAssigned = computed(() => {
-  if (props.mode === 'form') {
-    return props.form?.in_grey_container || false
-  }
-  return props.coffee?.in_grey_container || false
-})
 
 // Get current coffee name for display
 const currentCoffeeName = computed(() => {
@@ -202,48 +187,6 @@ const handleFormMode = (container) => {
   }
 }
 
-// Unified removal handler
-const handleRemoveFromContainer = (container, coffeeName, onConfirm) => {
-  const containerName = container.charAt(0).toUpperCase() + container.slice(1)
-  
-  const confirmed = confirm(`Remove "${coffeeName}" from ${container} container?`)
-  if (confirmed) {
-    success(
-      `${containerName} container cleared`,
-      `${coffeeName} removed from ${container} container`
-    )
-    onConfirm()
-  } else {
-    info('Removal cancelled', `${coffeeName} kept in ${container} container`)
-  }
-}
-
-// Unified addition handler
-const handleAddToContainer = (container, coffeeName, conflictingCoffee, onConfirm) => {
-  const containerName = container.charAt(0).toUpperCase() + container.slice(1)
-  
-  if (conflictingCoffee) {
-    // There's already a coffee in this container
-    const confirmed = confirm(`Replace "${conflictingCoffee.name}" in ${container} container with "${coffeeName}"?`)
-    if (confirmed) {
-      warning(
-        'Container reassigned',
-        `${conflictingCoffee.name} will be moved out of ${container} container`
-      )
-      onConfirm()
-    } else {
-      info('Assignment cancelled', `${coffeeName} not assigned to ${container} container`)
-    }
-  } else {
-    // Container is empty - assign directly and show success
-    success(
-      `${containerName} container assigned`,
-      `${coffeeName} added to ${container} container`
-    )
-    onConfirm()
-  }
-}
-
 // Add coffee to container (database operation)
 const addToContainer = async (container) => {
   if (!props.coffee?.id) return
@@ -253,7 +196,20 @@ const addToContainer = async (container) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) throw new Error('User not authenticated')
 
-    // Insert assignment
+    // Check if assignment already exists
+    const { data: existing } = await supabase
+      .from('coffee_container_assignments')
+      .select('id')
+      .eq('coffee_id', props.coffee.id)
+      .eq('container_id', container.id)
+      .maybeSingle()
+
+    if (existing) {
+      warning('Already assigned', `${props.coffee.name} is already in ${container.name} container`)
+      return
+    }
+
+    // Insert new assignment
     const { error: insertError } = await supabase
       .from('coffee_container_assignments')
       .insert({
@@ -272,10 +228,9 @@ const addToContainer = async (container) => {
       `${props.coffee.name} added to ${container.name} container`
     )
 
-    // Emit update for parent component
     emit('update-container', { 
       coffee: props.coffee, 
-      container: container.id, 
+      container: container, 
       assign: true 
     })
 
@@ -312,10 +267,9 @@ const removeFromContainer = async (container) => {
       `${props.coffee.name} removed from ${container.name} container`
     )
 
-    // Emit update for parent component
     emit('update-container', { 
       coffee: props.coffee, 
-      container: container.id, 
+      container: container, 
       assign: false 
     })
 

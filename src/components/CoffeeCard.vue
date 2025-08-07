@@ -1,6 +1,9 @@
 <template>
   <div v-if="props.coffee" :data-coffee-id="props.coffee.id" class="coffee-card-wrapper">
-    <div :class="cardClasses">
+    <div 
+      :class="cardClasses"
+      :style="getContainerStyling"
+    >
       <!-- Three dots menu - positioned at card level -->
       <div class="absolute top-2 right-2 flex flex-col items-center space-y-1 flex-shrink-0">
         <button
@@ -358,9 +361,9 @@
         <Container
           mode="card"
           :coffee="props.coffee"
-          :container-status="props.containerStatus"
           :is-logged-in="props.isLoggedIn"
           @update-container="emit('update-container', $event)"
+          @container-changed="handleContainerChanged"
         />
 
         <!-- Save/Cancel edit buttons -->      
@@ -427,6 +430,7 @@ const shotState = ref('double')   // 'single' | 'double'
 const isEditing = ref(false)
 const menuButton = ref(null)
 const menuPanel = ref(null)
+const containers = ref([])
 
 // 3) Coffee form composable (only initialize when editing)
 let coffeeForm = null
@@ -455,15 +459,65 @@ const deriveShopLogo = () => isEditing.value && getCoffeeForm().deriveShopLogo()
 
 const { isOpen: showMenu, toggleMenu: toggleMenuState, closeMenu } = useSharedMenuState(`coffee-${props.coffee.id}`)
 
-function getDomainFromUrl(url) {
-  if (!url) return 'example.com'
+// Load containers when component mounts
+const loadContainers = async () => {
   try {
-    const fullUrl = url.startsWith('http') ? url : `https://${url}`
-    return new URL(fullUrl).hostname
-  } catch {
-    return 'example.com'
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    let query = supabase
+      .from('containers')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+
+    if (user) {
+      query = query.in('user_id', [user.id, 'system'])
+    } else {
+      query = query.eq('user_id', 'system')
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    containers.value = data || []
+  } catch (err) {
+    console.error('Error loading containers:', err)
+    containers.value = []
   }
 }
+
+// Get container by ID
+const getContainerById = (containerId) => {
+  return containers.value.find(c => c.id === containerId)
+}
+
+// Get container styling
+const getContainerStyling = computed(() => {
+  const assignments = props.coffee.containerAssignments || []
+  
+  if (assignments.length === 0) {
+    return {
+      backgroundColor: '#ffffff',
+      borderLeftColor: '#8b5cf6'
+    }
+  }
+  
+  if (assignments.length === 1) {
+    const container = getContainerById(assignments[0])
+    if (container) {
+      return {
+        backgroundColor: `${container.color}15`, // 15% opacity
+        borderLeftColor: container.color
+      }
+    }
+  }
+  
+  // Multiple containers - create a gradient or use default
+  return {
+    backgroundColor: '#f0f9ff',
+    borderLeftColor: '#3b82f6'
+  }
+})
 
 // 4) Mode toggle
 function enterEditMode() {
@@ -488,15 +542,31 @@ const cardClasses = computed(() => {
   const base = [
     'relative w-full m-1 p-4 rounded-xl border border-gray-200 shadow-sm text-gray-900 space-y-4 flex flex-col h-full border-l-4'
   ]
-  if (props.coffee.in_green_container && props.coffee.in_grey_container) {
-    base.push('bg-gradient-both border-l-blue-500')
-  } else if (props.coffee.in_green_container) {
-    base.push('bg-green-50 border-l-green-500')
-  } else if (props.coffee.in_grey_container) {
-    base.push('bg-gray-100 border-l-gray-500')
-  } else {
+  
+  // Get container assignments from the coffee data
+  const assignments = props.coffee.containerAssignments || []
+  
+  if (assignments.length === 0) {
+    // No container assignments - default styling
     base.push('bg-white border-l-violet-500')
+  } else if (assignments.length === 1) {
+    // Single container assignment - use that container's color
+    const containerId = assignments[0]
+    const container = getContainerById(containerId)
+    
+    if (container) {
+      base.push('border-l-4')
+      // Apply container-specific styling using CSS custom properties
+      base.push('container-highlight')
+    } else {
+      // Fallback if container not found
+      base.push('bg-white border-l-violet-500')
+    }
+  } else {
+    // Multiple container assignments - gradient or mixed styling
+    base.push('bg-gradient-multiple border-l-blue-500')
   }
+  
   return base
 })
 
@@ -512,6 +582,14 @@ const displayedOut = computed(() => {
   const v = props.coffee.recipe_out_grams
   return shotState.value === 'single' ? (v/2).toFixed(1) : v
 })
+
+// In CoffeeCard.vue, add the handler:
+const handleContainerChanged = async () => {
+  // Reload the coffee data to get updated container assignments
+  if (props.fetchCoffees) {
+    await props.fetchCoffees()
+  }
+}
 
 // 7) Other handlers
 async function confirmDelete() {
@@ -598,7 +676,11 @@ watch(() => props.forceExpandState, state => {
 })
 
 // 9) Lifecycle hooks
-onMounted(() => document.addEventListener('click', onClickOutside))
+onMounted(() => {
+  document.addEventListener('click', onClickOutside)
+  loadContainers()
+})
+
 onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 </script>
 
