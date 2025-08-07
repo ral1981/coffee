@@ -125,10 +125,10 @@
           <!-- Delete (disabled for guests or system containers) -->
           <button
             type="button"
-            @click.stop="isLoggedIn && !isSystemContainer ? confirmDelete() : showLoginPrompt('delete')"
+            @click.stop="isLoggedIn ? confirmDelete() : showLoginPrompt('delete')"
             :class="[
               'block w-full text-left px-3 py-2 text-sm transition-colors duration-200',
-              isLoggedIn && !isSystemContainer
+              isLoggedIn 
                 ? 'hover:bg-gray-100 text-red-600 cursor-pointer' 
                 : 'text-gray-300 cursor-not-allowed bg-gray-50'
             ]"
@@ -136,11 +136,10 @@
             <Trash2 
               :class="[
                 'inline-block mr-2 w-4 h-4',
-                isLoggedIn && !isSystemContainer ? 'text-red-600' : 'text-gray-300'
+                isLoggedIn ? 'text-red-600' : 'text-gray-300'
               ]" 
             /> 
             <span>Delete</span>
-            <span v-if="isSystemContainer" class="text-xs text-gray-400 ml-1">(default)</span>
           </button>
         </div>
 
@@ -158,7 +157,6 @@
           <div class="flex-1">
             <h3 class="text-xl font-bold text-gray-900 leading-tight break-words">
               {{ container.name }}
-              <span v-if="isSystemContainer" class="block text-xs font-normal text-gray-500 mt-1">(default)</span>
             </h3>
           </div>
         </div>
@@ -248,10 +246,6 @@ const cardClasses = computed(() => {
   }
   
   return baseClasses
-})
-
-const isSystemContainer = computed(() => {
-  return ['Green', 'Grey'].includes(props.container.name)
 })
 
 const isFormValid = computed(() => {
@@ -391,11 +385,6 @@ const confirmDelete = async () => {
     return
   }
   
-  if (isSystemContainer.value) {
-    warning('Cannot delete', 'Default containers cannot be deleted')
-    return
-  }
-  
   closeMenu()
   
   const confirmMessage = coffeeCount.value > 0 
@@ -405,6 +394,7 @@ const confirmDelete = async () => {
   if (!confirm(confirmMessage)) return
   
   try {
+    // First, remove all coffee assignments
     if (coffeeCount.value > 0) {
       const { error: assignmentError } = await supabase
         .from('coffee_container_assignments')
@@ -413,7 +403,8 @@ const confirmDelete = async () => {
       
       if (assignmentError) throw assignmentError
     }
-  
+    
+    // Then delete the container (hard delete)
     const { error: deleteError } = await supabase
       .from('containers')
       .delete()
