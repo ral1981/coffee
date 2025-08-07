@@ -57,13 +57,15 @@ const routes = [
   // Legacy redirects for backward compatibility
   {
     path: '/coffee/index.html',
-    redirect: (to) => {
-      // Preserve query parameters when redirecting
-      return {
-        path: '/coffee',
-        query: to.query
-      }
-    }
+    redirect: '/coffee'
+  },
+  {
+    path: '/coffee/index.html?container=green',
+    redirect: '/coffee?container=green'
+  },
+  {
+    path: '/coffee/index.html?container=grey', 
+    redirect: '/coffee?container=grey'
   }
 ]
 
