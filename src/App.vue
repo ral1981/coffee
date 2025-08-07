@@ -145,7 +145,7 @@
                 />
                 
                 <!-- Coffee Cards Grid -->
-                <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
                   <CoffeeCard
                     v-for="coffee in filteredCoffees"
                     :key="coffee.id"
@@ -167,7 +167,7 @@
               
               <!-- Containers panel -->
               <TabPanel>
-                <div class="flex flex-wrap justify-center gap-6 px-4 py-8">
+                <div class="flex flex-wrap justify-center gap-4 px-4 py-4">
                   <ContainerCard
                     v-for="container in containers"
                     :key="container.id"
@@ -184,7 +184,7 @@
               
               <!-- Shops panel -->
               <TabPanel>
-                <div class="flex flex-wrap justify-center gap-4">
+                <div class="flex flex-wrap justify-center gap-4  px-4 py-4">
                   <ShopCard
                     v-for="shop in shops"
                     :key="shop.bean_url"
