@@ -84,13 +84,21 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Coffee } from 'lucide-vue-next'
-import ResultsCounter from '../components/coffee/ResultsCounter.vue'
+/* import ResultsCounter from '../filters/ResultsCounter.vue'
 import SearchSection from '../components/coffee/SearchSection.vue'
 import FiltersSection from '../components/filters/FiltersSection.vue'
 import ContainerQuickFilters from '../components/filters/ContainerQuickFilters.vue'
 import CoffeeGrid from '../components/coffee/CoffeeGrid.vue'
-import { useCoffeeData } from '../composables/useCoffeeData'
-import { useFilters } from '../composables/useFilters'
+import { useCoffeeData } from '../../composables/useCoffeeData'
+import { useFilters } from '../../composables/useFilters' */
+
+import ResultsCounter from '../filters/ResultsCounter.vue'
+import SearchSection from './SearchSection.vue'
+import FiltersSection from '../filters/FiltersSection.vue'
+import ContainerQuickFilters from '../filters/ContainerQuickFilters.vue'
+import CoffeeGrid from '../coffee/CoffeeGrid.vue'
+import { useCoffeeData } from '../../composables/useCoffeeData'
+import { useFilters } from '../../composables/useFilters'
 
 const route = useRoute()
 const router = useRouter()

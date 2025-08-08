@@ -182,7 +182,7 @@ const handleClick = (event) => {
   position: fixed;
   bottom: var(--fab-bottom, 2rem);
   right: var(--fab-right, 2rem);
-  z-index: var(--fab-z-index, 1000);
+  z-index: var(--fab-z-index, 1001);
   
   display: flex;
   align-items: center;
@@ -360,9 +360,10 @@ const handleClick = (event) => {
 @media (max-width: 640px) {
   .fab {
     --fab-size: 48px;
-    --fab-bottom: 1rem;
+    --fab-bottom: calc(1rem + env(safe-area-inset-bottom));
     --fab-right: 1rem;
     --fab-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1001; /* Ensure it's above sticky elements */
   }
   
   .fab--small {
