@@ -15,10 +15,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import CoffeeListView from '../components/coffee/CoffeeListView.vue'
 import { useTabNavigation } from '../composables/useTabNavigation'
+
+// Add debug logging
+import { useAuth } from '../composables/useAuth'
+const { userId, isLoggedIn, initializing } = useAuth()
+// Debug what's happening
+watch([isLoggedIn, initializing, userId], ([loggedIn, init, id]) => {
+  console.log('CoffeeView - Auth state:', { loggedIn, init, id })
+}, { immediate: true })
 
 const route = useRoute()
 const { activeTab } = useTabNavigation()

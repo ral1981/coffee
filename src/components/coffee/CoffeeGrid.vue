@@ -20,18 +20,40 @@
         </button>
       </div>
       
-      <!-- Container Tags -->
-      <div v-if="coffee.containers && coffee.containers.length > 0" class="container-tags">
-        <div
-          v-for="container in coffee.containers"
-          :key="container.id"
-          class="container-tag"
-        >
-          <div 
-            class="container-dot" 
-            :style="{ background: container.color }"
-          ></div>
-          {{ container.name }}
+      <!-- Container Tags - Interactive Assignment -->
+      <div class="container-section">
+        <div class="container-tags">
+          <button
+            v-for="container in availableContainers"
+            :key="container.id"
+            class="container-tag"
+            :class="{ 
+              active: isContainerAssigned(coffee, container.id),
+              loading: containerLoadingStates[`${coffee.id}-${container.id}`]
+            }"
+            @click.stop="toggleContainerAssignment(coffee, container)"
+            :disabled="containerLoadingStates[`${coffee.id}-${container.id}`]"
+          >
+            <!-- Loading spinner -->
+            <div 
+              v-if="containerLoadingStates[`${coffee.id}-${container.id}`]"
+              class="container-spinner"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.25"/>
+                <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            
+            <!-- Container dot -->
+            <div 
+              v-else
+              class="container-dot" 
+              :style="{ background: container.color }"
+            ></div>
+            
+            {{ container.name }}
+          </button>
         </div>
       </div>
       
@@ -144,17 +166,21 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 
 const props = defineProps({
   coffees: { type: Array, default: () => [] },
-  expandedCards: { type: Set, default: () => new Set() }
+  expandedCards: { type: Set, default: () => new Set() },
+  availableContainers: { type: Array, default: () => [] }
 })
 
-defineEmits(['card-expand', 'card-action'])
+const emit = defineEmits(['card-expand', 'card-action', 'container-assignment-changed'])
 
 // Track shot mode for each coffee (true = double, false = single)
 const isDoubleShotMode = reactive({})
+
+// Track loading states for container assignments
+const containerLoadingStates = reactive({})
 
 // Helper function to check if coffee has recipe data
 const hasRecipeData = (coffee) => {
@@ -165,6 +191,37 @@ const hasRecipeData = (coffee) => {
     coffee.recipe.timeSeconds ||
     coffee.recipe.temperatureC
   )
+}
+
+// Check if a container is assigned to a coffee
+const isContainerAssigned = (coffee, containerId) => {
+  if (!coffee.containers || !Array.isArray(coffee.containers)) return false
+  return coffee.containers.some(container => container.id === containerId)
+}
+
+// Toggle container assignment
+const toggleContainerAssignment = async (coffee, container) => {
+  const loadingKey = `${coffee.id}-${container.id}`
+  containerLoadingStates[loadingKey] = true
+  
+  try {
+    const isAssigned = isContainerAssigned(coffee, container.id)
+    
+    // Emit event to parent component to handle the actual assignment
+    emit('container-assignment-changed', {
+      coffee,
+      container,
+      action: isAssigned ? 'unassign' : 'assign'
+    })
+    
+    // Simulate API delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+  } catch (error) {
+    console.error('Failed to toggle container assignment:', error)
+  } finally {
+    containerLoadingStates[loadingKey] = false
+  }
 }
 
 // Toggle between single/double shot
@@ -267,30 +324,91 @@ const getRecipeValue = (coffee, field) => {
   background: #f0f0f0;
 }
 
-/* Container Tags */
+/* Container Section */
+.container-section {
+  margin-bottom: 1rem;
+}
+
 .container-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 
 .container-tag {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.375rem 0.75rem;
   background: #f8f9fa;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  color: #666;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  font-size: 0.875rem;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+  min-height: 32px;
+}
+
+.container-tag:hover:not(:disabled) {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.container-tag.active {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: #22c55e;
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.container-tag.active:hover {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.container-tag:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.container-tag.loading {
+  cursor: wait;
 }
 
 .container-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #ccc;
+  flex-shrink: 0;
+}
+
+.container-tag.active .container-dot {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+.container-spinner {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container-spinner svg {
+  animation: container-spin 1s linear infinite;
+}
+
+@keyframes container-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Expanded Details */

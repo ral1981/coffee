@@ -48,7 +48,7 @@
         {{ hasActiveFilters ? 'No coffees match your filters' : 'No coffees found' }}
       </h3>
       <p class="empty-state-description">
-        {{ hasActiveFilters ? 'Try adjusting your search or filters.' : 'Add your first coffee to get started.' }}
+        {{ hasActiveFilters ? 'Try adjusting your search or filters.' : 'No coffee data available.' }}
       </p>
       <button v-if="hasActiveFilters" @click="clearAllFilters" class="clear-filters-btn">
         Clear All Filters
@@ -60,8 +60,10 @@
       v-else
       :coffees="paginatedCoffees"
       :expanded-cards="expandedCards"
+      :available-containers="availableContainers"
       @card-expand="toggleCardExpansion"
       @card-action="handleCardAction"
+      @container-assignment-changed="handleContainerAssignment"
     />
 
     <!-- Load More / Pagination -->
@@ -84,14 +86,6 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Coffee } from 'lucide-vue-next'
-/* import ResultsCounter from '../filters/ResultsCounter.vue'
-import SearchSection from '../components/coffee/SearchSection.vue'
-import FiltersSection from '../components/filters/FiltersSection.vue'
-import ContainerQuickFilters from '../components/filters/ContainerQuickFilters.vue'
-import CoffeeGrid from '../components/coffee/CoffeeGrid.vue'
-import { useCoffeeData } from '../../composables/useCoffeeData'
-import { useFilters } from '../../composables/useFilters' */
-
 import ResultsCounter from '../filters/ResultsCounter.vue'
 import SearchSection from './SearchSection.vue'
 import FiltersSection from '../filters/FiltersSection.vue'
@@ -103,6 +97,8 @@ import { useFilters } from '../../composables/useFilters'
 const route = useRoute()
 const router = useRouter()
 
+console.log('CoffeeListView - Starting without auth dependencies')
+
 // Composables
 const { 
   coffees, 
@@ -111,7 +107,9 @@ const {
   expandedCards,
   toggleCardExpansion,
   fetchCoffees,
-  refreshCoffees 
+  refreshCoffees,
+  assignContainers,
+  fetchContainers 
 } = useCoffeeData()
 
 const {
@@ -128,6 +126,23 @@ const {
 // Pagination state
 const itemsPerPage = ref(12)
 const currentPage = ref(1)
+
+// All available containers (fetched separately)
+const allContainers = ref([])
+
+// Load all containers (no user restriction)
+const loadAllContainers = async () => {
+  try {
+    console.log('Loading all available containers...')
+    const result = await fetchContainers() // No userId - gets all containers
+    if (result.success) {
+      allContainers.value = result.data || []
+      console.log('Containers loaded:', allContainers.value.length)
+    }
+  } catch (error) {
+    console.error('Failed to load containers:', error)
+  }
+}
 
 // Computed properties
 const totalCount = computed(() => coffees.value.length)
@@ -176,13 +191,10 @@ const availableShops = computed(() => {
 })
 
 const availableContainers = computed(() => {
-  const containers = new Map()
-  coffees.value.forEach(coffee => {
-    if (coffee.container) {
-      containers.set(coffee.container.id, coffee.container)
-    }
-  })
-  return Array.from(containers.values())
+  // Use all containers from the separate fetch, not just assigned ones
+  return allContainers.value.sort((a, b) => 
+    (a.display_order || 0) - (b.display_order || 0)
+  )
 })
 
 // Methods
@@ -216,6 +228,46 @@ const handleCardAction = (action, coffee) => {
   }
 }
 
+const handleContainerAssignment = async ({ coffee, container, action }) => {
+  try {
+    // Import auth only when needed for container assignments
+    const { useAuth } = await import('../../composables/useAuth')
+    const { userId } = useAuth()
+    
+    if (!userId.value) {
+      console.log('Container assignment requires authentication')
+      router.push('/login')
+      return
+    }
+
+    // Get current container IDs
+    const currentContainerIds = coffee.containers?.map(c => c.id) || []
+    
+    let newContainerIds
+    if (action === 'assign') {
+      // Add container if not already assigned
+      newContainerIds = currentContainerIds.includes(container.id) 
+        ? currentContainerIds 
+        : [...currentContainerIds, container.id]
+    } else {
+      // Remove container
+      newContainerIds = currentContainerIds.filter(id => id !== container.id)
+    }
+    
+    // Update via the composable
+    const result = await assignContainers(coffee.id, newContainerIds, userId.value)
+    
+    if (result.success) {
+      // Refresh the coffee data to get updated container assignments
+      await refreshCoffees()
+    } else {
+      console.error('Failed to update container assignment:', result.error)
+    }
+  } catch (error) {
+    console.error('Container assignment error:', error)
+  }
+}
+
 const handleContainerFilter = (container) => {
   // Toggle container filter
   const index = activeContainers.value.findIndex(c => c.id === container.id)
@@ -223,6 +275,37 @@ const handleContainerFilter = (container) => {
     activeContainers.value.splice(index, 1)
   } else {
     activeContainers.value.push(container)
+  }
+}
+
+// Initialize data function - no auth required
+const initializeData = async () => {
+  console.log('initializeData called - loading all coffees')
+
+  try {
+    console.log('Fetching all coffees...')
+    await fetchCoffees() // No userId parameter - fetch all coffees
+    
+    console.log('Loading all containers...')
+    await loadAllContainers() // Load all containers
+    
+    console.log(`Data loaded successfully - ${coffees.value.length} coffees found`)
+    
+    // Sync filters with current route
+    syncFiltersWithRoute(route.query)
+    
+    // Handle container parameter from legacy URLs
+    if (route.query.container) {
+      const containerName = route.query.container
+      const matchingContainer = availableContainers.value.find(
+        c => c.name.toLowerCase() === containerName.toLowerCase()
+      )
+      if (matchingContainer) {
+        activeContainers.value = [matchingContainer]
+      }
+    }
+  } catch (error) {
+    console.error('Error initializing data:', error)
   }
 }
 
@@ -236,27 +319,19 @@ watch([searchQuery, filters, activeContainers], () => {
   updateRoute()
 }, { deep: true, flush: 'post' })
 
-// Initialize filters from URL on mount
+// Initialize data when component mounts (no auth required)
 onMounted(async () => {
-  // Load coffee data
-  await fetchCoffees()
+  console.log('CoffeeListView onMounted - loading data immediately')
   
-  // Sync filters with current route
-  syncFiltersWithRoute(route.query)
-  
-  // Handle container parameter from legacy URLs
-  if (route.query.container) {
-    const containerName = route.query.container
-    const matchingContainer = availableContainers.value.find(
-      c => c.name.toLowerCase() === containerName.toLowerCase()
-    )
-    if (matchingContainer) {
-      activeContainers.value = [matchingContainer]
-    }
+  try {
+    await initializeData()
+    console.log('Data initialization completed successfully')
+  } catch (error) {
+    console.error('Error in onMounted:', error)
   }
 })
 
-// Refresh data when route changes (e.g., coming back from detail view)
+// Refresh data when route changes
 watch(() => route.path, (newPath, oldPath) => {
   if (newPath === '/coffee' && oldPath?.startsWith('/coffee/')) {
     refreshCoffees()

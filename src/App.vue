@@ -302,6 +302,15 @@ import ContainerForm from './components/ContainerForm.vue'
 import { ArrowUp, Lock, LockOpen, Plus, ChevronDown, ChevronRight } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useFeatureFlags } from './composables/useFeatureFlags'
+import { useAuth } from './composables/useAuth'
+
+console.log('App.vue script is running')
+
+const { initAuthListener } = useAuth()
+onMounted(() => {
+  console.log('App.vue mounted')
+  initAuthListener()
+})
 
 const { flags } = useFeatureFlags()
 

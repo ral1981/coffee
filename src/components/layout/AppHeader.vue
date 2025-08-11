@@ -18,11 +18,22 @@
 
       <!-- Profile Button -->
       <button 
+        v-if="showProfileButton"
         class="profile-btn"
         @click="handleProfile"
-        :aria-label="`Open profile for ${userInitial}`"
+        :aria-label="`Open profile for ${displayInitial}`"
       >
-        <span class="profile-initial">{{ userInitial }}</span>
+        <span class="profile-initial">{{ displayInitial }}</span>
+      </button>
+      
+      <!-- Login Button (when not authenticated) -->
+      <button
+        v-else
+        class="login-btn"
+        @click="handleProfile"
+        aria-label="Login"
+      >
+        Login
       </button>
     </div>
   </header>
@@ -31,6 +42,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuth } from '../../composables/useAuth'
 
 // Props
 const props = defineProps({
@@ -44,7 +56,7 @@ const props = defineProps({
   },
   userInitial: {
     type: String,
-    default: 'R'
+    default: null // Will use auth initials if not provided
   }
 })
 
@@ -52,6 +64,7 @@ const props = defineProps({
 const emit = defineEmits(['profile-click', 'back-click'])
 
 const route = useRoute()
+const { userInitials, isLoggedIn, initializing } = useAuth()
 
 // Computed properties
 const isRootRoute = computed(() => {
@@ -65,6 +78,18 @@ const showBackButton = computed(() => {
     return props.showBackButton && !isRootRoute.value
   }
   return !isRootRoute.value
+})
+
+// Use provided initial or fall back to auth initials
+const displayInitial = computed(() => {
+  if (props.userInitial) return props.userInitial
+  if (userInitials.value) return userInitials.value
+  return 'R' // Final fallback
+})
+
+// Show profile button if logged in or still initializing
+const showProfileButton = computed(() => {
+  return isLoggedIn.value || initializing.value
 })
 
 // Event handlers
@@ -174,6 +199,29 @@ const handleProfile = () => {
   font-size: 1rem;
   line-height: 1;
   user-select: none;
+}
+
+/* Login Button */
+.login-btn {
+  background: transparent;
+  border: 2px solid var(--primary-green, #22c55e);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  color: var(--primary-green, #22c55e);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.login-btn:hover {
+  background: var(--primary-green, #22c55e);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.login-btn:active {
+  transform: translateY(0);
 }
 
 /* Focus states for accessibility */

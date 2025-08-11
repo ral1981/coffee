@@ -24,7 +24,8 @@ export function useCoffeeData() {
     
     try {
       // Build query for coffee beans with related data
-      let query = supabase
+      // ALWAYS fetch ALL coffees regardless of user
+      const query = supabase
         .from('coffee_beans')
         .select(`
           *,
@@ -47,11 +48,6 @@ export function useCoffeeData() {
         `)
         .order('created_at', { ascending: false })
 
-      // Filter by user if provided
-      if (userId) {
-        query = query.eq('user_id', userId)
-      }
-
       const { data, error: supabaseError } = await query
 
       if (supabaseError) {
@@ -60,6 +56,7 @@ export function useCoffeeData() {
 
       // Transform Supabase data to match UI expectations
       coffees.value = transformSupabaseData(data || [])
+      console.log(`Loaded ${coffees.value.length} coffees`)
       
     } catch (err) {
       console.error('Failed to fetch coffees from Supabase:', err)
@@ -71,8 +68,8 @@ export function useCoffeeData() {
   }
 
   const refreshCoffees = async (userId = null) => {
-    console.log('Refreshing coffees from Supabase...')
-    await fetchCoffees(userId)
+    console.log('Refreshing all coffees from Supabase...')
+    await fetchCoffees() // Remove userId parameter since we always fetch all
   }
 
   // Transform Supabase data to match UI expectations
@@ -309,15 +306,22 @@ export function useCoffeeData() {
     }
   }
 
-  // Fetch available containers for a user
+  // Fetch available containers for a user (still user-specific for assignments)
   const fetchContainers = async (userId) => {
     try {
-      const { data, error } = await supabase
+      // If no userId provided, fetch all containers
+      let query = supabase
         .from('containers')
         .select('*')
-        .eq('user_id', userId)
         .eq('is_active', true)
         .order('display_order')
+
+      // Only filter by user if userId is provided
+      if (userId) {
+        query = query.eq('user_id', userId)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
       return { success: true, data: data || [] }

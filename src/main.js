@@ -2,10 +2,13 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import '../style.css'
-
 import * as lucide from 'lucide-vue-next'
+import { useAuth } from './composables/useAuth'
 
 const app = createApp(App)
+
+const { initAuthListener } = useAuth()
+initAuthListener()
 
 for (const [name, component] of Object.entries(lucide)) {
   app.component(name, component)

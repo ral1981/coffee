@@ -29,7 +29,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+console.log('AppLayout script running')
+
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '../layout/AppHeader.vue'
 import TabNavigation from '../layout/TabNavigation.vue'
