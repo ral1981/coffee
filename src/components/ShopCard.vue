@@ -202,7 +202,7 @@ import { supabase } from '../lib/supabase'
 import { useToast } from '../composables/useToast'
 import { useShopForm } from '../composables/useShopForm'
 import { EllipsisVertical, Store, Trash2, Coffee, Pencil } from 'lucide-vue-next'
-import LogoImage from './LogoImage.vue'
+import LogoImage from '../components/shared/LogoImage.vue'
 import { useSharedMenuState } from '../composables/useSharedMenuState'
 
 // Toast composable

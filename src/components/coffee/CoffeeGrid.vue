@@ -4,16 +4,27 @@
       v-for="coffee in coffees"
       :key="coffee.id"
       class="coffee-card"
-      :class="{ expanded: expandedCards.has(coffee.id) }"
+      :class="{
+        'highlighted': isHighlighted(coffee.id),
+        'expanded': expandedCards.has(coffee.id)
+      }"
       @click="$emit('card-expand', coffee.id)"
     >
       <div class="coffee-header">
         <div class="coffee-logo">
-          <img v-if="coffee.shopLogo" :src="coffee.shopLogo" :alt="coffee.shop" />
+          <!-- Fixed: Use LogoImage component with proper data structure -->
+          <LogoImage
+            :url="coffee.shops?.url || coffee.bean_url"
+            :custom-logo="coffee.shops?.logo"
+            :size="48"
+            alt="shop logo"
+            class-name="rounded-lg"
+          />
         </div>
         <div class="coffee-info">
           <div class="coffee-name">{{ coffee.name }}</div>
-          <div class="coffee-shop">{{ coffee.shop }}</div>
+          <!-- Fixed: Use proper shop name from relationship -->
+          <div class="coffee-shop">{{ coffee.shops?.name || coffee.shop_name || 'Unknown Shop' }}</div>
         </div>
         <button class="coffee-menu" @click.stop="$emit('card-action', 'menu', coffee)">
           ⋮
@@ -29,7 +40,8 @@
             class="container-tag"
             :class="{ 
               active: isContainerAssigned(coffee, container.id),
-              loading: containerLoadingStates[`${coffee.id}-${container.id}`]
+              loading: containerLoadingStates[`${coffee.id}-${container.id}`],
+              highlighted: isHighlighted(coffee.id)
             }"
             @click.stop="toggleContainerAssignment(coffee, container)"
             :disabled="containerLoadingStates[`${coffee.id}-${container.id}`]"
@@ -56,6 +68,7 @@
           </button>
         </div>
       </div>
+
       
       <!-- Expanded details -->
       <div v-if="expandedCards.has(coffee.id)" class="coffee-details">
@@ -69,25 +82,25 @@
             <span class="detail-label">Region:</span>
             <span class="detail-value">{{ coffee.region }}</span>
           </div>
-          <div v-if="coffee.altitude" class="detail-row">
+          <div v-if="coffee.altitude || coffee.altitude_meters" class="detail-row">
             <span class="detail-label">Altitude (m):</span>
-            <span class="detail-value">{{ coffee.altitude }}</span>
+            <span class="detail-value">{{ coffee.altitude || coffee.altitude_meters }}</span>
           </div>
-          <div v-if="coffee.variety" class="detail-row">
+          <div v-if="coffee.variety || coffee.botanic_variety" class="detail-row">
             <span class="detail-label">Variety:</span>
-            <span class="detail-value">{{ coffee.variety }}</span>
+            <span class="detail-value">{{ coffee.variety || coffee.botanic_variety }}</span>
           </div>
-          <div v-if="coffee.farmProducer" class="detail-row">
+          <div v-if="coffee.farmProducer || coffee.farm_producer" class="detail-row">
             <span class="detail-label">Farm/Producer:</span>
-            <span class="detail-value">{{ coffee.farmProducer }}</span>
+            <span class="detail-value">{{ coffee.farmProducer || coffee.farm_producer }}</span>
           </div>
-          <div v-if="coffee.processing" class="detail-row">
+          <div v-if="coffee.processing || coffee.processing_method" class="detail-row">
             <span class="detail-label">Processing:</span>
-            <span class="detail-value">{{ coffee.processing }}</span>
+            <span class="detail-value">{{ coffee.processing || coffee.processing_method }}</span>
           </div>
-          <div v-if="coffee.scaScore" class="detail-row">
+          <div v-if="coffee.scaScore || coffee.sca" class="detail-row">
             <span class="detail-label">SCA Score:</span>
-            <span class="detail-value">{{ coffee.scaScore }}</span>
+            <span class="detail-value">{{ coffee.scaScore || coffee.sca }}</span>
           </div>
         </div>
         
@@ -125,9 +138,9 @@
           </div>
           
           <div class="recipe-grid">
-            <div v-if="coffee.recipe?.ratio" class="recipe-item">
+            <div v-if="getRecipeRatio(coffee)" class="recipe-item">
               <div class="recipe-label">Ratio</div>
-              <div class="recipe-value">{{ coffee.recipe.ratio }}</div>
+              <div class="recipe-value">1:{{ getRecipeRatio(coffee) }}</div>
             </div>
             <div v-if="getRecipeValue(coffee, 'inGrams')" class="recipe-item">
               <div class="recipe-label">In (g)</div>
@@ -137,13 +150,13 @@
               <div class="recipe-label">Out (g)</div>
               <div class="recipe-value">{{ getRecipeValue(coffee, 'outGrams') }}</div>
             </div>
-            <div v-if="coffee.recipe?.timeSeconds" class="recipe-item">
-              <div class="recipe-label">Time (s)</div>
-              <div class="recipe-value">{{ coffee.recipe.timeSeconds }}</div>
+            <div v-if="getRecipeTime(coffee)" class="recipe-item">
+              <div class="recipe-label">Time</div>
+              <div class="recipe-value">{{ getRecipeTime(coffee) }}</div>
             </div>
-            <div v-if="coffee.recipe?.temperatureC" class="recipe-item">
+            <div v-if="getRecipeTemp(coffee)" class="recipe-item">
               <div class="recipe-label">Temp (°C)</div>
-              <div class="recipe-value">{{ coffee.recipe.temperatureC }}</div>
+              <div class="recipe-value">{{ getRecipeTemp(coffee) }}</div>
             </div>
           </div>
         </div>
@@ -167,11 +180,16 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import LogoImage from '../shared/LogoImage.vue'
 
 const props = defineProps({
   coffees: { type: Array, default: () => [] },
   expandedCards: { type: Set, default: () => new Set() },
-  availableContainers: { type: Array, default: () => [] }
+  availableContainers: { type: Array, default: () => [] },
+  highlightedCoffeeId: {
+    type: [String, Number],
+    default: null
+  }
 })
 
 const emit = defineEmits(['card-expand', 'card-action', 'container-assignment-changed'])
@@ -182,21 +200,44 @@ const isDoubleShotMode = reactive({})
 // Track loading states for container assignments
 const containerLoadingStates = reactive({})
 
+// Helper functions
+const isHighlighted = (coffeeId) => {
+  return props.highlightedCoffeeId === coffeeId
+}
+
 // Helper function to check if coffee has recipe data
 const hasRecipeData = (coffee) => {
-  return coffee.recipe && (
+  // Check both old and new data structure formats
+  return (coffee.recipe && (
     coffee.recipe.ratio ||
     coffee.recipe.inGrams || 
     coffee.recipe.outGrams || 
     coffee.recipe.timeSeconds ||
     coffee.recipe.temperatureC
+  )) || (
+    coffee.recipe_in_grams ||
+    coffee.recipe_out_grams ||
+    coffee.recipe_time_seconds ||
+    coffee.recipe_temperature_c
   )
 }
 
 // Check if a container is assigned to a coffee
 const isContainerAssigned = (coffee, containerId) => {
-  if (!coffee.containers || !Array.isArray(coffee.containers)) return false
-  return coffee.containers.some(container => container.id === containerId)
+  // Check both old boolean format and new containers relationship
+  if (coffee.containers && Array.isArray(coffee.containers)) {
+    return coffee.containers.some(container => container.id === containerId)
+  }
+  
+  // Fallback to old boolean format for green/grey containers
+  if (containerId === 'green' || containerId === 1) {
+    return coffee.in_green_container
+  }
+  if (containerId === 'grey' || containerId === 2) {
+    return coffee.in_grey_container
+  }
+  
+  return false
 }
 
 // Toggle container assignment
@@ -229,11 +270,21 @@ const toggleShotMode = (coffeeId, isDouble) => {
   isDoubleShotMode[coffeeId] = isDouble
 }
 
-// Get recipe value based on shot mode
+// Get recipe value based on shot mode - support both data formats
 const getRecipeValue = (coffee, field) => {
-  if (!coffee.recipe || !coffee.recipe[field]) return null
+  let originalValue
   
-  const originalValue = coffee.recipe[field]
+  // Handle both old and new data structures
+  if (coffee.recipe && coffee.recipe[field]) {
+    originalValue = coffee.recipe[field]
+  } else if (field === 'inGrams' && coffee.recipe_in_grams) {
+    originalValue = coffee.recipe_in_grams
+  } else if (field === 'outGrams' && coffee.recipe_out_grams) {
+    originalValue = coffee.recipe_out_grams
+  } else {
+    return null
+  }
+  
   const isDouble = isDoubleShotMode[coffee.id] !== false // Default to double
   
   // Only divide In and Out values for single shots
@@ -243,6 +294,63 @@ const getRecipeValue = (coffee, field) => {
   
   return originalValue
 }
+
+// Get recipe time with proper formatting
+const getRecipeTime = (coffee) => {
+  let timeValue
+  
+  if (coffee.recipe?.timeSeconds) {
+    timeValue = coffee.recipe.timeSeconds
+  } else if (coffee.recipe_time_seconds) {
+    timeValue = coffee.recipe_time_seconds
+  } else {
+    return null
+  }
+  
+  // Format time properly
+  if (typeof timeValue === 'string' && timeValue.includes(':')) {
+    return timeValue
+  }
+  
+  const seconds = parseInt(timeValue)
+  if (seconds < 60) {
+    return `${seconds}s`
+  }
+  
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+// Get recipe temperature
+const getRecipeTemp = (coffee) => {
+  if (coffee.recipe?.temperatureC) {
+    return coffee.recipe.temperatureC
+  } else if (coffee.recipe_temperature_c) {
+    return coffee.recipe_temperature_c
+  }
+  return null
+}
+
+// Calculate recipe ratio
+const getRecipeRatio = (coffee) => {
+  let inGrams, outGrams
+  
+  // Handle both data formats
+  if (coffee.recipe) {
+    inGrams = coffee.recipe.inGrams
+    outGrams = coffee.recipe.outGrams
+  } else {
+    inGrams = coffee.recipe_in_grams
+    outGrams = coffee.recipe_out_grams
+  }
+  
+  if (inGrams && outGrams) {
+    return (outGrams / inGrams).toFixed(2)
+  }
+  
+  return null
+}
 </script>
 
 <style scoped>
@@ -251,51 +359,68 @@ const getRecipeValue = (coffee, field) => {
   gap: 1rem;
 }
 
+@media (min-width: 768px) {
+  .coffee-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
 .coffee-card {
   background: white;
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #22c55e;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border-left: 4px solid #e5e7eb;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .coffee-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
 }
 
 .coffee-card.expanded {
   cursor: default;
+  transform: none;
+}
+
+.coffee-card.highlighted {
+  animation: highlight 2s ease-in-out;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+}
+
+@keyframes highlight {
+  0%, 100% { 
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); 
+  }
+  25% { 
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
+    transform: scale(1.02);
+  }
+  75% { 
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+    transform: scale(1.01);
+  }
 }
 
 .coffee-header {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  align-items: flex-start;
   margin-bottom: 1rem;
 }
 
 .coffee-logo {
   width: 48px;
   height: 48px;
-  border-radius: 8px;
-  background: #f0f0f0;
+  margin-right: 1rem;
   flex-shrink: 0;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.coffee-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.coffee-info { 
-  flex: 1; 
+.coffee-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .coffee-name {
@@ -321,7 +446,7 @@ const getRecipeValue = (coffee, field) => {
 }
 
 .coffee-menu:hover {
-  background: #f0f0f0;
+  background: #f3f4f6;
 }
 
 /* Container Section */
@@ -375,6 +500,20 @@ const getRecipeValue = (coffee, field) => {
 
 .container-tag.loading {
   cursor: wait;
+}
+
+.container-tag.highlighted {
+  animation: container-highlight 1s ease-in-out;
+}
+
+@keyframes container-highlight {
+  0%, 100% { 
+    background: #f8f9fa;
+  }
+  50% { 
+    background: rgba(34, 197, 94, 0.1);
+    transform: scale(1.05);
+  }
 }
 
 .container-dot {
@@ -606,12 +745,6 @@ const getRecipeValue = (coffee, field) => {
 }
 
 /* Responsive Design */
-@media (min-width: 768px) {
-  .coffee-grid {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  }
-}
-
 @media (max-width: 640px) {
   .coffee-header {
     gap: 0.75rem;
@@ -643,6 +776,31 @@ const getRecipeValue = (coffee, field) => {
   .toggle-btn {
     flex: 1;
     padding: 0.375rem;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .coffee-card {
+    transition: none;
+  }
+  
+  .coffee-card:hover {
+    transform: none;
+  }
+  
+  .coffee-card.highlighted {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+  }
+  
+  .container-tag.highlighted {
+    animation: none;
+    background: rgba(34, 197, 94, 0.1);
+  }
+  
+  .container-spinner svg {
+    animation: none;
   }
 }
 </style>

@@ -209,7 +209,7 @@ import Container from './Container.vue'
 import SaveCancelButtons from './SaveCancelButtons.vue'
 import { useCoffeeForm } from '../composables/useCoffeeForm'
 import { CircleX } from 'lucide-vue-next'
-import LogoImage from './LogoImage.vue'
+import LogoImage from '../components/shared/LogoImage.vue'
 import { useLogo } from '../composables/useLogo'
 
 const { success, error, warning, info } = useToast()

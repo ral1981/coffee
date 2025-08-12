@@ -15,8 +15,11 @@ export function useFilters(coffees) {
     if (searchQuery.value) {
       const query = searchQuery.value.toLowerCase()
       filtered = filtered.filter(coffee => 
-        coffee.name.toLowerCase().includes(query) ||
-        coffee.shop.toLowerCase().includes(query)
+        coffee.name?.toLowerCase().includes(query) ||
+        (coffee.shops?.name || coffee.shop_name || coffee.shop || '')
+          .toLowerCase().includes(query) ||
+        coffee.origin?.toLowerCase().includes(query) ||
+        coffee.flavor?.toLowerCase().includes(query)
       )
     }
 
@@ -29,9 +32,10 @@ export function useFilters(coffees) {
 
     // Shop filter
     if (filters.value.shop) {
-      filtered = filtered.filter(coffee => 
-        coffee.shop === filters.value.shop
-      )
+      filtered = filtered.filter(coffee => {
+        const shopName = coffee.shops?.name || coffee.shop_name || coffee.shop
+        return shopName === filters.value.shop
+      })
     }
 
     // Container filter

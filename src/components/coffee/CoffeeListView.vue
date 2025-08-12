@@ -61,6 +61,7 @@
       :coffees="paginatedCoffees"
       :expanded-cards="expandedCards"
       :available-containers="availableContainers"
+      :highlighted-coffee-id="highlightedCoffeeId"
       @card-expand="toggleCardExpansion"
       @card-action="handleCardAction"
       @container-assignment-changed="handleContainerAssignment"
@@ -94,12 +95,23 @@ import CoffeeGrid from '../coffee/CoffeeGrid.vue'
 import { useCoffeeData } from '../../composables/useCoffeeData'
 import { useFilters } from '../../composables/useFilters'
 
+// Props - Added highlighting support
+const props = defineProps({
+  highlightedCoffeeId: {
+    type: [String, Number],
+    default: null
+  }
+})
+
+// Events
+const emit = defineEmits(['edit-coffee', 'trigger-add-form'])
+
 const route = useRoute()
 const router = useRouter()
 
 console.log('CoffeeListView - Starting without auth dependencies')
 
-// Composables
+// Composables - Enhanced with highlighting
 const { 
   coffees, 
   loading, 
@@ -109,7 +121,12 @@ const {
   fetchCoffees,
   refreshCoffees,
   assignContainers,
-  fetchContainers 
+  fetchContainers,
+  // Highlighting functionality
+  highlightedCoffeeId: internalHighlightedId,
+  highlightCoffee,
+  clearHighlight,
+  isCoffeeHighlighted
 } = useCoffeeData()
 
 const {
@@ -129,6 +146,21 @@ const currentPage = ref(1)
 
 // All available containers (fetched separately)
 const allContainers = ref([])
+
+// Highlighting - combine prop and internal state
+const highlightedCoffeeId = computed(() => {
+  const propId = props.highlightedCoffeeId
+  const internalId = internalHighlightedId.value
+  const finalId = propId || internalId
+  
+  console.log('🎯 Computing highlightedCoffeeId:', {
+    propId,
+    internalId, 
+    finalId
+  })
+  
+  return finalId
+})
 
 // Load all containers (no user restriction)
 const loadAllContainers = async () => {
@@ -185,7 +217,9 @@ const availableOrigins = computed(() => {
 const availableShops = computed(() => {
   const shops = new Set()
   coffees.value.forEach(coffee => {
-    if (coffee.shop) shops.add(coffee.shop)
+    // Check both relationship and direct field for backwards compatibility
+    const shopName = coffee.shops?.name || coffee.shop_name || coffee.shop
+    if (shopName) shops.add(shopName)
   })
   return Array.from(shops).sort()
 })
@@ -213,7 +247,7 @@ const loadMoreCoffees = () => {
 const handleCardAction = (action, coffee) => {
   switch (action) {
     case 'edit':
-      router.push(`/coffee/${coffee.id}/edit`)
+      emit('edit-coffee', coffee)
       break
     case 'delete':
       // Handle delete action
@@ -260,6 +294,9 @@ const handleContainerAssignment = async ({ coffee, container, action }) => {
     if (result.success) {
       // Refresh the coffee data to get updated container assignments
       await refreshCoffees()
+      
+      // Highlight the updated coffee
+      highlightCoffee(coffee.id)
     } else {
       console.error('Failed to update container assignment:', result.error)
     }
@@ -309,6 +346,14 @@ const initializeData = async () => {
   }
 }
 
+// Watch for prop changes to highlight coffee
+watch(() => props.highlightedCoffeeId, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    // Trigger internal highlighting when prop changes
+    highlightCoffee(newId)
+  }
+})
+
 // Reset pagination when filters change
 watch([searchQuery, filters, activeContainers], () => {
   currentPage.value = 1
@@ -326,6 +371,11 @@ onMounted(async () => {
   try {
     await initializeData()
     console.log('Data initialization completed successfully')
+    
+    // If there's a highlighted coffee ID prop, highlight it
+    if (props.highlightedCoffeeId) {
+      highlightCoffee(props.highlightedCoffeeId)
+    }
   } catch (error) {
     console.error('Error in onMounted:', error)
   }
@@ -337,6 +387,48 @@ watch(() => route.path, (newPath, oldPath) => {
     refreshCoffees()
   }
 })
+
+// Expose highlighting methods to parent components
+defineExpose({
+  highlightCoffee,
+  clearHighlight,
+  isCoffeeHighlighted
+})
+
+// Debug watchers
+watch(coffees, (newCoffees, oldCoffees) => {
+  console.log('☕ CoffeeListView - coffees array changed:', {
+    oldCount: oldCoffees?.length || 0,
+    newCount: newCoffees?.length || 0,
+    newCoffees: newCoffees?.slice(0, 3).map(c => ({ id: c.id, name: c.name })) // Show first 3
+  })
+}, { immediate: true })
+
+watch(() => props.highlightedCoffeeId, (newId, oldId) => {
+  console.log('✨ CoffeeListView - highlightedCoffeeId prop changed:', {
+    oldId,
+    newId
+  })
+  
+  if (newId && newId !== oldId) {
+    // Trigger internal highlighting when prop changes
+    highlightCoffee(newId)
+  }
+}, { immediate: true })
+
+watch(internalHighlightedId, (newId, oldId) => {
+  console.log('🎯 CoffeeListView - internal highlighted ID changed:', {
+    oldId,
+    newId
+  })
+}, { immediate: true })
+
+watch(filteredCoffees, (newFiltered, oldFiltered) => {
+  console.log('🔍 CoffeeListView - filtered coffees changed:', {
+    oldCount: oldFiltered?.length || 0,
+    newCount: newFiltered?.length || 0
+  })
+}, { immediate: true })
 </script>
 
 <style scoped>

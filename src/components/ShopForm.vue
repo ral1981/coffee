@@ -74,7 +74,7 @@ import { defineProps } from 'vue';
 import { useShopForm } from '../composables/useShopForm'
 import { CircleX } from 'lucide-vue-next'
 import SaveCancelButtons from './SaveCancelButtons.vue'
-import LogoImage from './LogoImage.vue'
+import LogoImage from '../components/shared/LogoImage.vue'
 
 const emit = defineEmits(['shop-saved', 'cancel'])
 const props = defineProps({ 

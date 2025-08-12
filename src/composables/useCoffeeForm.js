@@ -327,30 +327,55 @@ export function useCoffeeForm({
         delete payload.shop_logo;
       }
 
-      // 6. Insert or update the bean
+      // 6. Insert or update the bean - IMPORTANT: Include shops relationship in select
       let result;
       if (mode === 'add') {
-        result = await supabase.from('coffee_beans').insert(payload).select();
+        result = await supabase
+          .from('coffee_beans')
+          .insert(payload)
+          .select(`
+            *,
+            shops (
+              id,
+              name,
+              url,
+              logo
+            )
+          `);
       } else {
         result = await supabase
           .from('coffee_beans')
           .update(payload)
           .eq('id', initialData.id)
-          .select();
+          .select(`
+            *,
+            shops (
+              id,
+              name,
+              url,
+              logo
+            )
+          `);
       }
 
       if (result.error) throw new Error(result.error.message);
 
       const actionText = mode === 'add' ? 'added' : 'updated';
-      const coffeeName = result.data[0]?.name || 'Coffee';
+      const savedCoffee = result.data[0];
+      const coffeeName = savedCoffee?.name || 'Coffee';
 
       success(
         `Coffee ${actionText}!`,
         `${coffeeName} has been ${actionText} successfully`
       );
-      emit(mode === 'add' ? 'coffee-saved' : 'coffee-updated', result.data[0]);
+
+      // Emit the complete coffee object with shop relationship
+      emit(mode === 'add' ? 'coffee-saved' : 'coffee-updated', savedCoffee);
+      
       onClose?.();
-      if (fetchCoffees) await fetchCoffees();
+      
+      // Don't call fetchCoffees here - let the parent handle the refresh
+      // if (fetchCoffees) await fetchCoffees();
       
     } catch (err) {
       console.error(`Error ${mode === 'add' ? 'adding' : 'updating'} coffee:`, err);

@@ -388,7 +388,7 @@ import { useCoffeeForm } from '../composables/useCoffeeForm'
 import { EllipsisVertical, Store, Pencil, Trash2 } from 'lucide-vue-next'
 import singleShotIcon from '../assets/icons/1shot.svg'
 import doubleShotIcon from '../assets/icons/2shot.svg'
-import LogoImage from './LogoImage.vue'
+import LogoImage from '../components/shared/LogoImage.vue'
 import { useSharedMenuState } from '../composables/useSharedMenuState'
 
 // Toast composable
