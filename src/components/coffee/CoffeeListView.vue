@@ -71,13 +71,13 @@
     <div v-if="showLoadMore" class="load-more-section">
       <button 
         class="load-more-btn"
-        :disabled="loadingMore"
+        :disabled="isLoadingMore"
         @click="loadMoreCoffees"
       >
-        <svg v-if="loadingMore" class="spinner-small" viewBox="0 0 24 24">
+        <svg v-if="isLoadingMore" class="spinner-small" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" />
         </svg>
-        {{ loadingMore ? 'Loading...' : `Load More (${remainingCount} remaining)` }}
+        {{ isLoadingMore ? 'Loading...' : `Load More (${remainingCount} remaining)` }}
       </button>
     </div>
   </div>
@@ -142,7 +142,8 @@ const {
 
 // Pagination state
 const itemsPerPage = ref(12)
-const currentPage = ref(1)
+const itemsToShow = ref(12)
+const isLoadingMore = ref(false)
 
 // All available containers (fetched separately)
 const allContainers = ref([])
@@ -188,17 +189,15 @@ const hasActiveFilters = computed(() => {
 })
 
 const paginatedCoffees = computed(() => {
-  const start = 0
-  const end = currentPage.value * itemsPerPage.value
-  return filteredCoffees.value.slice(start, end)
+  return filteredCoffees.value.slice(0, itemsToShow.value)
 })
 
 const showLoadMore = computed(() => {
-  return paginatedCoffees.value.length < filteredCoffees.value.length
+  return itemsToShow.value < filteredCoffees.value.length
 })
 
 const remainingCount = computed(() => {
-  return filteredCoffees.value.length - paginatedCoffees.value.length
+  return filteredCoffees.value.length - itemsToShow.value
 })
 
 const searchPlaceholder = computed(() => {
@@ -233,14 +232,20 @@ const availableContainers = computed(() => {
 
 // Methods
 const loadMoreCoffees = () => {
-  if (loadingMore.value) return
+  console.log('🔄 Loading more coffees...')
   
-  loadingMore.value = true
-  currentPage.value++
+  if (isLoadingMore.value) {
+    console.log('⏳ Already loading, skip')
+    return
+  }
   
-  // Simulate network delay for smooth UX
+  isLoadingMore.value = true
+  
+  // Add 12 more items
   setTimeout(() => {
-    loadingMore.value = false
+    itemsToShow.value += 12
+    isLoadingMore.value = false
+    console.log(`✅ Now showing ${itemsToShow.value} items`)
   }, 300)
 }
 
@@ -356,7 +361,8 @@ watch(() => props.highlightedCoffeeId, (newId, oldId) => {
 
 // Reset pagination when filters change
 watch([searchQuery, filters, activeContainers], () => {
-  currentPage.value = 1
+  console.log('🔄 Filters changed, resetting pagination')
+  itemsToShow.value = 12
 }, { deep: true })
 
 // Sync filters with URL query parameters
