@@ -41,13 +41,16 @@
       </router-view>
     </main>
 
-    <!-- Floating Action Button - properly hidden when form is open -->
+    <!-- Floating Action Button -->
     <FloatingActionButton 
       v-if="!showAddCoffeeForm"
       @click="handleAddNew"
       :icon="getFabIcon"
       :title="getFabTitle"
     />
+
+    <!-- Toast Container -->
+    <ToastContainer />
   </div>
 </template>
 
