@@ -7,6 +7,7 @@ const coffees = ref([])
 const containers = ref([])
 const loading = ref(false)
 const highlightedCoffeeId = ref(null)
+const expandedCards = ref(new Set()) // Add this to global state
 
 // Only initialize once
 let isInitialized = false
@@ -128,6 +129,36 @@ export function useCoffeeData() {
   const refreshCoffees = async () => {
     console.log('🔄 Refreshing GLOBAL coffee data...')
     await fetchCoffees()
+  }
+
+  // Card expansion functionality
+  const toggleCardExpansion = (coffeeId) => {
+    console.log('🔄 Toggling card expansion for:', coffeeId)
+    
+    if (expandedCards.value.has(coffeeId)) {
+      expandedCards.value.delete(coffeeId)
+      console.log('📝 Card collapsed:', coffeeId)
+    } else {
+      expandedCards.value.add(coffeeId)
+      console.log('📖 Card expanded:', coffeeId)
+    }
+    
+    // Force reactivity for Set changes
+    expandedCards.value = new Set(expandedCards.value)
+    
+    console.log('📊 Currently expanded cards:', Array.from(expandedCards.value))
+  }
+
+  // Check if a card is expanded
+  const isCardExpanded = (coffeeId) => {
+    return expandedCards.value.has(coffeeId)
+  }
+
+  // Collapse all cards
+  const collapseAllCards = () => {
+    console.log('📝 Collapsing all cards')
+    expandedCards.value.clear()
+    expandedCards.value = new Set()
   }
 
   // Force refresh with loading indicator
@@ -363,6 +394,7 @@ export function useCoffeeData() {
     filteredCoffees,
     loading,
     highlightedCoffeeId,
+    expandedCards, // Add this
     
     // Actions
     fetchCoffees,
@@ -374,6 +406,11 @@ export function useCoffeeData() {
     updateCoffeeInList,
     removeCoffeeFromList,
     deleteCoffee,
+    
+    // Card expansion
+    toggleCardExpansion, // Add this
+    isCardExpanded, // Add this
+    collapseAllCards, // Add this
     
     // Highlighting
     highlightCoffee,
