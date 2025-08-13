@@ -71,6 +71,31 @@ const { toasts, removeToast } = useToast()
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Force Inter font on all toast elements */
+.toast-container,
+.toast-container * {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* Specific toast notification styles */
+.toast,
+.toast-notification,
+.notification,
+.alert {
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Toast text elements */
+.toast-title,
+.toast-message,
+.toast-content,
+.notification-title,
+.notification-message {
+  font-family: 'Inter', sans-serif !important;
+}
+
 .toast-container {
   position: fixed;
   top: 1rem;

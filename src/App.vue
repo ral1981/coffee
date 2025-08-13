@@ -903,6 +903,27 @@ onBeforeUnmount(() => {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
 }
 
+/* Specific override for common toast/notification libraries */
+.vue-notification,
+.notifications,
+.toast,
+.alert,
+.message,
+[class*="toast"],
+[class*="notification"],
+[class*="alert"] {
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Override for any nested elements */
+.vue-notification *,
+.notifications *,
+.toast *,
+.alert *,
+.message * {
+  font-family: 'Inter', sans-serif !important;
+}
+
 /* Target specific Tailwind/component classes */
 .bg-white, .rounded-lg, .p-1, .py-2, .px-4 {
   font-family: 'Inter', sans-serif !important;
