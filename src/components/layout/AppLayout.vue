@@ -40,6 +40,18 @@
       </router-view>
     </main>
 
+    <!-- Back to Top Button -->
+    <Transition name="fade">
+      <button 
+        v-if="showBackToTop"
+        @click="scrollToTop"
+        class="back-to-top"
+        aria-label="Back to top"
+      >
+        <ArrowUp class="back-to-top-icon" />
+      </button>
+    </Transition>
+
     <!-- Floating Action Button -->
     <FloatingActionButton 
       v-if="!showAddCoffeeForm"
@@ -65,7 +77,7 @@ import CoffeeForm from '../coffee/CoffeeForm.vue'
 import ToastContainer from '../shared/ToastContainer.vue'
 import { useTabNavigation } from '../../composables/useTabNavigation'
 import { useCoffeeData } from '../../composables/useCoffeeData'
-import { Plus, PackagePlus, Store } from 'lucide-vue-next'
+import { Plus, PackagePlus, Store, ArrowUp } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -80,6 +92,20 @@ const { fetchCoffees, coffees, addCoffeeToList, highlightCoffee } = useCoffeeDat
 const showAddCoffeeForm = ref(false)
 const editingCoffee = ref(null)
 const newlyAddedCoffeeId = ref(null)
+
+// Back to top button
+const showBackToTop = ref(false)
+
+const handleScroll = () => {
+  showBackToTop.value = window.scrollY > 100
+}
+
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
 
 // Computed FAB properties based on active tab
 const getFabIcon = computed(() => {
@@ -235,6 +261,15 @@ onMounted(() => {
   fetchCoffees()
 })
 
+// Back to top
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+
 // Cleanup on unmount
 onUnmounted(() => {
   window.removeEventListener('popstate', handlePopState)
@@ -292,5 +327,37 @@ onUnmounted(() => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Back to top */
+.back-to-top {
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  width: 48px;
+  height: 48px;
+  background: var(--card-background, #ffffff);
+  color: var(--text-secondary, #666);
+  border: 1px solid var(--border-light, #e5e5e5);
+  border-radius: 50%;
+  box-shadow: var(--shadow-lg, 0 8px 25px rgba(0, 0, 0, 0.15));
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.back-to-top:hover {
+  color: var(--text-primary, #333);
+  border-color: var(--border-medium, #d1d5db);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg, 0 12px 30px rgba(0, 0, 0, 0.2));
+}
+
+.back-to-top-icon {
+  width: 20px;
+  height: 20px;
 }
 </style>
