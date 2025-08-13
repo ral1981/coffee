@@ -1,10 +1,5 @@
 <template>
   <div class="coffee-list-view">
-    <!-- Test Toast Button - Remove after testing -->
-    <button @click="testToast" style="position: fixed; top: 100px; right: 20px; z-index: 1000; background: red; color: white; padding: 10px;">
-      Test Toast
-    </button>
-
     <!-- Results Counter -->
     <ResultsCounter 
       :showing="filteredCount" 
@@ -620,14 +615,6 @@ watch(filteredCoffees, (newFiltered, oldFiltered) => {
     newCount: newFiltered?.length || 0
   })
 }, { immediate: true })
-
-// Add test function
-const testToast = () => {
-  success('Test Success', 'This is a test success message')
-  setTimeout(() => error('Test Error', 'This is a test error message'), 1000)
-  setTimeout(() => warning('Test Warning', 'This is a test warning message'), 2000)
-  setTimeout(() => info('Test Info', 'This is a test info message'), 3000)
-}
 </script>
 
 <style scoped>
