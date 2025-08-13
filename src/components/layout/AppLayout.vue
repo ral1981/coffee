@@ -4,7 +4,6 @@
     <AppHeader 
       @profile-click="handleProfile"
       @back-click="handleBack"
-      :title="headerTitle"
     />
     
     <!-- Tab navigation -->
@@ -46,7 +45,7 @@
       v-if="!showAddCoffeeForm"
       @click="handleAddNew"
       :icon="getFabIcon"
-      :title="getFabTitle"
+      :aria-label="getFabTitle"
     />
 
     <!-- Toast Container -->
@@ -57,12 +56,13 @@
 <script setup>
 console.log('AppLayout script running')
 
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '../layout/AppHeader.vue'
 import TabNavigation from '../layout/TabNavigation.vue'
 import FloatingActionButton from '../shared/FloatingActionButton.vue'
 import CoffeeForm from '../coffee/CoffeeForm.vue'
+import ToastContainer from '../shared/ToastContainer.vue'
 import { useTabNavigation } from '../../composables/useTabNavigation'
 import { useCoffeeData } from '../../composables/useCoffeeData'
 
@@ -79,12 +79,6 @@ const { fetchCoffees, coffees, addCoffeeToList, highlightCoffee } = useCoffeeDat
 const showAddCoffeeForm = ref(false)
 const editingCoffee = ref(null)
 const newlyAddedCoffeeId = ref(null)
-
-// Computed header title based on active tab
-const headerTitle = computed(() => {
-  const currentTab = mainTabs.value.find(tab => tab.id === activeTab.value)
-  return currentTab?.label || 'Coffee Tracker'
-})
 
 // Computed FAB properties based on active tab
 const getFabIcon = computed(() => {
@@ -157,7 +151,6 @@ const handleEditCoffee = (coffee) => {
   editingCoffee.value = coffee
   showAddCoffeeForm.value = true
 }
-
 
 const handleCoffeeSaved = async (savedCoffee) => {
   console.log('🎉 Coffee saved in AppLayout:', savedCoffee)
@@ -242,7 +235,6 @@ onMounted(() => {
 })
 
 // Cleanup on unmount
-import { onUnmounted } from 'vue'
 onUnmounted(() => {
   window.removeEventListener('popstate', handlePopState)
 })
