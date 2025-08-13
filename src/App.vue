@@ -1,12 +1,11 @@
 <template>
   <div id="app">
     <!-- New UI with feature flag -->
-    <router-view v-if="flags.newUI" />
+    <AppLayout v-if="flags.newUI" />
     
     <!-- Old UI fallback -->
-    <div v-else class="old-ui">
-
-      <main class="min-h-screen bg-gray-35 dark:bg-white dark:text-gray-900 p-6 relative flex flex-col">
+    <div v-else class="old-ui max-w-full overflow-x-hidden">
+      <main class="min-h-screen bg-gray-35 dark:bg-white dark:text-gray-900 p-6 relative flex flex-col max-w-full overflow-x-hidden">
         <!-- Backdrop to close menu when clicking outside -->
         <div 
           v-if="showAuth"
@@ -108,131 +107,116 @@
         </div>
 
         <!-- Controls: Filter Panel Tabs -->
-        <div class="flex flex-col lg:flex-row lg:items-stretch gap-4">
-          <div class="flex-1">
-            <div class="w-full bg-white dark:bg-gray-800 rounded-lg">
-              <TabGroup as="div" :selectedIndex="selectedIndex" @change="handleTabChange" class="flex-1">
-                <!-- Tab list -->
-                <TabList class="flex w-full justify-center items-center p-1 rounded-t-lg bg-transparent">
-                  <Tab
-                    class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
-                          ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
-                  >
-                    Coffees
-                  </Tab>
-                  <span class="mx-2 text-gray-400 select-none">|</span>
-                  <Tab
-                    class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
-                          ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
-                  >
-                    Containers
-                  </Tab>
-                  <span class="mx-2 text-gray-400 select-none">|</span>
-                  <Tab
-                    class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
-                          ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
-                  >
-                    Shops
-                  </Tab>
-                </TabList>
+        <div class="flex flex-col lg:flex-row lg:items-stretch gap-4 max-w-full">
+          <div class="w-full max-w-6xl mx-auto">
+            <div class="flex-1">
+              <div class="w-full bg-white dark:bg-gray-800 rounded-lg">
+                <TabGroup as="div" :selectedIndex="selectedIndex" @change="handleTabChange" class="flex-1">
+                  <!-- Tab list -->
+                  <TabList class="flex w-full justify-center items-center p-1 rounded-t-lg bg-transparent">
+                    <Tab
+                      class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
+                            ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
+                    >
+                      Coffees
+                    </Tab>
+                    <span class="mx-2 text-gray-400 select-none">|</span>
+                    <Tab
+                      class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
+                            ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
+                    >
+                      Containers
+                    </Tab>
+                    <span class="mx-2 text-gray-400 select-none">|</span>
+                    <Tab
+                      class="py-2 px-4 text-sm font-medium leading-5 text-gray-600 dark:text-gray-400 rounded-lg
+                            ui-selected:bg-blue-600 ui-selected:text-white ui-selected:shadow-none focus:outline-none"
+                    >
+                      Shops
+                    </Tab>
+                  </TabList>
 
-                <!-- Tab panels -->
-                <TabPanels class="p-0">
-                  
-                  <!-- Filters panel -->
-                  <TabPanel>
-                    <FilterPanel
-                      :origins="uniqueOrigins"
-                      :shops="uniqueShops"
-                      :names="coffeeNames"
-                      :containers="containers"
-                      :filtered-count="filteredCoffees.length"
-                      :total-count="totalCoffees"
-                      @filter-change="handleFilterChange"
-                    />
+                  <!-- Tab panels -->
+                  <TabPanels class="p-0">
                     
-                    <!-- Coffee Cards Grid -->
-                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
-                      <CoffeeCard
-                        v-for="coffee in filteredCoffees"
-                        :key="coffee.id"
-                        :coffee="coffee"
-                        :class="{ 'new-item': coffee.id === newlyAddedId }"
-                        :isLoggedIn="isLoggedIn"
-                        :containerStatus="containerStatus"
-                        :initiallyExpanded="shouldExpandCards"
-                        :forceExpandState="forceExpandState"
-                        :fetchCoffees="loadCoffees"
-                        @editing-changed="onEditingChanged"
-                        @update-container="handleContainerUpdate"
-                        @deleted="loadCoffees"
-                        @saved="loadCoffees"
-                        @coffee-updated="handleCoffeeUpdated"
+                    <!-- Filters panel -->
+                    <TabPanel>
+                      <FilterPanel
+                        :origins="uniqueOrigins"
+                        :shops="uniqueShops"
+                        :names="coffeeNames"
+                        :containers="containers"
+                        :filtered-count="filteredCoffees.length"
+                        :total-count="totalCoffees"
+                        @filter-change="handleFilterChange"
                       />
-                    </div>
-                  </TabPanel>
-                  
-                  <!-- Containers panel -->
-                  <TabPanel>
-                    <div class="flex flex-wrap justify-center gap-4 px-4 py-4">
-                      <ContainerCard
-                        v-for="container in containers"
-                        :key="container.id"
-                        :container="container"
-                        :class="{ 'new-item': container.id === newlyAddedId }"
-                        :is-logged-in="isLoggedIn"
-                        :fetch-containers="loadContainers"
-                        @deleted="loadContainers"
-                        @container-updated="handleContainerUpdated"
-                        @view-coffees="handleViewContainerCoffees"
-                      />
-                    </div>
-                  </TabPanel>
-                  
-                  <!-- Shops panel -->
-                  <TabPanel>
-                    <div class="flex flex-wrap justify-center gap-4  px-4 py-4">
-                      <ShopCard
-                        v-for="shop in shops"
-                        :key="shop.bean_url"
-                        :shop="shop"
-                        :is-logged-in="isLoggedIn"
-                        @deleted="handleShopDeleted"
-                      />
-                    </div>
-                  </TabPanel>
-                </TabPanels>
-              </TabGroup>
+                      
+                      <!-- Coffee Cards Grid -->
+                      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-start">
+                        <CoffeeCard
+                          v-for="coffee in filteredCoffees"
+                          :key="coffee.id"
+                          :coffee="coffee"
+                          :class="{ 'new-item': coffee.id === newlyAddedId }"
+                          :isLoggedIn="isLoggedIn"
+                          :containerStatus="containerStatus"
+                          :initiallyExpanded="shouldExpandCards"
+                          :forceExpandState="forceExpandState"
+                          :fetchCoffees="loadCoffees"
+                          @editing-changed="onEditingChanged"
+                          @update-container="handleContainerUpdate"
+                          @deleted="loadCoffees"
+                          @saved="loadCoffees"
+                          @coffee-updated="handleCoffeeUpdated"
+                        />
+                      </div>
+                    </TabPanel>
+                    
+                    <!-- Containers panel -->
+                    <TabPanel>
+                      <div class="flex flex-wrap justify-center gap-4 px-4 py-4">
+                        <ContainerCard
+                          v-for="container in containers"
+                          :key="container.id"
+                          :container="container"
+                          :class="{ 'new-item': container.id === newlyAddedId }"
+                          :is-logged-in="isLoggedIn"
+                          :fetch-containers="loadContainers"
+                          @deleted="loadContainers"
+                          @container-updated="handleContainerUpdated"
+                          @view-coffees="handleViewContainerCoffees"
+                        />
+                      </div>
+                    </TabPanel>
+                    
+                    <!-- Shops panel -->
+                    <TabPanel>
+                      <div class="flex flex-wrap justify-center gap-4  px-4 py-4">
+                        <ShopCard
+                          v-for="shop in shops"
+                          :key="shop.bean_url"
+                          :shop="shop"
+                          :is-logged-in="isLoggedIn"
+                          @deleted="handleShopDeleted"
+                        />
+                      </div>
+                    </TabPanel>
+                  </TabPanels>
+                </TabGroup>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Add Button -->
-        <button
+        <button 
           @click="handleAddClick"
-          :disabled="!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm"
-          :class="[
-            'floating-btn left-6 bottom-6 rounded-full shadow-lg p-3 transition-all duration-300',
-            (!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm)
-              ? 'z-10 floating-btn--disabled bg-gray-400'
-              : 'z-50 bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:scale-110'
-          ]"
-          :title="!isLoggedIn 
-            ? 'Please log in to add items' 
-            : selectedIndex === 0 
-              ? 'Add Coffee' 
-              : selectedIndex === 1
-                ? 'Add Container'
-              : selectedIndex === 2 
-                ? 'Add Shop' 
-                : ''"
+          class="fixed bottom-6 right-6 w-14 h-14 bg-green-500 hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 justify-center z-50"
+          :title="fabTitle"
+          :disabled="anyEditing"
+          style="position: fixed !important; z-index: 9999 !important;"
         >
-          <Plus :class="[
-            'w-6 h-6',
-            (!isLoggedIn || showCoffeeForm || showShopForm || showContainerForm)
-              ? 'text-gray-600'
-              : 'text-white'
-          ]" />
+          <PlusIcon class="w-6 h-6 mx-auto" />
         </button>
 
         <Transition name="fade">
@@ -280,7 +264,7 @@
         <!-- Toast Notifications -->
         <ToastContainer />
       </main>
-      <route  r-view />
+      <router-view />
     </div>
   </div>
 </template>
@@ -288,6 +272,13 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
+import { useRouter } from 'vue-router'
+import { ArrowUp, Lock, LockOpen, PlusIcon, ChevronDown, ChevronRight } from 'lucide-vue-next'
+
+// New UI Components
+import AppLayout from './components/layout/AppLayout.vue'
+
+// Old UI Components (conditionally imported)
 import { supabase } from './lib/supabase'
 import { useToast } from './composables/useToast'
 import ToastContainer from './components/ToastContainer.vue'
@@ -299,22 +290,31 @@ import CoffeeCard from './components/CoffeeCard.vue'
 import ShopCard from './components/ShopCard.vue'
 import ContainerCard from './components/ContainerCard.vue'
 import ContainerForm from './components/ContainerForm.vue'
-import { ArrowUp, Lock, LockOpen, Plus, ChevronDown, ChevronRight } from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
+
+// Composables
 import { useFeatureFlags } from './composables/useFeatureFlags'
 import { useAuth } from './composables/useAuth'
 
 console.log('App.vue script is running')
 
+// Initialize auth
 const { initAuthListener } = useAuth()
 onMounted(() => {
   console.log('App.vue mounted')
   initAuthListener()
 })
 
+// Feature flags
 const { flags } = useFeatureFlags()
 
-// Reactive state
+// Router
+const router = useRouter()
+
+// Toast notifications
+const { success, error, warning, info } = useToast()
+
+// Only initialize old UI state if we're using the old UI
+// Reactive state for old UI
 const user = ref(null)
 const coffees = ref([])
 const shops = ref([])
@@ -340,20 +340,22 @@ const newlyAddedId = ref(null)
 const coffeeNames = ref([])
 const shouldExpandFromUrl = ref(false)
 const isInitialUrlLoad = ref(true)
-const { success, error, warning, info } = useToast()
 const selectedIndex = ref(0)
 const showContainerForm = ref(false)
 const containers = ref([])
-const router = useRouter()
+const fabTitle = computed(() => {
+  if (selectedIndex.value === 0) return 'Add Coffee'
+  if (selectedIndex.value === 1) return 'Add Container'
+  if (selectedIndex.value === 2) return 'Add Shop'
+  return 'Add New'
+})
 
-// Authentication methods
+// Authentication methods for old UI
 const toggleAuth = () => {
   showAuth.value = !showAuth.value
   
-  // Clear any existing timer when manually toggling
   clearAutoCollapseTimer()
   
-  // If opening, set auto-collapse timer (for both logged in and logged out users)
   if (showAuth.value) {
     resetActivityTimer()
     startAutoCollapseTimer()
@@ -377,38 +379,32 @@ const clearAutoCollapseTimer = () => {
 }
 
 const startAutoCollapseTimer = () => {
-  clearAutoCollapseTimer() // Clear any existing timer first
+  clearAutoCollapseTimer()
   autoCollapseTimer.value = setTimeout(() => {
-    // Check if user has been inactive for 10 seconds
     const timeSinceLastActivity = Date.now() - lastActivityTime.value
-    if (timeSinceLastActivity >= 10000) { // 10 seconds
+    if (timeSinceLastActivity >= 10000) {
       showAuth.value = false
       autoCollapseTimer.value = null
     } else {
-      // User was active recently, wait for remaining time
       const remainingTime = 10000 - timeSinceLastActivity
       autoCollapseTimer.value = setTimeout(() => {
         showAuth.value = false
         autoCollapseTimer.value = null
       }, remainingTime)
     }
-  }, 5000) // Initial 5 seconds, then check activity
+  }, 5000)
 }
 
 const resetActivityTimer = () => {
   lastActivityTime.value = Date.now()
   
-  // Clear existing activity timer
   if (userActivityTimer.value) {
     clearTimeout(userActivityTimer.value)
   }
   
-  // If menu is open and we detect activity, extend the collapse time
   if (showAuth.value) {
-    // Clear the main collapse timer and restart it
     if (autoCollapseTimer.value) {
       clearTimeout(autoCollapseTimer.value)
-      // Wait 10 seconds from this activity
       autoCollapseTimer.value = setTimeout(() => {
         showAuth.value = false
         autoCollapseTimer.value = null
@@ -421,7 +417,6 @@ const toggleExpandAll = () => {
   allExpanded.value = !allExpanded.value
   forceExpandState.value = allExpanded.value ? 'expand' : 'collapse'
   
-  // Reset the force state after a short delay to allow cards to process it
   nextTick(() => {
     setTimeout(() => {
       forceExpandState.value = null
@@ -429,26 +424,16 @@ const toggleExpandAll = () => {
   })
 }
 
-// Reset expansion when manually clearing all filters
-watch(filter, (newFilter) => {
-  const hasAnyFilter = newFilter.green || newFilter.grey || newFilter.origin || newFilter.shop || newFilter.name
-  if (!hasAnyFilter) {
-    shouldExpandFromUrl.value = false
-  }
-}, { deep: true })
-
-// Watch for login state changes to handle auto-expand and auto-collapse
+// Watch for login state changes
 watch(isLoggedIn, (newValue, oldValue) => {
   if (newValue && !oldValue) {
-    // User just logged in - expand the menu and start auto-collapse timer
     showAuth.value = true
     nextTick(() => {
       resetActivityTimer()
-      startAutoCollapseTimer() // 5 seconds initial, then 10 seconds after activity
+      startAutoCollapseTimer()
     })
   }
   
-  // Hide coffee form when logging out
   if (!newValue && oldValue) {
     showCoffeeForm.value = false
     showContainerForm.value = false
@@ -462,24 +447,28 @@ watch(selectedIndex, () => {
   showShopForm.value = false
 })
 
-// Computed properties
+// Watch filter changes
+watch(filter, (newFilter) => {
+  const hasAnyFilter = newFilter.green || newFilter.grey || newFilter.origin || newFilter.shop || newFilter.name
+  if (!hasAnyFilter) {
+    shouldExpandFromUrl.value = false
+  }
+}, { deep: true })
+
+// Computed properties for old UI
 const filteredCoffees = computed(() => {
   return coffees.value.filter(coffee => {
-    // Container filter logic
     let containerMatch = true
     if (filter.value.containers && filter.value.containers.length > 0) {
       if (coffee.containerAssignments && coffee.containerAssignments.length > 0) {
-        // Check if coffee has any of the selected containers
         containerMatch = filter.value.containers.some(containerId => 
           coffee.containerAssignments.includes(containerId)
         )
       } else {
-        // Coffee has no container assignments - exclude when container filter is active
         containerMatch = false
       }
     }
 
-    // Other filters
     const originMatch = !filter.value.origin || coffee.origin === filter.value.origin
     const shopMatch = !filter.value.shop || coffee.shop_name === filter.value.shop
     const nameMatch = !filter.value.name || 
@@ -503,7 +492,22 @@ const shouldExpandCards = computed(() => {
   return shouldExpandFromUrl.value
 })
 
-// Methods
+const containerStatus = computed(() => {
+  const status = { green: null, grey: null }
+  
+  coffees.value.forEach(coffee => {
+    if (coffee.in_green_container) {
+      status.green = coffee
+    }
+    if (coffee.in_grey_container) {
+      status.grey = coffee
+    }
+  })
+  
+  return status
+})
+
+// Methods for old UI
 const loadCoffees = async () => {
   try {
     const { data, error } = await supabase
@@ -523,7 +527,6 @@ const loadCoffees = async () => {
 
     if (error) throw error
 
-    // Process the data to include containerAssignments array and container info
     coffees.value = (data || []).map(coffee => ({
       ...coffee,
       containerAssignments: coffee.coffee_container_assignments?.map(a => a.container_id) || [],
@@ -537,29 +540,7 @@ const loadCoffees = async () => {
   }
 }
 
-onMounted(async () => {
-  const { data: names } = await supabase
-    .from('coffee_beans') // Make sure this is the correct table name
-    .select('name') // Make sure this is the correct column name
-    .order('name')
-
-  if (names) {
-    coffeeNames.value = names.map(r => r.name)
-  }
-  
-  loadCoffees()
-  window.addEventListener('scroll', handleScroll)
-  lastScrollY.value = window.scrollY
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('scroll', handleScroll)
-  if (autoCollapseTimer.value) {
-    clearTimeout(autoCollapseTimer.value)
-  }
-})
-
-async function loadShops() {
+const loadShops = async () => {
   const { data: shops_data, error } = await supabase
     .from('shops')
     .select('id, name, url')
@@ -574,7 +555,7 @@ async function loadShops() {
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
 }
 
-async function loadContainers() {
+const loadContainers = async () => {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
@@ -605,12 +586,6 @@ async function loadContainers() {
   }
 }
 
-onMounted(async () => {
-  await loadCoffees()
-  await loadShops()
-  await loadContainers()
-})
-
 const scrollToFirstCard = async () => {
   await nextTick()
   
@@ -628,7 +603,7 @@ const scrollToFirstCard = async () => {
   }, 800)
 }
 
-function handleAddClick() {
+const handleAddClick = () => {
   if (!isLoggedIn.value) return
   if (selectedIndex.value === 0) {
     showCoffeeForm.value = true
@@ -639,11 +614,8 @@ function handleAddClick() {
   }
 }
 
-function handleShopDeleted(shopId) {
-  // Remove the shop from your shops array
+const handleShopDeleted = (shopId) => {
   shops.value = shops.value.filter(shop => shop.id !== shopId)
-  // Or refresh the shops list
-  // loadShops()
 }
 
 const handleTabChange = (index) => {
@@ -652,13 +624,12 @@ const handleTabChange = (index) => {
 }
 
 const handleOverlayClick = (event) => {
-  // Close form when clicking on the backdrop
   if (event.target === event.currentTarget) {
     closeForms()
   }
 }
 
-function closeForms() {
+const closeForms = () => {
   showCoffeeForm.value = false
   showContainerForm.value = false
   showShopForm.value = false
@@ -669,7 +640,7 @@ const onUserChanged = (newUser) => {
   isLoggedIn.value = !!newUser
 
   loadCoffees()
-  loadContainers() // Add this line
+  loadContainers()
   
   if (!newUser) {
     anyEditing.value = false
@@ -700,7 +671,6 @@ const attemptLogout = async () => {
     localStorage.removeItem('sb-' + supabase.supabaseKey + '-auth-token')
     sessionStorage.clear()
     
-    // Show logout toast
     info('Logged out', 'See you next time!')
     
   } catch (error) {
@@ -745,89 +715,6 @@ const handleNewShop = async (newShop) => {
   }, 3000)
 }
 
-const handleFilterChange = (newFilter, isFromUrl = false) => {
-  filter.value = { ...newFilter }
-  
-  // Handle URL expansion logic if needed
-  if (isFromUrl && isInitialUrlLoad.value) {
-    const containerCount = newFilter.containers?.length || 0
-    const hasOtherFilters = newFilter.origin || newFilter.shop
-        
-    if (containerCount === 1 && !hasOtherFilters) {
-      shouldExpandFromUrl.value = true
-      isInitialUrlLoad.value = false
-    } else if (containerCount === 0) {
-      // No containers selected
-    } else {
-      // Multiple containers or other filters
-      isInitialUrlLoad.value = false
-    }
-  } else if (!isFromUrl) {
-    shouldExpandFromUrl.value = false
-    isInitialUrlLoad.value = false
-  }
-}
-
-// Watch for filtered coffees to become available after URL-based expansion
-watch(filteredCoffees, (newFilteredCoffees) => {
-  if (shouldExpandFromUrl.value && newFilteredCoffees.length > 0) {
-    scrollToFirstCard()
-  }
-}, { immediate: true })
-
-// ADD: New event handler for coffee updates
-const handleCoffeeUpdated = async (updatedCoffee) => {
-  // Option 1: Refresh entire list (simple and reliable)
-  await loadCoffees()
-  
-  // Option 2: Update specific item (more efficient)
-const index = coffees.value.findIndex(c => c.id === updatedCoffee.id)
-  if (index !== -1) {
-    coffees.value[index] = updatedCoffee
-  }
-}
-
-// Track container status
-const containerStatus = computed(() => {
-  const status = { green: null, grey: null }
-  
-  coffees.value.forEach(coffee => {
-    if (coffee.in_green_container) {
-      status.green = coffee
-    }
-    if (coffee.in_grey_container) {
-      status.grey = coffee
-    }
-  })
-  
-  return status
-})
-
-const handleContainerUpdate = async ({ coffee, container, assign }) => {
-  try {
-    if (assign) {
-      // Add assignment through Container.vue logic (already handled)
-      // Just refresh the coffee list
-      await loadCoffees()
-    } else {
-      // Remove assignment through Container.vue logic (already handled)
-      // Just refresh the coffee list
-      await loadCoffees()
-    }
-    
-    // Show success feedback
-    const action = assign ? 'assigned to' : 'removed from'
-    success(
-      `Container ${action} ${coffee.name}`,
-      `${container.name} container updated`
-    )
-    
-  } catch (err) {
-    error('Container update failed', 'Please try again')
-    console.error('Container update error:', err)
-  }
-}
-
 const handleNewContainer = async (newContainer) => {
   await loadContainers()
   
@@ -847,11 +734,59 @@ const handleNewContainer = async (newContainer) => {
   }, 3000)
 }
 
+const handleFilterChange = (newFilter, isFromUrl = false) => {
+  filter.value = { ...newFilter }
+  
+  if (isFromUrl && isInitialUrlLoad.value) {
+    const containerCount = newFilter.containers?.length || 0
+    const hasOtherFilters = newFilter.origin || newFilter.shop
+        
+    if (containerCount === 1 && !hasOtherFilters) {
+      shouldExpandFromUrl.value = true
+      isInitialUrlLoad.value = false
+    } else if (containerCount === 0) {
+      // No containers selected
+    } else {
+      isInitialUrlLoad.value = false
+    }
+  } else if (!isFromUrl) {
+    shouldExpandFromUrl.value = false
+    isInitialUrlLoad.value = false
+  }
+}
+
+const handleCoffeeUpdated = async (updatedCoffee) => {
+  await loadCoffees()
+  
+  const index = coffees.value.findIndex(c => c.id === updatedCoffee.id)
+  if (index !== -1) {
+    coffees.value[index] = updatedCoffee
+  }
+}
+
+const handleContainerUpdate = async ({ coffee, container, assign }) => {
+  try {
+    if (assign) {
+      await loadCoffees()
+    } else {
+      await loadCoffees()
+    }
+    
+    const action = assign ? 'assigned to' : 'removed from'
+    success(
+      `Container ${action} ${coffee.name}`,
+      `${container.name} container updated`
+    )
+    
+  } catch (err) {
+    error('Container update failed', 'Please try again')
+    console.error('Container update error:', err)
+  }
+}
+
 const handleContainerUpdated = async (updatedContainer) => {
-  // Refresh container list to get latest data
   await loadContainers()
   
-  // Update specific item in containers array
   const index = containers.value.findIndex(c => c.id === updatedContainer.id)
   if (index !== -1) {
     containers.value[index] = updatedContainer
@@ -859,18 +794,14 @@ const handleContainerUpdated = async (updatedContainer) => {
 }
 
 const handleViewContainerCoffees = (container) => {
-  // Switch to coffees tab
   selectedIndex.value = 0
   
-  // Navigate to the URL with container filter using container name
   const containerName = container.name.toLowerCase()
   
-  // Use router to navigate with query parameter
   router.push({
     path: '/coffee/',
     query: { container: containerName }
   }).catch(() => {
-    // If router navigation fails, fall back to manual filter setting
     const newFilter = {
       containers: [container.id],
       origin: '',
@@ -895,12 +826,9 @@ const onEditingChanged = (isNowEditing) => {
 const handleScroll = () => {
   const currentScrollY = window.scrollY
   
-  // Show back to top button after scrolling down 300px
   showBackToTop.value = currentScrollY > 300
   
-  // Only close auth panel on scroll if user isn't actively interacting with it
   if (showAuth.value && Math.abs(currentScrollY - lastScrollY.value) > 10) {
-    // Check if user is actively focused on auth panel
     const authPanel = document.querySelector('[data-auth-panel]')
     const activeElement = document.activeElement
     const isUsingAuthPanel = authPanel && (
@@ -910,10 +838,8 @@ const handleScroll = () => {
     )
     
     if (!isUsingAuthPanel) {
-      // Clear existing timers
       clearAutoCollapseTimer()
       
-      // Set short timer for scroll-based closing (1 second)
       autoCollapseTimer.value = setTimeout(() => {
         showAuth.value = false
         autoCollapseTimer.value = null
@@ -930,66 +856,523 @@ const scrollToTop = () => {
     behavior: 'smooth'
   })
 }
+
+// Watch for filtered coffees to become available after URL-based expansion
+watch(filteredCoffees, (newFilteredCoffees) => {
+  if (shouldExpandFromUrl.value && newFilteredCoffees.length > 0) {
+    scrollToFirstCard()
+  }
+}, { immediate: true })
+
+// Lifecycle hooks
+onMounted(async () => {
+  // Load coffee names for old UI
+  const { data: names } = await supabase
+    .from('coffee_beans')
+    .select('name')
+    .order('name')
+
+  if (names) {
+    coffeeNames.value = names.map(r => r.name)
+  }
+  
+  // Load data for old UI if not using new UI
+  if (!flags.newUI) {
+    await loadCoffees()
+    await loadShops()
+    await loadContainers()
+    
+    window.addEventListener('scroll', handleScroll)
+    lastScrollY.value = window.scrollY
+  }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', handleScroll)
+  if (autoCollapseTimer.value) {
+    clearTimeout(autoCollapseTimer.value)
+  }
+})
 </script>
 
 <style scoped>
-.gradient-text {
-  background: linear-gradient(to bottom, #8D6E63, #000000);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Force Inter font globally */
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
 }
 
-.break-words {
+/* Target specific Tailwind/component classes */
+.bg-white, .rounded-lg, .p-1, .py-2, .px-4 {
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Fix tab styles specifically */
+.ui-selected\\:bg-blue-600 {
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* CSS Variables for design system */
+:root {
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --primary-green: #22c55e;
+  --primary-green-hover: #16a34a;
+  --background: #f8fafc;
+  --card-background: #ffffff;
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --header-height: 80px;
+  --tab-height: 64px;
+  --fab-size: 56px;
+}
+
+/* Ensure proper mobile viewport */
+html {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Fix any flex containers that might cause overflow */
+.flex {
+  min-width: 0;
+}
+
+/* Ensure cards don't overflow */
+.bg-white, .card, [class*="card"] {
+  max-width: 100%;
+  overflow: hidden;
   word-wrap: break-word;
-  word-break: break-word;
-  hyphens: auto;
 }
 
-.hyphens-auto {
-  hyphens: auto;
-  -webkit-hyphens: auto;
-  -ms-hyphens: auto;
+/* Fix button positioning */
+.fixed {
+  position: fixed !important;
 }
 
-/* Ensure consistent card heights */
-.container-card-base {
-  min-height: 240px;
-  max-height: 280px;
+/* Ensure FAB is always visible */
+.z-50 {
+  z-index: 50 !important;
 }
 
-.container-card-base .space-y-4 > * + * {
-  margin-top: 1rem;
+/* Global styles */
+* {
+  box-sizing: border-box;
 }
 
-.flex-grow {
-  flex-grow: 1;
+/* Fix layout containment */
+.old-ui {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
-/* Z-index layers */
-.z-60 {
+.old-ui main {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  box-sizing: border-box;
+}
+
+/* Override Tailwind grid to prevent overflow */
+.grid {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Fix card containers */
+.flex.flex-col.lg\\:flex-row {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Ensure tab panels don't overflow */
+.w-full.bg-white {
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#app {
+  font-family: var(--font-family);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--background);
+  min-height: 100vh;
+}
+
+/* Main layout */
+.app-main {
+  min-height: 100vh;
+  background-color: var(--background);
+  position: relative;
+  padding-bottom: 100px; /* Space for FAB */
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Form overlays */
+.form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 42rem;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--card-background);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Header */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--card-background);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  height: var(--header-height);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+  height: 100%;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.025em;
+}
+
+/* Auth container */
+.auth-container {
+  position: relative;
+}
+
+.auth-btn {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.auth-btn:hover {
+  background: #e2e8f0;
+  transform: scale(1.05);
+}
+
+.auth-btn.logged-in {
+  background: var(--primary-green);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.auth-btn.logged-in:hover {
+  background: var(--primary-green-hover);
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+}
+
+.auth-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+  transition: color 0.3s;
+}
+
+.logged-in-icon {
+  color: white;
+}
+
+.auth-panel {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  width: 320px;
+  background: var(--card-background);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 110;
+}
+
+/* Tab navigation */
+.tab-navigation {
+  position: sticky;
+  top: var(--header-height);
+  z-index: 90;
+  background: var(--card-background);
+  border-bottom: 1px solid var(--border-light);
+  height: var(--tab-height);
+}
+
+.tab-list {
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 100%;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  border: none;
+  background: none;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  position: relative;
+  transition: all 0.2s ease;
+  min-width: 0;
+}
+
+.tab-item:hover {
+  color: var(--text-primary);
+  background: #f8fafc;
+}
+
+.tab-item.active {
+  color: var(--primary-green);
+  font-weight: 600;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary-green);
+  border-radius: 2px 2px 0 0;
+}
+
+.tab-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.tab-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  background: var(--primary-green);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Content wrapper */
+.content-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.tab-content {
+  width: 100%;
+}
+
+.tab-panel {
+  width: 100%;
+}
+
+.content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.content-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.content-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  background: var(--card-background);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.action-btn.secondary {
+  background: #f8fafc;
+}
+
+.action-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Grids */
+.coffee-grid,
+.container-grid,
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* Floating Action Button */
+.fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: var(--fab-size);
+  height: var(--fab-size);
+  background: var(--primary-green);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 60;
 }
 
-.floating-btn {
-  position: fixed;
-  transition: all .3s;
+.fab:hover:not(:disabled) {
+  background: var(--primary-green-hover);
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
 }
 
-.floating-btn--disabled {
-  pointer-events: none;
+.fab:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.3s ease;
+.fab-icon {
+  width: 24px;
+  height: 24px;
 }
 
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
+/* Back to top button */
+.back-to-top {
+  position: fixed;
+  bottom: 6rem;
+  right: 2rem;
+  width: 48px;
+  height: 48px;
+  background: var(--card-background);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
 }
 
+.back-to-top:hover {
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.back-to-top-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Transitions */
 .slide-fade-enter-active {
   transition: all 0.3s ease-out;
 }
@@ -1000,54 +1383,281 @@ const scrollToTop = () => {
 
 .slide-fade-enter-from,
 .slide-fade-leave-to {
-  transform: translateY(-20px) scale(0.95);
+  transform: translateY(-10px) scale(0.95);
   opacity: 0;
 }
 
-.new-item {
-  animation: highlight 3s ease-in-out;
-  position: relative;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
 }
 
-.new-item::before {
-  content: "NEW";
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  :root {
+    --header-height: 64px;
+    --tab-height: 56px;
+    --fab-size: 52px;
+  }
+
+  .header-content {
+    padding: 0.75rem 1rem;
+  }
+
+  .app-title {
+    font-size: 1.5rem;
+  }
+
+  .auth-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .auth-panel {
+    width: calc(100vw - 2rem);
+    right: -1rem;
+  }
+
+  .tab-item {
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .tab-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .content-wrapper {
+    padding: 1rem;
+  }
+
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .coffee-grid,
+  .container-grid,
+  .shop-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .fab {
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
+
+  .back-to-top {
+    bottom: 5rem;
+    right: 1.5rem;
+    width: 44px;
+    height: 44px;
+  }
+
+  .form-overlay {
+    padding: 1rem 0.5rem;
+  }
+
+  .form-container {
+    border-radius: var(--radius-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-title {
+    font-size: 1.25rem;
+  }
+
+  .tab-item {
+    gap: 0.125rem;
+  }
+
+  .tab-label {
+    font-size: 0.75rem;
+  }
+
+  .content-title {
+    font-size: 1.25rem;
+  }
+
+  .coffee-grid,
+  .container-grid,
+  .shop-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f172a;
+    --card-background: #1e293b;
+    --border-light: #334155;
+    --border-medium: #475569;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #64748b;
+  }
+
+  .auth-btn {
+    background: #334155;
+  }
+
+  .auth-btn:hover {
+    background: #475569;
+  }
+
+  .tab-item:hover {
+    background: #1e293b;
+  }
+
+  .action-btn.secondary {
+    background: #1e293b;
+  }
+
+  .back-to-top {
+    background: #1e293b;
+    border-color: #334155;
+  }
+}
+
+/* Performance optimizations */
+.coffee-grid,
+.container-grid,
+.shop-grid {
+  will-change: transform;
+}
+
+.fab,
+.back-to-top,
+.auth-btn {
+  will-change: transform;
+}
+
+/* Accessibility improvements */
+.fab:focus-visible,
+.back-to-top:focus-visible,
+.auth-btn:focus-visible,
+.tab-item:focus-visible,
+.action-btn:focus-visible {
+  outline: 2px solid var(--primary-green);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-light: #000000;
+    --border-medium: #000000;
+    --shadow-sm: 0 2px 4px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 8px 0 rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 8px 16px 0 rgb(0 0 0 / 0.3);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .fab,
+  .back-to-top,
+  .auth-panel,
+  .form-overlay {
+    display: none !important;
+  }
+
+  .app-main {
+    background: white !important;
+    color: black !important;
+  }
+
+  .coffee-grid,
+  .container-grid,
+  .shop-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem !important;
+  }
+}
+
+/* Animation keyframes */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+    transform: translate3d(0,0,0);
+  }
+  40%, 43% {
+    animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+    transform: translate3d(0, -30px, 0);
+  }
+  70% {
+    animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+    transform: translate3d(0, -15px, 0);
+  }
+  90% {
+    transform: translate3d(0,-4px,0);
+  }
+}
+
+/* Loading states */
+.loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Utility classes */
+.sr-only {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background: #10b981;
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 4px;
-  z-index: 10;
-  animation: fade-out 3s ease-in-out forwards;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-@keyframes highlight {
-  0% { 
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-    transform: scale(1);
-  }
-  50% { 
-    box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
-    transform: scale(1.02);
-  }
-  100% { 
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-    transform: scale(1);
-  }
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@keyframes fade-out {
-  0% { opacity: 1; }
-  70% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-.coffee-list {
-  display: grid;
-  gap: 1rem;
-  padding: 1rem;
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 </style>

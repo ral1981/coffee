@@ -65,6 +65,7 @@ import CoffeeForm from '../coffee/CoffeeForm.vue'
 import ToastContainer from '../shared/ToastContainer.vue'
 import { useTabNavigation } from '../../composables/useTabNavigation'
 import { useCoffeeData } from '../../composables/useCoffeeData'
+import { Plus, PackagePlus, Store } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -83,11 +84,11 @@ const newlyAddedCoffeeId = ref(null)
 // Computed FAB properties based on active tab
 const getFabIcon = computed(() => {
   const icons = {
-    coffee: 'plus',
-    containers: 'package-plus',
-    shops: 'store-plus'
+    coffee: Plus,
+    containers: PackagePlus,
+    shops: Store
   }
-  return icons[activeTab.value] || 'plus'
+  return icons[activeTab.value] || Plus
 })
 
 const getFabTitle = computed(() => {
@@ -252,10 +253,16 @@ onUnmounted(() => {
   flex: 1;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
-  padding-bottom: 6rem; /* Space for FAB */
+  padding: 1rem;
+  padding-bottom: 6rem;
   width: 100%;
-  position: relative;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.main-content > * {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Form overlay styling */
@@ -266,7 +273,7 @@ onUnmounted(() => {
 /* Responsive adjustments */
 @media (min-width: 768px) {
   .main-content {
-    padding: 0 2rem;
+    padding: 1.5rem 2rem;
     padding-bottom: 6rem;
   }
 }

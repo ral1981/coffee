@@ -513,6 +513,7 @@ watch(
   resize: vertical;
   min-height: 80px;
   transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
 .flavor-input:focus {
@@ -547,6 +548,7 @@ watch(
   resize: vertical;
   min-height: 80px;
   transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
 .notes-input:focus {
