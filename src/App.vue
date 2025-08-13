@@ -493,14 +493,21 @@ const shouldExpandCards = computed(() => {
 })
 
 const containerStatus = computed(() => {
-  const status = { green: null, grey: null }
+  const status = {}
   
+  // Initialize status for all containers
+  containers.value.forEach(container => {
+    status[container.id] = null
+  })
+  
+  // Find assigned coffees
   coffees.value.forEach(coffee => {
-    if (coffee.in_green_container) {
-      status.green = coffee
-    }
-    if (coffee.in_grey_container) {
-      status.grey = coffee
+    if (coffee.coffee_container_assignments) {
+      coffee.coffee_container_assignments.forEach(assignment => {
+        if (!status[assignment.container_id]) {
+          status[assignment.container_id] = coffee
+        }
+      })
     }
   })
   
@@ -529,8 +536,8 @@ const loadCoffees = async () => {
 
     coffees.value = (data || []).map(coffee => ({
       ...coffee,
-      containerAssignments: coffee.coffee_container_assignments?.map(a => a.container_id) || [],
-      containerDetails: coffee.coffee_container_assignments?.map(a => a.containers) || []
+      containerIds: coffee.coffee_container_assignments?.map(a => a.container_id) || [],
+      containers: coffee.coffee_container_assignments?.map(a => a.containers) || []
     }))
 
   } catch (err) {

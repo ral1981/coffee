@@ -40,11 +40,21 @@ export function useFilters(coffees) {
 
     // Container filter
     if (activeContainers.value.length > 0) {
-      filtered = filtered.filter(coffee => 
-        activeContainers.value.some(container => 
-          coffee.container?.id === container.id
-        )
-      )
+      filtered = filtered.filter(coffee => {
+        // Check if coffee has container assignments
+        if (!coffee.coffee_container_assignments || !Array.isArray(coffee.coffee_container_assignments)) {
+          return false
+        }
+        
+        // Check if any of the active containers match the coffee's assignments
+        return activeContainers.value.some(activeContainer => {
+          return coffee.coffee_container_assignments.some(assignment => {
+            // Handle both direct container_id and nested containers object
+            const assignmentContainerId = assignment.container_id || assignment.containers?.id
+            return assignmentContainerId === activeContainer.id
+          })
+        })
+      })
     }
 
     return filtered

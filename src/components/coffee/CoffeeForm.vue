@@ -211,21 +211,21 @@
       <div class="container-section">
         <div class="container-title">Container Assignment</div>
         <div class="container-checkboxes">
-          <label class="container-checkbox">
-            <input
-              v-model="form.in_green_container"
-              type="checkbox"
+          <label 
+            v-for="container in availableContainers" 
+            :key="container.id"
+            class="container-checkbox"
+          >
+            <input 
+              :checked="selectedContainers.includes(container.id)"
+              @change="toggleContainer(container.id)"
+              type="checkbox" 
             />
-            <div class="container-dot green"></div>
-            Green Container
-          </label>
-          <label class="container-checkbox">
-            <input
-              v-model="form.in_grey_container"
-              type="checkbox"
-            />
-            <div class="container-dot grey"></div>
-            Grey Container
+            <div 
+              class="container-dot" 
+              :style="{ background: container.color }"
+            ></div>
+            {{ container.name }}
           </label>
         </div>
       </div>

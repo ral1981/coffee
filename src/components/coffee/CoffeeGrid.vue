@@ -795,18 +795,11 @@ const confirmDeleteAction = async () => {
 
 // Container assignment
 const isContainerAssigned = (coffee, containerId) => {
-  if (coffee.containers && Array.isArray(coffee.containers)) {
-    return coffee.containers.some(container => container.id === containerId)
-  }
+  if (!coffee.coffee_container_assignments) return false
   
-  if (containerId === 'green' || containerId === 1) {
-    return coffee.in_green_container
-  }
-  if (containerId === 'grey' || containerId === 2) {
-    return coffee.in_grey_container
-  }
-  
-  return false
+  return coffee.coffee_container_assignments.some(assignment => 
+    assignment.container_id === containerId
+  )
 }
 
 const toggleContainerAssignment = async (coffee, container) => {

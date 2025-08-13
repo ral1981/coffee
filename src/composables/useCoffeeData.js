@@ -7,7 +7,7 @@ const coffees = ref([])
 const containers = ref([])
 const loading = ref(false)
 const highlightedCoffeeId = ref(null)
-const expandedCards = ref(new Set()) // Add this to global state
+const expandedCards = ref(new Set())
 
 // Only initialize once
 let isInitialized = false
@@ -18,7 +18,7 @@ export function useCoffeeData() {
   const fetchCoffees = async () => {
     loading.value = true
     try {
-      console.log('🔄 Fetching coffees from database...')
+      console.log('🔄 Fetching coffees with container assignments...')
       
       const { data, error: fetchError } = await supabase
         .from('coffee_beans')
@@ -29,6 +29,14 @@ export function useCoffeeData() {
             name,
             url,
             logo
+          ),
+          coffee_container_assignments (
+            container_id,
+            containers (
+              id,
+              name,
+              color
+            )
           )
         `)
         .order('created_at', { ascending: false })
@@ -37,9 +45,25 @@ export function useCoffeeData() {
         throw fetchError
       }
       
-      // Update the global state
-      coffees.value = data || []
-      console.log(`✅ Fetched ${coffees.value.length} coffees - updating global state`)
+      // Update the global state with properly mapped data
+      coffees.value = (data || []).map(coffee => ({
+        ...coffee,
+        // Add convenience properties for easier access
+        containerIds: coffee.coffee_container_assignments?.map(a => a.container_id) || [],
+        containers: coffee.coffee_container_assignments?.map(a => a.containers).filter(Boolean) || []
+      }))
+      
+      console.log(`✅ Fetched ${coffees.value.length} coffees with container data`)
+      
+      // Debug: Log first coffee's container assignments
+      if (coffees.value.length > 0) {
+        console.log('First coffee container data:', {
+          name: coffees.value[0].name,
+          assignments: coffees.value[0].coffee_container_assignments,
+          containerIds: coffees.value[0].containerIds,
+          containers: coffees.value[0].containers
+        })
+      }
       
     } catch (err) {
       console.error('❌ Error fetching coffees:', err)
@@ -50,153 +74,112 @@ export function useCoffeeData() {
     }
   }
 
-  // Enhanced add coffee to list - check for duplicates
-  const addCoffeeToList = (newCoffee) => {
-    console.log('➕ Adding coffee to GLOBAL list:', newCoffee.name, 'ID:', newCoffee.id)
-    
-    // Remove any existing coffee with the same ID (in case of duplicate)
-    const existingIndex = coffees.value.findIndex(coffee => coffee.id === newCoffee.id)
-    if (existingIndex !== -1) {
-      console.log('🔄 Replacing existing coffee in GLOBAL list')
-      coffees.value[existingIndex] = newCoffee
-    } else {
-      // Add to beginning of list (most recent first)
-      coffees.value.unshift(newCoffee)
-    }
-    
-    console.log(`📊 Total coffees in GLOBAL list: ${coffees.value.length}`)
-    
-    // Force reactivity update
-    coffees.value = [...coffees.value]
-    
-    // Debug: log first few coffees to verify
-    console.log('🔍 First 3 coffees in list:', coffees.value.slice(0, 3).map(c => ({ id: c.id, name: c.name })))
-  }
-
-  // Enhanced update coffee in list
-  const updateCoffeeInList = (updatedCoffee) => {
-    console.log('🔄 Updating coffee in GLOBAL list:', updatedCoffee.name)
-    
-    const index = coffees.value.findIndex(coffee => coffee.id === updatedCoffee.id)
-    if (index !== -1) {
-      coffees.value[index] = updatedCoffee
-      // Force reactivity
-      coffees.value = [...coffees.value]
-      console.log('✅ Coffee updated in GLOBAL list')
-    } else {
-      console.warn('⚠️ Coffee not found in GLOBAL list for update, adding it')
-      addCoffeeToList(updatedCoffee)
-    }
-  }
-
-  // Remove coffee from list
-  const removeCoffeeFromList = (coffeeId) => {
-    const index = coffees.value.findIndex(coffee => coffee.id === coffeeId)
-    if (index !== -1) {
-      const removedCoffee = coffees.value.splice(index, 1)[0]
-      console.log('🗑️ Removed coffee from GLOBAL list:', removedCoffee.name)
-      // Force reactivity
-      coffees.value = [...coffees.value]
-    }
-  }
-
-  // Enhanced highlighting functionality
-  const highlightCoffee = (coffeeId) => {
-    console.log('✨ Highlighting coffee in GLOBAL state:', coffeeId)
-    highlightedCoffeeId.value = coffeeId
-    
-    // Auto-clear highlight after 3 seconds
-    setTimeout(() => {
-      if (highlightedCoffeeId.value === coffeeId) {
-        console.log('🔄 Auto-clearing highlight for:', coffeeId)
-        highlightedCoffeeId.value = null
-      }
-    }, 3000)
-  }
-
-  // Clear highlight manually
-  const clearHighlight = () => {
-    console.log('🧹 Clearing highlight manually')
-    highlightedCoffeeId.value = null
-  }
-
-  // Check if a coffee is highlighted
-  const isCoffeeHighlighted = (coffeeId) => {
-    return highlightedCoffeeId.value === coffeeId
-  }
-
-  // Enhanced refresh function
-  const refreshCoffees = async () => {
-    console.log('🔄 Refreshing GLOBAL coffee data...')
-    await fetchCoffees()
-  }
-
-  // Card expansion functionality
-  const toggleCardExpansion = (coffeeId) => {
-    console.log('🔄 Toggling card expansion for:', coffeeId)
-    
-    if (expandedCards.value.has(coffeeId)) {
-      expandedCards.value.delete(coffeeId)
-      console.log('📝 Card collapsed:', coffeeId)
-    } else {
-      expandedCards.value.add(coffeeId)
-      console.log('📖 Card expanded:', coffeeId)
-    }
-    
-    // Force reactivity for Set changes
-    expandedCards.value = new Set(expandedCards.value)
-    
-    console.log('📊 Currently expanded cards:', Array.from(expandedCards.value))
-  }
-
-  // Check if a card is expanded
-  const isCardExpanded = (coffeeId) => {
-    return expandedCards.value.has(coffeeId)
-  }
-
-  // Collapse all cards
-  const collapseAllCards = () => {
-    console.log('📝 Collapsing all cards')
-    expandedCards.value.clear()
-    expandedCards.value = new Set()
-  }
-
-  // Force refresh with loading indicator
-  const forceRefreshCoffees = async () => {
-    console.log('🔄 Force refreshing GLOBAL coffee data...')
-    loading.value = true
+  // AssignContainers
+  const assignContainers = async (coffeeId, containerIds, userId) => {
     try {
-      await fetchCoffees()
-      info('Data refreshed', 'Coffee list has been updated')
-    } catch (err) {
-      error('Refresh failed', 'Could not refresh coffee list')
-    }
-  }
-
-  // Delete coffee
-  const deleteCoffee = async (coffeeId) => {
-    try {
+      console.log('🔄 Assigning containers:', { coffeeId, containerIds, userId })
+      
+      // First, remove all existing assignments for this coffee
       const { error: deleteError } = await supabase
-        .from('coffee_beans')
+        .from('coffee_container_assignments')
         .delete()
-        .eq('id', coffeeId)
-
+        .eq('coffee_id', coffeeId)
+      
       if (deleteError) {
+        console.error('Delete error:', deleteError)
         throw deleteError
       }
-
-      // Remove from GLOBAL list
-      removeCoffeeFromList(coffeeId)
       
-      success('Coffee deleted', 'Coffee has been removed from your collection')
-
+      // Then add new assignments if any containers are selected
+      if (containerIds.length > 0) {
+        const assignments = containerIds.map(containerId => ({
+          coffee_id: coffeeId,
+          container_id: containerId,
+          assigned_by: userId
+        }))
+        
+        const { error: insertError } = await supabase
+          .from('coffee_container_assignments')
+          .insert(assignments)
+        
+        if (insertError) {
+          console.error('Insert error:', insertError)
+          throw insertError
+        }
+      }
+      
+      success('Container updated', 'Coffee container assignment updated successfully')
+      
+      return {
+        success: true,
+        data: null,
+        error: null
+      }
+      
     } catch (err) {
-      console.error('Error deleting coffee:', err)
-      error('Delete failed', 'Could not delete coffee')
+      console.error('Error assigning containers:', err)
+      error('Update failed', 'Could not update container assignment')
+      
+      return {
+        success: false,
+        data: null,
+        error: err.message
+      }
     }
   }
 
-  // Existing container functions...
+  // FilteredCoffees
+  const searchQuery = ref('')
+  const selectedOrigin = ref('')
+  const selectedShop = ref('')
+  const activeContainers = ref([])
+
+  const filteredCoffees = computed(() => {
+    let filtered = coffees.value
+
+    if (searchQuery.value) {
+      const query = searchQuery.value.toLowerCase()
+      filtered = filtered.filter(coffee =>
+        coffee.name?.toLowerCase().includes(query) ||
+        coffee.origin?.toLowerCase().includes(query) ||
+        coffee.shops?.name?.toLowerCase().includes(query) ||
+        coffee.flavor?.toLowerCase().includes(query)
+      )
+    }
+
+    if (selectedOrigin.value) {
+      filtered = filtered.filter(coffee => 
+        coffee.origin === selectedOrigin.value
+      )
+    }
+
+    if (selectedShop.value) {
+      filtered = filtered.filter(coffee => 
+        coffee.shops?.name === selectedShop.value
+      )
+    }
+
+    // Container filtering logic
+    if (activeContainers.value.length > 0) {
+      filtered = filtered.filter(coffee => {
+        // Check if coffee has container assignments
+        if (!coffee.coffee_container_assignments || !Array.isArray(coffee.coffee_container_assignments)) {
+          return false
+        }
+        
+        // Check if any of the active containers match the coffee's assignments
+        return activeContainers.value.some(activeContainer => {
+          return coffee.coffee_container_assignments.some(assignment => {
+            const assignmentContainerId = assignment.container_id || assignment.containers?.id
+            return assignmentContainerId === activeContainer.id
+          })
+        })
+      })
+    }
+
+    return filtered
+  })
+
   const fetchContainers = async () => {
     try {
       console.log('Fetching containers from database...')
@@ -253,109 +236,39 @@ export function useCoffeeData() {
         display_order: 2,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      },
-      {
-        id: 'blue',
-        name: 'Blue Container',
-        color: '#3b82f6', 
-        display_order: 3,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
       }
     ]
   }
 
-  const assignContainers = async (coffeeId, containerIds, userId) => {
-    try {
-      console.log('Assigning containers:', { coffeeId, containerIds, userId })
-      
-      const updates = {
-        in_green_container: containerIds.includes('green') || containerIds.includes(1),
-        in_grey_container: containerIds.includes('grey') || containerIds.includes(2),
-        updated_at: new Date().toISOString()
-      }
-      
-      const { data, error: updateError } = await supabase
-        .from('coffee_beans')
-        .update(updates)
-        .eq('id', coffeeId)
-        .eq('user_id', userId)
-        .select()
-      
-      if (updateError) {
-        throw updateError
-      }
-      
-      success('Container updated', 'Coffee container assignment updated successfully')
-      
-      return {
-        success: true,
-        data: data,
-        error: null
-      }
-      
-    } catch (err) {
-      console.error('Error assigning containers:', err)
-      error('Update failed', 'Could not update container assignment')
-      
-      return {
-        success: false,
-        data: null,
-        error: err.message
-      }
+  // Add other missing methods...
+  const refreshCoffees = async () => {
+    await fetchCoffees()
+  }
+
+  const addCoffeeToList = (newCoffee) => {
+    const existingIndex = coffees.value.findIndex(coffee => coffee.id === newCoffee.id)
+    if (existingIndex !== -1) {
+      coffees.value[existingIndex] = newCoffee
+    } else {
+      coffees.value.unshift(newCoffee)
     }
   }
 
-  // Search and filter functionality
-  const searchQuery = ref('')
-  const selectedOrigin = ref('')
-  const selectedShop = ref('')
-  const activeContainers = ref([])
+  const highlightCoffee = (coffeeId) => {
+    highlightedCoffeeId.value = coffeeId
+  }
 
-  const filteredCoffees = computed(() => {
-    let filtered = coffees.value
+  const clearHighlight = () => {
+    highlightedCoffeeId.value = null
+  }
 
-    if (searchQuery.value) {
-      const query = searchQuery.value.toLowerCase()
-      filtered = filtered.filter(coffee =>
-        coffee.name?.toLowerCase().includes(query) ||
-        coffee.origin?.toLowerCase().includes(query) ||
-        coffee.shops?.name?.toLowerCase().includes(query) ||
-        coffee.flavor?.toLowerCase().includes(query)
-      )
+  const toggleCardExpansion = (coffeeId) => {
+    if (expandedCards.value.has(coffeeId)) {
+      expandedCards.value.delete(coffeeId)
+    } else {
+      expandedCards.value.add(coffeeId)
     }
-
-    if (selectedOrigin.value) {
-      filtered = filtered.filter(coffee => 
-        coffee.origin === selectedOrigin.value
-      )
-    }
-
-    if (selectedShop.value) {
-      filtered = filtered.filter(coffee => 
-        coffee.shops?.name === selectedShop.value
-      )
-    }
-
-    if (activeContainers.value.length > 0) {
-      filtered = filtered.filter(coffee => {
-        return activeContainers.value.some(container => {
-          switch (container.id) {
-            case 'green':
-            case 1:
-              return coffee.in_green_container
-            case 'grey':
-            case 2:
-              return coffee.in_grey_container
-            default:
-              return false
-          }
-        })
-      })
-    }
-
-    return filtered
-  })
+  }
 
   const availableOrigins = computed(() => {
     const origins = coffees.value
@@ -388,34 +301,27 @@ export function useCoffeeData() {
   }
 
   return {
-    // GLOBAL Data - same references across all components
+    // GLOBAL Data
     coffees,
     containers,
     filteredCoffees,
     loading,
     highlightedCoffeeId,
-    expandedCards, // Add this
+    expandedCards,
     
     // Actions
     fetchCoffees,
     fetchContainers,
     assignContainers,
     refreshCoffees,
-    forceRefreshCoffees,
     addCoffeeToList,
-    updateCoffeeInList,
-    removeCoffeeFromList,
-    deleteCoffee,
     
     // Card expansion
-    toggleCardExpansion, // Add this
-    isCardExpanded, // Add this
-    collapseAllCards, // Add this
+    toggleCardExpansion,
     
     // Highlighting
     highlightCoffee,
     clearHighlight,
-    isCoffeeHighlighted,
     
     // Filtering
     searchQuery,
