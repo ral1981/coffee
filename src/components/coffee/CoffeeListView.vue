@@ -95,6 +95,10 @@ import CoffeeGrid from '../coffee/CoffeeGrid.vue'
 import { useCoffeeData } from '../../composables/useCoffeeData'
 import { useFilters } from '../../composables/useFilters'
 import { useToast } from '../../composables/useToast'
+import { useContainerConflict } from '../../composables/useContainerConflict'
+import { useAuth } from '../../composables/useAuth'
+
+const { userId } = useAuth()
 
 // Props - Added highlighting support
 const props = defineProps({
@@ -141,6 +145,11 @@ const {
   syncFiltersWithRoute,
   updateRoute
 } = useFilters(coffees)
+
+const {
+  assignContainersWithConflictResolution,
+  refreshConflictData
+} = useContainerConflict()
 
 // FIX: Add missing pagination state
 const itemsPerPage = ref(12)
@@ -448,19 +457,37 @@ const handleDeleteCoffee = async (coffee) => {
 }
 
 const handleContainerAssignment = async ({ coffee, container, action }) => {
+  console.log('🔍 CoffeeListView debugging info:', {
+  hasAssignContainersWithConflictResolution: typeof assignContainersWithConflictResolution === 'function',
+  hasRefreshCoffees: typeof refreshCoffees === 'function',
+  hasRefreshConflictData: typeof refreshConflictData === 'function',
+  hasHighlightCoffee: typeof highlightCoffee === 'function',
+  userId: userId?.value
+})
   try {
-    // Import auth only when needed for container assignments
+    console.log('🔄 CoffeeListView handling container assignment:', {
+      coffeeId: coffee.id,
+      containerId: container.id,
+      action
+    })
+
     const { useAuth } = await import('../../composables/useAuth')
     const { userId } = useAuth()
     
     if (!userId.value) {
-      console.log('Container assignment requires authentication')
-      router.push('/login')
+      console.log('❌ Container assignment requires authentication')
+      info('Authentication required', 'Please log in to assign containers')
       return
     }
 
-    // Get current container IDs
-    const currentContainerIds = coffee.containers?.map(c => c.id) || []
+    // Get current container IDs from the coffee object
+    const currentContainerIds = coffee.coffee_container_assignments?.map(a => a.container_id) || []
+    
+    console.log('📊 Current container assignments:', {
+      coffeeId: coffee.id,
+      currentContainerIds,
+      targetContainerId: container.id
+    })
     
     let newContainerIds
     if (action === 'assign') {
@@ -473,20 +500,36 @@ const handleContainerAssignment = async ({ coffee, container, action }) => {
       newContainerIds = currentContainerIds.filter(id => id !== container.id)
     }
     
-    // Update via the composable
-    const result = await assignContainers(coffee.id, newContainerIds, userId.value)
+    console.log('🎯 New container assignments:', {
+      coffeeId: coffee.id,
+      oldContainerIds: currentContainerIds,
+      newContainerIds
+    })
+
+    // Use the existing assignContainers method with conflict resolution
+    const result = await assignContainersWithConflictResolution(
+      coffee.id, 
+      newContainerIds, 
+      userId.value
+    )
     
     if (result.success) {
-      // Refresh the coffee data to get updated container assignments
+      console.log('✅ Container assignment successful')
+      
       await refreshCoffees()
+      await refreshConflictData()
       
       // Highlight the updated coffee
       highlightCoffee(coffee.id)
+      
+      success('Container updated', 'Coffee container assignment updated successfully')
     } else {
-      console.error('Failed to update container assignment:', result.error)
+      console.error('❌ Failed to update container assignment:', result.error)
+      error('Update failed', 'Could not update container assignment')
     }
   } catch (error) {
-    console.error('Container assignment error:', error)
+    console.error('❌ Container assignment error:', error)
+    error('Assignment failed', 'Could not update container assignment')
   }
 }
 

@@ -154,7 +154,7 @@
               loading: containerLoadingStates[`${coffee.id}-${container.id}`],
               highlighted: isHighlighted(coffee.id)
             }"
-            @click.stop="toggleContainerAssignment(coffee, container)"
+            @click.stop="handleContainerAssignment(coffee, container)"
             :disabled="containerLoadingStates[`${coffee.id}-${container.id}`] || editingCoffee === coffee.id"
           >
             <!-- Loading spinner -->
@@ -495,6 +495,11 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from
 import LogoImage from '../shared/LogoImage.vue'
 import { useAuth } from '../../composables/useAuth'
 import { useToast } from '../../composables/useToast'
+import { useCoffeeEdit } from '../../composables/useCoffeeEdit'
+import { useContainerConflict } from '../../composables/useContainerConflict'
+import { useContainerAssignment } from '../../composables/useContainerAssignment'
+import { useCoffeeFormOptions } from '../../composables/useCoffeeFormOptions'
+import { useRecipeUtils } from '../../composables/useRecipeUtils'
 
 const props = defineProps({
   coffees: { type: Array, default: () => [] },
@@ -508,46 +513,57 @@ const props = defineProps({
 
 const emit = defineEmits(['card-expand', 'card-action', 'container-assignment-changed', 'coffee-updated'])
 
-// Auth composable
-const { isLoggedIn } = useAuth()
+// Auth and toast
+const { isLoggedIn, userId } = useAuth()
 const { success, error, warning, info } = useToast()
 
-// Editing state
+// Shared composables
+const {
+  form: editForm,
+  originalForm,
+  isFormValid: isEditFormValid,
+  getValidationErrors,
+  populateForm,
+  resetForm,
+  saveCoffee
+} = useCoffeeEdit()
+
+const {
+  selectedContainers,
+  containerLoadingStates,
+  isContainerAssigned,
+  toggleContainerAssignment
+} = useContainerAssignment()
+
+const {
+  shopNameOptions: shopOptions,
+  originOptions
+} = useCoffeeFormOptions(computed(() => props.coffees))
+
+const {
+  isDoubleShotMode,
+  hasRecipeData,
+  toggleShotMode,
+  getRecipeValue,
+  getRecipeTime,
+  getRecipeTemp,
+  getRecipeRatio
+} = useRecipeUtils()
+
+// Local state
 const editingCoffee = ref(null)
-const editForm = reactive({})
-const originalForm = reactive({})
-
-// Options for datalists
-const shopOptions = ref([])
-const originOptions = ref([])
-
-// Track shot mode for each coffee (true = double, false = single)
-const isDoubleShotMode = reactive({})
-
-// Track loading states for container assignments
-const containerLoadingStates = reactive({})
-
-// Menu state
 const openMenuId = ref(null)
-
-// Delete modal state
 const showDeleteModal = ref(false)
 const coffeeToDelete = ref(null)
 const isDeleting = ref(false)
-
-// Dropdown positioning
 const dropdownPositions = reactive({})
 
 // Computed
-const isEditFormValid = computed(() => {
-  return editForm.name?.trim() && editForm.origin?.trim() && editForm.shop_name?.trim()
-})
-
-// Methods
 const isHighlighted = (coffeeId) => {
   return props.highlightedCoffeeId === coffeeId
 }
 
+// Menu handling
 const getDropdownPosition = (coffeeId) => {
   return dropdownPositions[coffeeId] || {
     position: 'fixed',
@@ -575,9 +591,7 @@ const toggleMenu = async (coffeeId) => {
       let top = rect.bottom + 8
       let left = rect.right - dropdownWidth
       
-      if (left < 8) {
-        left = 8
-      }
+      if (left < 8) left = 8
       if (left + dropdownWidth > window.innerWidth - 8) {
         left = window.innerWidth - dropdownWidth - 8
       }
@@ -635,9 +649,9 @@ const showLoginPrompt = (action) => {
   closeMenu()
 }
 
-// Edit functionality
+// Edit functionality using shared composable
 const startEdit = (coffee) => {
-  console.log('🔧 Starting edit for coffee:', coffee.name, 'ID:', coffee.id)
+  console.log('Starting edit for coffee:', coffee.name, 'ID:', coffee.id)
   
   if (editingCoffee.value) {
     warning('Edit in progress', 'Please save or cancel the current edit first')
@@ -645,122 +659,55 @@ const startEdit = (coffee) => {
   }
 
   editingCoffee.value = coffee.id
-  console.log('🔧 Set editingCoffee to:', editingCoffee.value)
   
   // Force expand the card if not already expanded
   if (!props.expandedCards.has(coffee.id)) {
-    console.log('🔧 Expanding card for edit')
     emit('card-expand', coffee.id)
   }
   
-  // Populate edit form
-  Object.assign(editForm, {
-    name: coffee.name || '',
-    shop_name: coffee.shops?.name || coffee.shop_name || '',
-    bean_url: coffee.shops?.url || coffee.bean_url || '',
-    origin: coffee.origin || '',
-    region: coffee.region || '',
-    altitude_meters: coffee.altitude_meters || '',
-    botanic_variety: coffee.botanic_variety || '',
-    farm_producer: coffee.farm_producer || '',
-    processing_method: coffee.processing_method || '',
-    sca: coffee.sca || '',
-    flavor: coffee.flavor || '',
-    notes: coffee.notes || '',
-    recipe_in_grams: coffee.recipe_in_grams || '',
-    recipe_out_grams: coffee.recipe_out_grams || '',
-    recipe_time_seconds: coffee.recipe_time_seconds || '',
-    recipe_temperature_c: coffee.recipe_temperature_c || ''
-  })
-  
-  console.log('🔧 Edit form populated:', editForm)
-  
-  // Store original for comparison
-  Object.assign(originalForm, editForm)
+  // Use shared form population
+  populateForm(coffee)
   
   info('Edit mode', 'All fields are now editable. Save with Enter or click Save button')
 }
 
 const cancelEdit = () => {
-  console.log('🚫 Cancelling edit mode')
+  console.log('Cancelling edit mode')
   editingCoffee.value = null
-  Object.keys(editForm).forEach(key => delete editForm[key])
-  Object.keys(originalForm).forEach(key => delete originalForm[key])
+  resetForm()
   info('Edit cancelled', 'Changes have been discarded')
 }
 
-const isValidUrl = (string) => {
-  try {
-    const url = string.startsWith('http') ? string : `https://${string}`
-    new URL(url)
-    return true
-  } catch (_) {
-    return false
-  }
-}
-
 const saveEdit = async () => {
-  // Enhanced validation with specific field feedback
-  if (!editForm.name?.trim()) {
-    error('Coffee name required', 'Please enter a coffee name')
-    return
-  }
-  
-  if (!editForm.origin?.trim()) {
-    error('Origin required', 'Please specify the coffee origin (country)')
-    return
-  }
-  
-  if (!editForm.shop_name?.trim()) {
-    error('Shop name required', 'Please enter the shop or roaster name')
+  if (!isEditFormValid.value) {
+    const errors = getValidationErrors()
+    error('Validation failed', errors[0])
     return
   }
 
-  // URL validation if provided
-  if (editForm.bean_url && !isValidUrl(editForm.bean_url)) {
-    error('Invalid URL', 'Please enter a valid shop URL (e.g., https://example.com)')
-    return
-  }
-
-  // SCA score validation if provided
-  if (editForm.sca && (editForm.sca < 0 || editForm.sca > 100)) {
-    error('Invalid SCA score', 'SCA score must be between 0 and 100')
-    return
-  }
-
-  console.log('💾 Saving edit with form data:', editForm)
+  console.log('Saving edit with form data:', editForm)
 
   try {
-    // Show saving feedback
     info('Saving changes...', 'Please wait while we update your coffee')
     
-    // Find the original coffee and merge with updates
-    const originalCoffee = props.coffees.find(c => c.id === editingCoffee.value)
-    if (!originalCoffee) {
-      throw new Error('Original coffee not found')
+    // Use shared save function
+    const result = await saveCoffee(editingCoffee.value, userId.value)
+    
+    if (result.success) {
+      success('Coffee Updated', 'Your changes have been saved successfully')
+      emit('coffee-updated', result.data)
+      
+      // Close edit mode after delay
+      setTimeout(() => {
+        if (editingCoffee.value === result.data.id) {
+          cancelEdit()
+        }
+      }, 1500)
     }
-    
-    const updatedCoffee = {
-      ...originalCoffee,
-      ...editForm
-    }
-    
-    console.log('💾 Emitting updated coffee:', updatedCoffee)
-    
-    // Emit the edit action with the complete updated coffee object
-    emit('card-action', 'edit', updatedCoffee)
-    
-    // Close edit mode after a short delay to allow parent to process
-    setTimeout(() => {
-      if (editingCoffee.value === originalCoffee.id) {
-        console.log('🔄 Auto-closing edit mode')
-        cancelEdit()
-      }
-    }, 1500) // Increased delay to allow for database update
     
   } catch (err) {
-    console.error('❌ Save preparation failed:', err)
-    error('Save Failed', `Could not prepare update: ${err.message}`)
+    console.error('Save failed:', err)
+    error('Save Failed', `Could not save changes: ${err.message}`)
   }
 }
 
@@ -793,115 +740,104 @@ const confirmDeleteAction = async () => {
   }
 }
 
-// Container assignment
-const isContainerAssigned = (coffee, containerId) => {
-  if (!coffee.coffee_container_assignments) return false
-  
-  return coffee.coffee_container_assignments.some(assignment => 
-    assignment.container_id === containerId
-  )
-}
+// Container assignment using shared composable
+const handleContainerAssignment = async (coffee, container) => {
+  console.log('🔄 CoffeeGrid handleContainerAssignment:', {
+    coffeeId: coffee.id,
+    containerId: container.id,
+    coffeeName: coffee.name
+  })
 
-const toggleContainerAssignment = async (coffee, container) => {
   const loadingKey = `${coffee.id}-${container.id}`
   containerLoadingStates[loadingKey] = true
-  
+
   try {
-    const isAssigned = isContainerAssigned(coffee, container.id)
+    const isCurrentlyAssigned = isContainerAssigned(coffee, container.id)
     
+    console.log('📊 Current assignment status:', {
+      coffeeId: coffee.id,
+      containerId: container.id,
+      isCurrentlyAssigned
+    })
+
+    // If removing assignment, no conflict check needed
+    if (isCurrentlyAssigned) {
+      emit('container-assignment-changed', {
+        coffee,
+        container,
+        action: 'remove'
+      })
+
+      console.log('✅ Emitted container-assignment-changed (remove):', {
+        coffeeId: coffee.id,
+        containerId: container.id
+      })
+      return
+    }
+
+    // ADDING ASSIGNMENT - Check for conflicts first
+    console.log('🔍 Checking for container conflicts before assignment...')
+    
+    // Use the shared conflict detection
+    const {
+      checkContainerConflict,
+      showConflictDialog,
+      loadCoffeesForConflictDetection
+    } = useContainerConflict()
+
+    // Load conflict data
+    await loadCoffeesForConflictDetection()
+
+    // Check for conflict
+    const conflictingCoffee = checkContainerConflict(container.id, coffee.id)
+    
+    console.log('🔍 Conflict check result:', {
+      containerId: container.id,
+      currentCoffeeId: coffee.id,
+      conflictingCoffee: conflictingCoffee ? {
+        id: conflictingCoffee.id,
+        name: conflictingCoffee.name
+      } : null
+    })
+
+    if (conflictingCoffee) {
+      // Show conflict dialog
+      console.log('⚠️ Container conflict detected, showing dialog...')
+      
+      const confirmed = showConflictDialog(container, conflictingCoffee, coffee.name)
+      
+      if (!confirmed) {
+        console.log('❌ User cancelled container assignment due to conflict')
+        info('Assignment cancelled', 'Container assignment was cancelled')
+        return
+      }
+      
+      console.log('✅ User confirmed conflict resolution')
+      info(
+        'Container Conflict Resolved',
+        `"${conflictingCoffee.name}" will be removed from ${container.name}`
+      )
+    }
+
+    // Proceed with assignment
     emit('container-assignment-changed', {
       coffee,
       container,
-      action: isAssigned ? 'unassign' : 'assign'
+      action: 'assign'
     })
-    
-    await new Promise(resolve => setTimeout(resolve, 300))
-    
+
+    console.log('✅ Emitted container-assignment-changed (assign):', {
+      coffeeId: coffee.id,
+      containerId: container.id,
+      hadConflict: !!conflictingCoffee
+    })
+
   } catch (error) {
-    console.error('Failed to toggle container assignment:', error)
+    console.error('❌ Container assignment error:', error)
+    error('Assignment failed', 'Could not update container assignment')
   } finally {
     containerLoadingStates[loadingKey] = false
   }
-}
-
-// Recipe functionality
-const hasRecipeData = (coffee) => {
-  return coffee.recipe_in_grams ||
-    coffee.recipe_out_grams ||
-    coffee.recipe_time_seconds ||
-    coffee.recipe_temperature_c
-}
-
-const toggleShotMode = (coffeeId, isDouble) => {
-  isDoubleShotMode[coffeeId] = isDouble
-}
-
-const getRecipeValue = (coffee, field) => {
-  let originalValue
-  
-  if (field === 'inGrams' && coffee.recipe_in_grams) {
-    originalValue = coffee.recipe_in_grams
-  } else if (field === 'outGrams' && coffee.recipe_out_grams) {
-    originalValue = coffee.recipe_out_grams
-  } else {
-    return null
-  }
-  
-  const isDouble = isDoubleShotMode[coffee.id] !== false
-  
-  if (!isDouble && (field === 'inGrams' || field === 'outGrams')) {
-    return Math.round(originalValue / 2)
-  }
-  
-  return originalValue
-}
-
-const getRecipeTime = (coffee) => {
-  let timeValue = coffee.recipe_time_seconds
-  if (!timeValue) return null
-  
-  if (typeof timeValue === 'string' && timeValue.includes(':')) {
-    return timeValue
-  }
-  
-  const seconds = parseInt(timeValue)
-  if (seconds < 60) {
-    return `${seconds}s`
-  }
-  
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
-}
-
-const getRecipeTemp = (coffee) => {
-  return coffee.recipe_temperature_c || null
-}
-
-const getRecipeRatio = (coffee) => {
-  const inGrams = coffee.recipe_in_grams
-  const outGrams = coffee.recipe_out_grams
-  
-  if (inGrams && outGrams) {
-    return (outGrams / inGrams).toFixed(2)
-  }
-  
-  return null
-}
-
-// Load options for datalists
-const loadOptions = () => {
-  const shops = new Set()
-  const origins = new Set()
-  
-  props.coffees.forEach(coffee => {
-    if (coffee.shops?.name) shops.add(coffee.shops.name)
-    if (coffee.shop_name) shops.add(coffee.shop_name)
-    if (coffee.origin) origins.add(coffee.origin)
-  })
-  
-  shopOptions.value = Array.from(shops).sort()
-  originOptions.value = Array.from(origins).sort()
 }
 
 // Click outside to close menu
@@ -931,18 +867,12 @@ const handleKeydown = (event) => {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleKeydown)
-  loadOptions()
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleKeydown)
 })
-
-// Watch for props changes to update options
-watch(() => props.coffees, () => {
-  loadOptions()
-}, { deep: true })
 </script>
 
 <style scoped>

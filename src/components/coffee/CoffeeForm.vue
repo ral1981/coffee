@@ -95,9 +95,17 @@
           <div class="detail-label">Variety</div>
           <input
             v-model="form.botanic_variety"
+            list="varieties"
             placeholder="Bourbon, Typica"
             class="detail-input"
           />
+          <datalist id="varieties">
+            <option
+              v-for="variety in commonVarieties"
+              :key="variety"
+              :value="variety"
+            />
+          </datalist>
         </div>
         <div class="detail-item">
           <div class="detail-label">Farm/Producer</div>
@@ -111,9 +119,17 @@
           <div class="detail-label">Processing</div>
           <input
             v-model="form.processing_method"
+            list="processing"
             placeholder="Washed, Natural"
             class="detail-input"
           />
+          <datalist id="processing">
+            <option
+              v-for="method in commonProcessingMethods"
+              :key="method"
+              :value="method"
+            />
+          </datalist>
         </div>
         <div class="detail-item">
           <div class="detail-label">SCA Score</div>
@@ -156,7 +172,7 @@
       </div>
     </div>
 
-    <!-- Espresso Recipe Section - FIXED LAYOUT -->
+    <!-- Espresso Recipe Section -->
     <div class="form-section">
       <div class="recipe-section">
         <div class="recipe-title">Espresso Recipe</div>
@@ -210,7 +226,13 @@
     <div class="form-section">
       <div class="container-section">
         <div class="container-title">Container Assignment</div>
-        <div class="container-checkboxes">
+
+        <!-- Loading state for containers -->
+        <div v-if="containerLoading" class="container-loading">
+          <div class="loading-spinner">Loading containers...</div>
+        </div>
+
+        <div v-else class="container-checkboxes">
           <label 
             v-for="container in availableContainers" 
             :key="container.id"
@@ -218,7 +240,7 @@
           >
             <input 
               :checked="selectedContainers.includes(container.id)"
-              @change="toggleContainer(container.id)"
+              @change="handleContainerChange($event, container.id)"
               type="checkbox" 
             />
             <div 
@@ -261,10 +283,14 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { X } from 'lucide-vue-next'
-import { useCoffeeForm } from '../../composables/useCoffeeForm'
 import LogoImage from '../shared/LogoImage.vue'
+import { useAuth } from '../../composables/useAuth'
+import { useToast } from '../../composables/useToast'
+import { useCoffeeEdit } from '../../composables/useCoffeeEdit'
+import { useContainerAssignment } from '../../composables/useContainerAssignment'
+import { useCoffeeFormOptions } from '../../composables/useCoffeeFormOptions'
 
 const props = defineProps({
   initialData: {
@@ -284,30 +310,129 @@ const props = defineProps({
 
 const emit = defineEmits(['coffee-saved', 'coffee-updated', 'cancel', 'close'])
 
-const showForm = ref(true)
-const showValidation = ref(false)
+// Composables
+const { userId } = useAuth()
+const { success, error, warning, info } = useToast()
 
+// Shared composables
 const {
   form,
-  recipeRatio,
   isFormValid,
   getValidationErrors,
-  save: saveForm,
-  cancel: cancelForm,
-  validUrl,
+  recipeRatio,
+  isValidUrl: validUrl,
   deriveShopLogo,
+  populateForm,
+  resetForm,
+  saveCoffee
+} = useCoffeeEdit()
+
+const {
+  selectedContainers,
+  toggleContainerAssignment,
+  saveContainerAssignments,
+  resetContainerAssignment,
+  loadExistingAssignments
+} = useContainerAssignment()
+
+const {
   shopNameOptions,
-  originOptions
-} = useCoffeeForm({
-  initialData: props.initialData,
-  mode: props.mode,
-  emit,
-  onClose: () => {
-    showForm.value = false
-    emit('close')
-  },
-  fetchCoffees: props.fetchCoffees
-})
+  originOptions,
+  commonProcessingMethods,
+  commonVarieties
+} = useCoffeeFormOptions()
+
+// Local state
+const showForm = ref(true)
+const showValidation = ref(false)
+const availableContainers = ref([])
+const containerLoading = ref(false)
+
+// Container assignment handler
+const handleContainerChange = async (event, containerId) => {
+  const isChecked = event.target.checked
+  
+  console.log('📋 CoffeeForm container change:', {
+    containerId,
+    isChecked,
+    currentlySelected: selectedContainers.value.includes(containerId)
+  })
+  
+  if (!isChecked) {
+    // Unchecking - remove from selection
+    selectedContainers.value = selectedContainers.value.filter(id => id !== containerId)
+    console.log('✅ Container unchecked and removed')
+    return
+  }
+  
+  // Checking - but first check for conflicts
+  const wasSelected = selectedContainers.value.includes(containerId)
+  if (wasSelected) {
+    console.log('ℹ️ Container already selected')
+    return // Already selected
+  }
+  
+  // Temporarily uncheck the box while we handle the conflict
+  event.target.checked = false
+  
+  // Call the conflict-checking logic
+  console.log('🔍 Calling toggleContainerAssignment for conflict check...')
+  const result = await toggleContainerAssignment(
+    containerId,
+    props.mode === 'edit' ? props.initialData.id : null,
+    form.name || 'this coffee',
+    availableContainers.value
+  )
+  
+  console.log('🔍 Toggle result:', result)
+  
+  // If toggle was successful and not cancelled, check the box
+  if (result.success && !result.cancelled) {
+    event.target.checked = true
+    console.log('✅ Container successfully assigned')
+  } else {
+    console.log('❌ Container assignment failed or cancelled')
+  }
+}
+
+// Load available containers
+const loadContainers = async () => {
+  containerLoading.value = true
+  try {
+    console.log('Loading containers for form...')
+    
+    const { supabase } = await import('../../lib/supabase')
+    const { data, error: fetchError } = await supabase
+      .from('containers')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+    
+    if (fetchError) {
+      console.error('Container fetch error:', fetchError)
+      // Use fallback containers
+      availableContainers.value = [
+        { id: 'green', name: 'Green Container', color: '#22c55e' },
+        { id: 'grey', name: 'Gray Container', color: '#6b7280' }
+      ]
+    } else {
+      availableContainers.value = data || []
+    }
+    
+    console.log('Containers loaded:', availableContainers.value.length)
+    
+    // If editing, load existing container assignments
+    if (props.mode === 'edit' && props.initialData.id) {
+      await loadExistingAssignments(props.initialData.id)
+    }
+    
+  } catch (err) {
+    console.error('Error loading containers:', err)
+    availableContainers.value = []
+  } finally {
+    containerLoading.value = false
+  }
+}
 
 // Enhanced save with validation feedback
 const save = async () => {
@@ -318,14 +443,59 @@ const save = async () => {
     console.log('Validation errors:', errors)
     return
   }
+
+  if (!userId.value) {
+    error('Authentication required', 'Please log in to save coffee')
+    return
+  }
+
+  // Save the coffee first
+  const coffeeResult = await saveCoffee(
+    props.mode === 'edit' ? props.initialData.id : null,
+    userId.value
+  )
+
+  if (!coffeeResult.success) {
+    return // Error already handled in saveCoffee
+  }
+
+  const coffeeId = coffeeResult.data.id
+
+  // Save container assignments
+  const containerResult = await saveContainerAssignments(coffeeId, userId.value)
   
-  await saveForm()
+  if (!containerResult.success) {
+    warning('Partial save', 'Coffee saved but container assignments may have failed')
+  }
+
+  // Success handling
+  if (coffeeResult.isUpdate) {
+    success('Coffee Updated', 'Your coffee entry has been updated successfully')
+    emit('coffee-updated', coffeeResult.data)
+  } else {
+    success('Coffee Saved', 'New coffee entry has been added successfully')
+    emit('coffee-saved', coffeeResult.data)
+  }
+
+  // Refresh parent data if callback provided
+  if (props.fetchCoffees && typeof props.fetchCoffees === 'function') {
+    await props.fetchCoffees()
+  }
+
+  // Close the form
+  showForm.value = false
+  emit('close')
 }
 
 // Enhanced cancel with validation reset
 const cancel = () => {
   showValidation.value = false
-  cancelForm()
+  resetForm()
+  resetContainerAssignment()
+  
+  showForm.value = false
+  emit('close')
+  emit('cancel')
 }
 
 // Watch for URL changes to update logo
@@ -337,6 +507,19 @@ watch(
     }
   }
 )
+
+// Initialize data when component mounts
+onMounted(async () => {
+  console.log('Initializing coffee form...')
+  
+  // Populate form if editing
+  if (props.mode === 'edit' && props.initialData) {
+    populateForm(props.initialData)
+  }
+  
+  await loadContainers()
+  console.log('Coffee form initialized')
+})
 </script>
 
 <style scoped>
@@ -562,7 +745,7 @@ watch(
   border-radius: 8px;
   padding: 1rem;
   border-left: 3px solid #f97316;
-  overflow: hidden; /* Ensure content doesn't overflow */
+  overflow: hidden;
 }
 
 .recipe-title {
@@ -574,16 +757,14 @@ watch(
   margin-bottom: 0.75rem;
 }
 
-/* FIXED: Recipe grid with proper responsive behavior */
 .recipe-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
   margin-bottom: 0.75rem;
-  width: 100%; /* Ensure full width */
+  width: 100%;
 }
 
-/* Mobile: 2x2 grid */
 @media (max-width: 640px) {
   .recipe-grid {
     grid-template-columns: 1fr 1fr;
@@ -591,7 +772,6 @@ watch(
   }
 }
 
-/* Tablet and up: 4 columns */
 @media (min-width: 768px) {
   .recipe-grid {
     grid-template-columns: repeat(4, 1fr);
@@ -602,7 +782,7 @@ watch(
 .recipe-item {
   display: flex;
   flex-direction: column;
-  min-width: 0; /* Allow shrinking */
+  min-width: 0;
 }
 
 .recipe-label {
@@ -661,6 +841,16 @@ watch(
   margin-bottom: 0.75rem;
 }
 
+.container-loading {
+  text-align: center;
+  padding: 1rem;
+  color: #666;
+}
+
+.loading-spinner {
+  font-size: 0.875rem;
+}
+
 .container-checkboxes {
   display: flex;
   gap: 1rem;
@@ -691,14 +881,6 @@ watch(
   width: 12px;
   height: 12px;
   border-radius: 50%;
-}
-
-.container-dot.green {
-  background: #22c55e;
-}
-
-.container-dot.grey {
-  background: #6b7280;
 }
 
 .form-actions {
