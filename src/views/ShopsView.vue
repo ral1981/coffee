@@ -43,10 +43,22 @@
         {{ searchQuery ? 'No shops match your search' : 'No coffee shops found' }}
       </h3>
       <p class="empty-state-description">
-        {{ searchQuery ? 'Try adjusting your search terms.' : 'Coffee shops will be extracted from your coffee collection.' }}
+        {{ searchQuery ? 'Try adjusting your search terms.' : 'Add your first coffee shop to get started!' }}
       </p>
-      <button v-if="searchQuery" @click="clearSearch" class="clear-search-btn">
+      <button 
+        v-if="searchQuery" 
+        @click="clearSearch" 
+        class="clear-search-btn"
+      >
         Clear Search
+      </button>
+      <button 
+        v-else 
+        @click="triggerAddShop" 
+        class="add-shop-btn"
+      >
+        <Plus :size="20" />
+        Add Your First Shop
       </button>
     </div>
 
@@ -55,7 +67,12 @@
       <div
         v-for="shop in paginatedShops"
         :key="shop.id || shop.name"
+        :data-shop-id="shop.id"
         class="shop-card"
+        :class="{ 
+          'highlighted': highlightedShopId === shop.id,
+          'new-shop': highlightedShopId === shop.id 
+        }"
         @click="viewShop(shop)"
       >
         <div class="shop-header">
@@ -160,57 +177,61 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Store, Coffee, ExternalLink } from 'lucide-vue-next'
+import { Store, Coffee, ExternalLink, Plus } from 'lucide-vue-next'
 import LogoImage from '../components/shared/LogoImage.vue'
 import { useCoffeeData } from '../composables/useCoffeeData'
+import { useShops } from '../composables/useShops'
 import { useToast } from '../composables/useToast'
 
 const router = useRouter()
 const { success, info, warning } = useToast()
 
+// Emit events to parent (AppLayout)
+const emit = defineEmits(['trigger-add-shop'])
+
 // Get coffee data to extract shops
 const { coffees, loading, fetchCoffees } = useCoffeeData()
+const { 
+  shops: rawShops, 
+  loading: shopsLoading, 
+  fetchShops,
+  highlightedShopId: globalHighlightedShopId 
+} = useShops()
 
 // Local state
 const searchQuery = ref('')
 const itemsToShow = ref(12)
 const isLoadingMore = ref(false)
 
-// Extract unique shops from coffee data
+// Enhance shops with coffee count data
 const shops = computed(() => {
-  const shopMap = new Map()
-  
-  coffees.value.forEach(coffee => {
-    // Handle both new relationship structure and legacy fields
-    const shopName = coffee.shops?.name || coffee.shop_name || coffee.shop
-    const shopUrl = coffee.shops?.url || coffee.bean_url
-    const shopLogo = coffee.shops?.logo
-    const shopId = coffee.shops?.id || shopName
+  return rawShops.value.map(shop => {
+    const relatedCoffees = coffees.value.filter(coffee => 
+      coffee.shops?.id === shop.id || 
+      coffee.shop_name === shop.name
+    )
     
-    if (shopName && shopId) {
-      if (shopMap.has(shopId)) {
-        // Increment coffee count and add origins
-        const existingShop = shopMap.get(shopId)
-        existingShop.coffeeCount++
-        if (coffee.origin && !existingShop.origins.includes(coffee.origin)) {
-          existingShop.origins.push(coffee.origin)
-        }
-      } else {
-        // Create new shop entry
-        shopMap.set(shopId, {
-          id: shopId,
-          name: shopName,
-          url: shopUrl,
-          logo: shopLogo,
-          coffeeCount: 1,
-          origins: coffee.origin ? [coffee.origin] : [],
-          created_at: coffee.shops?.created_at || coffee.created_at
-        })
-      }
+    const origins = [...new Set(
+      relatedCoffees.map(coffee => coffee.origin).filter(Boolean)
+    )]
+    
+    return {
+      ...shop,
+      coffeeCount: relatedCoffees.length,
+      origins: origins
     }
   })
-  
-  return Array.from(shopMap.values()).sort((a, b) => b.coffeeCount - a.coffeeCount)
+})
+
+const highlightedShopId = computed(() => {
+  return props.highlightedShopId || globalHighlightedShopId.value
+})
+
+const props = defineProps({
+  highlightedShopId: {
+    type: [String, Number],
+    default: null
+  }
 })
 
 // Filtered shops based on search
@@ -302,6 +323,11 @@ const viewCoffees = (shop) => {
   success('Filtering coffees', `Showing coffees from ${shop.name}`)
 }
 
+// NEW: Trigger add shop form
+const triggerAddShop = () => {
+  emit('trigger-add-shop')
+}
+
 // Reset pagination when search changes
 const resetPagination = () => {
   itemsToShow.value = 12
@@ -311,13 +337,27 @@ const resetPagination = () => {
 import { watch } from 'vue'
 watch(searchQuery, resetPagination)
 
+// Watch for highlighted shop prop changes
+watch(() => props.highlightedShopId, (newId) => {
+  if (newId) {
+    highlightedShopId.value = newId
+    // Auto-clear highlight after 3 seconds
+    setTimeout(() => {
+      highlightedShopId.value = null
+    }, 3000)
+  }
+})
+
 // Initialize data
 onMounted(async () => {
   try {
-    await fetchCoffees()
+    await Promise.all([
+      fetchCoffees(),
+      fetchShops()
+    ])
   } catch (error) {
-    console.error('Error loading coffee data:', error)
-    warning('Load Error', 'Could not load coffee data to extract shops')
+    console.error('Error loading data:', error)
+    warning('Load Error', 'Could not load data')
   }
 })
 </script>
@@ -490,6 +530,28 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
   transform: translateY(-2px);
   border-left-color: #7c3aed;
+}
+
+.shop-card.highlighted,
+.shop-card.new-shop {
+  border-left-color: #22c55e;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+  transform: scale(1.02);
+  animation: highlight-pulse 2s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+  }
+  50% {
+    box-shadow: 0 8px 30px rgba(34, 197, 94, 0.5);
+  }
+}
+
+/* Smooth transition for highlighting */
+.shop-card {
+  transition: all 0.3s ease;
 }
 
 .shop-header {

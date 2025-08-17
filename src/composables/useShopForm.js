@@ -2,6 +2,7 @@ import { reactive, watch, computed } from 'vue'
 import { supabase } from '../lib/supabase'
 import { useToast } from './useToast'
 import { useLogo } from './useLogo'
+import { useAuth } from './useAuth'
 
 /**
  * Composable for adding or editing a coffee shop.
@@ -16,6 +17,7 @@ export function useShopForm({
 } = {}) {
   const { success, error, warning, info } = useToast()
   const { getLogoUrl } = useLogo()
+  const { user, isLoggedIn } = useAuth()
 
   // Default form fields
   const defaults = { name: '', url: '', logo: '' }
@@ -88,6 +90,12 @@ export function useShopForm({
       return
     }
 
+    // Check authentication
+    if (!isLoggedIn.value) {
+      warning('Authentication required', 'Please log in to save shops')
+      return
+    }
+
     try {
       const shopName = form.name.trim()
 
@@ -113,10 +121,13 @@ export function useShopForm({
       const payload = { 
         name: shopName, 
         url: form.url, 
-        logo: form.logo 
+        logo: form.logo,
+        updated_at: new Date().toISOString()
       }
 
       if (mode === 'add') {
+        payload.created_at = new Date().toISOString()
+        
         result = await supabase
           .from('shops')
           .insert(payload)
@@ -130,6 +141,9 @@ export function useShopForm({
       }
 
       if (result.error) throw result.error
+      if (!result.data || result.data.length === 0) {
+        throw new Error('No data returned from database operation')
+      }
 
       const actionText = mode === 'add' ? 'added' : 'updated'
       const shopData = result.data[0]
@@ -148,7 +162,17 @@ export function useShopForm({
 
     } catch (err) {
       console.error(`Error ${mode === 'add' ? 'adding' : 'updating'} shop:`, err)
-      error('Save failed', err.message)
+      
+      let errorMessage = err.message
+      if (err.message.includes('duplicate key')) {
+        errorMessage = 'A shop with this name already exists'
+      } else if (err.message.includes('permission')) {
+        errorMessage = 'You do not have permission to save this shop'
+      } else if (err.message.includes('network')) {
+        errorMessage = 'Please check your connection and try again'
+      }
+      
+      error('Save failed', errorMessage)
     }
   }
 

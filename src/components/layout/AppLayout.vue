@@ -25,6 +25,17 @@
         @close="handleFormClose"
         @cancel="handleFormClose"
       />
+
+      <!-- Add Shop Form - shows when shops tab is active and form is triggered -->
+      <ShopForm
+        v-if="showAddShopForm && activeTab === 'shops'"
+        :mode="'add'"
+        :fetchShops="fetchShops"
+        @shop-saved="handleShopSaved"
+        @shop-updated="handleShopUpdated"
+        @close="handleShopFormClose"
+        @cancel="handleShopFormClose"
+      />
       
       <!-- Regular router content -->
       <router-view v-slot="{ Component }">
@@ -33,8 +44,10 @@
             :is="Component" 
             :key="$route.fullPath"
             :highlighted-coffee-id="newlyAddedCoffeeId"
+            :highlighted-shop-id="newlyAddedShopId"
             @edit-coffee="handleEditCoffee"
             @trigger-add-form="handleTriggerAddForm"
+            @trigger-add-shop="handleTriggerAddShop"
           />
         </keep-alive>
       </router-view>
@@ -54,7 +67,7 @@
 
     <!-- Floating Action Button -->
     <FloatingActionButton 
-      v-if="!showAddCoffeeForm"
+      v-if="!showAddCoffeeForm && !showAddShopForm"
       @click="handleAddNew"
       :icon="getFabIcon"
       :aria-label="getFabTitle"
@@ -78,6 +91,8 @@ import ToastContainer from '../shared/ToastContainer.vue'
 import { useTabNavigation } from '../../composables/useTabNavigation'
 import { useCoffeeData } from '../../composables/useCoffeeData'
 import { Plus, PackagePlus, Store, ArrowUp } from 'lucide-vue-next'
+import ShopForm from '../shops/ShopForm.vue'
+import { useShops } from '../../composables/useShops'
 
 const route = useRoute()
 const router = useRouter()
@@ -88,10 +103,16 @@ const { activeTab, tabs: mainTabs, setActiveTab } = useTabNavigation()
 // Use coffee data composable for fetching
 const { fetchCoffees, coffees, addCoffeeToList, highlightCoffee } = useCoffeeData()
 
+// Use shops composable for fetching
+const { fetchShops, addShopToList, highlightShop } = useShops()
+
 // Form state management
 const showAddCoffeeForm = ref(false)
+const showAddShopForm = ref(false)
 const editingCoffee = ref(null)
+const editingShop = ref(null)
 const newlyAddedCoffeeId = ref(null)
+const newlyAddedShopId = ref(null)
 
 // Back to top button
 const showBackToTop = ref(false)
@@ -144,6 +165,7 @@ const handleBack = () => {
 const handleTabChange = (tabId) => {
   // Close any open forms when switching tabs
   handleFormClose()
+  handleShopFormClose()
   
   setActiveTab(tabId)
   // Navigate to the corresponding route
@@ -154,11 +176,13 @@ const handleAddNew = () => {
   if (activeTab.value === 'coffee') {
     // Show the coffee form instead of navigating
     handleTriggerAddForm()
+  } else if (activeTab.value === 'shops') {
+    // Show the shop form
+    handleTriggerAddShop()
   } else {
     // For other tabs, navigate to new routes
     const routes = {
-      containers: '/containers/new',
-      shops: '/shops/new'
+      containers: '/containers/new'
     }
     
     const newRoute = routes[activeTab.value]
@@ -231,6 +255,71 @@ const handleFormClose = () => {
   editingCoffee.value = null
 }
 
+// Shop form handlers
+const handleTriggerAddShop = () => {
+  editingShop.value = null
+  showAddShopForm.value = true
+}
+
+const handleEditShop = (shop) => {
+  editingShop.value = shop
+  showAddShopForm.value = true
+}
+
+const handleShopSaved = async (savedShop) => {
+  console.log('🎉 Shop saved in AppLayout:', savedShop)
+  
+  // Add to GLOBAL shops list immediately
+  addShopToList(savedShop)
+  
+  // Highlight the newly added shop
+  highlightShop(savedShop.id)
+  
+  // Store for template highlighting
+  newlyAddedShopId.value = savedShop.id
+  
+  // Close the form
+  handleShopFormClose()
+  
+  // Scroll to new shop
+  await nextTick()
+  scrollToNewShop(savedShop.id)
+  
+  // Clear highlight after 5 seconds
+  setTimeout(() => {
+    if (newlyAddedShopId.value === savedShop.id) {
+      newlyAddedShopId.value = null
+    }
+  }, 5000)
+}
+
+const handleShopUpdated = async (updatedShop) => {
+  console.log('Shop updated:', updatedShop)
+  
+  // Refresh the shops list
+  await fetchShops()
+  
+  // Close the form
+  handleShopFormClose()
+}
+
+const handleShopFormClose = () => {
+  showAddShopForm.value = false
+  editingShop.value = null
+}
+
+const scrollToNewShop = (shopId) => {
+  setTimeout(() => {
+    const shopElement = document.querySelector(`[data-shop-id="${shopId}"]`)
+    if (shopElement) {
+      shopElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      })
+    }
+  }, 300) // Wait for DOM update
+}
+
 // Sync active tab with route changes
 watch(() => route.path, (newPath) => {
   const pathTab = newPath.split('/')[1] || 'coffee'
@@ -239,10 +328,13 @@ watch(() => route.path, (newPath) => {
   }
 }, { immediate: true })
 
-// Close form when navigating away from coffee tab
+// Close form when navigating away from tabs
 watch(activeTab, (newTab, oldTab) => {
   if (oldTab === 'coffee' && newTab !== 'coffee') {
     handleFormClose()
+  }
+  if (oldTab === 'shops' && newTab !== 'shops') {
+    handleShopFormClose()
   }
 })
 
@@ -250,6 +342,9 @@ watch(activeTab, (newTab, oldTab) => {
 const handlePopState = () => {
   if (showAddCoffeeForm.value) {
     handleFormClose()
+  }
+  if (showAddShopForm.value) {
+    handleShopFormClose()
   }
 }
 
