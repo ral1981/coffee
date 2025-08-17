@@ -29,7 +29,8 @@
       <!-- Add Shop Form - shows when shops tab is active and form is triggered -->
       <ShopForm
         v-if="showAddShopForm && activeTab === 'shops'"
-        :mode="'add'"
+        :mode="editingShop ? 'edit' : 'add'"
+        :initial-data="editingShop || {}"
         :fetchShops="fetchShops"
         @shop-saved="handleShopSaved"
         @shop-updated="handleShopUpdated"
@@ -46,6 +47,7 @@
             :highlighted-coffee-id="newlyAddedCoffeeId"
             :highlighted-shop-id="newlyAddedShopId"
             @edit-coffee="handleEditCoffee"
+            @edit-shop="handleEditShop"
             @trigger-add-form="handleTriggerAddForm"
             @trigger-add-shop="handleTriggerAddShop"
           />
@@ -393,6 +395,24 @@ onUnmounted(() => {
 .main-content > * {
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* Mobile responsive for dropdown */
+@media (max-width: 640px) {
+  .shop-dropdown {
+    right: -0.5rem;
+    min-width: 160px;
+  }
+  
+  .dropdown-item {
+    padding: 1rem;
+    font-size: 1rem;
+  }
+  
+  .shop-menu-btn {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 /* Form overlay styling */

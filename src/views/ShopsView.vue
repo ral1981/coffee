@@ -76,55 +76,87 @@
         @click="viewShop(shop)"
       >
         <div class="shop-header">
-          <div class="shop-logo">
-            <LogoImage
-              v-if="shop.url"
-              :url="shop.url"
-              :custom-logo="shop.logo"
-              :size="56"
-              alt="shop logo"
-              class-name="rounded-lg"
-            />
-            <div v-else class="shop-logo-fallback">
-              {{ getShopInitials(shop.name) }}
+          <!-- Left side: Logo and Info -->
+          <div class="shop-main">
+            <div class="shop-logo">
+              <LogoImage
+                v-if="shop.url"
+                :url="shop.url"
+                :custom-logo="shop.logo"
+                :size="56"
+                alt="shop logo"
+                class-name="rounded-lg"
+              />
+              <div v-else class="shop-logo-fallback">
+                {{ getShopInitials(shop.name) }}
+              </div>
+            </div>
+            <div class="shop-info">
+              <h3 class="shop-name">{{ shop.name }}</h3>
+              <a 
+                v-if="shop.url" 
+                :href="shop.url.startsWith('http') ? shop.url : `https://${shop.url}`"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="shop-url"
+                @click.stop="handleUrlClick(shop)"
+              >
+                {{ getDomain(shop.url) }}
+              </a>
             </div>
           </div>
-          <div class="shop-info">
-            <h3 class="shop-name">{{ shop.name }}</h3>
-            <p v-if="shop.url" class="shop-url">{{ getDomain(shop.url) }}</p>
-            <p class="shop-stats">{{ shop.coffeeCount }} coffee{{ shop.coffeeCount !== 1 ? 's' : '' }}</p>
-          </div>
+          
+          <!-- Right side: Action buttons -->
           <div class="shop-actions">
             <button
-              v-if="shop.url"
-              @click.stop="openShopWebsite(shop)"
-              class="action-btn primary"
-              title="Visit website"
-            >
-              <ExternalLink :size="16" />
-            </button>
-            <button
               @click.stop="viewCoffees(shop)"
-              class="action-btn secondary"
+              class="action-btn secondary coffee-btn"
               title="View coffees"
             >
-              <Coffee :size="16" />
+              <Coffee :size="20" />
+              <span 
+                class="coffee-badge"
+                :class="{ 'coffee-badge--empty': shop.coffeeCount === 0 }"
+              >
+                {{ shop.coffeeCount }}
+              </span>
             </button>
-          </div>
-        </div>
-
-        <div class="shop-details">
-          <div class="detail-item">
-            <div class="detail-label">Coffees</div>
-            <div class="detail-value">{{ shop.coffeeCount }}</div>
-          </div>
-          <div v-if="shop.created_at" class="detail-item">
-            <div class="detail-label">Added</div>
-            <div class="detail-value">{{ formatDate(shop.created_at) }}</div>
-          </div>
-          <div v-if="shop.origins && shop.origins.length > 0" class="detail-item">
-            <div class="detail-label">Origins</div>
-            <div class="detail-value">{{ shop.origins.slice(0, 2).join(', ') }}{{ shop.origins.length > 2 ? '...' : '' }}</div>
+            
+            <!-- Three-dot menu -->
+            <div class="shop-menu-container">
+              <button
+                @click.stop="toggleShopMenu(shop.id)"
+                class="shop-menu-btn"
+                :class="{ 'active': openMenuId === shop.id }"
+                aria-label="Shop options"
+              >
+                <MoreVertical :size="16" />
+              </button>
+              
+              <!-- Dropdown menu -->
+              <Transition name="dropdown">
+                <div 
+                  v-if="openMenuId === shop.id"
+                  class="shop-dropdown"
+                  @click.stop
+                >
+                  <button 
+                    @click="editShop(shop)"
+                    class="dropdown-item"
+                  >
+                    <Edit :size="16" />
+                    Edit Shop
+                  </button>
+                  <button 
+                    @click="deleteShop(shop)"
+                    class="dropdown-item delete"
+                  >
+                    <Trash2 :size="16" />
+                    Delete Shop
+                  </button>
+                </div>
+              </Transition>
+            </div>
           </div>
         </div>
       </div>
@@ -177,7 +209,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Store, Coffee, ExternalLink, Plus } from 'lucide-vue-next'
+import { Store, Coffee, Plus, MoreVertical, Edit, Trash2 } from 'lucide-vue-next'
 import LogoImage from '../components/shared/LogoImage.vue'
 import { useCoffeeData } from '../composables/useCoffeeData'
 import { useShops } from '../composables/useShops'
@@ -187,7 +219,7 @@ const router = useRouter()
 const { success, info, warning } = useToast()
 
 // Emit events to parent (AppLayout)
-const emit = defineEmits(['trigger-add-shop'])
+const emit = defineEmits(['trigger-add-shop', 'edit-shop'])
 
 // Get coffee data to extract shops
 const { coffees, loading, fetchCoffees } = useCoffeeData()
@@ -202,6 +234,7 @@ const {
 const searchQuery = ref('')
 const itemsToShow = ref(12)
 const isLoadingMore = ref(false)
+const openMenuId = ref(null)
 
 // Enhance shops with coffee count data
 const shops = computed(() => {
@@ -232,6 +265,96 @@ const props = defineProps({
     type: [String, Number],
     default: null
   }
+})
+
+// Menu management functions
+const toggleShopMenu = (shopId) => {
+  openMenuId.value = openMenuId.value === shopId ? null : shopId
+}
+
+const closeAllMenus = () => {
+  openMenuId.value = null
+}
+
+const editShop = (shop) => {
+  console.log('Edit shop:', shop)
+  closeAllMenus()
+  emit('edit-shop', shop)
+  info('Edit Shop', `Opening edit form for ${shop.name}`)
+}
+
+const deleteShop = async (shop) => {
+  closeAllMenus()
+  
+  // Confirm deletion
+  const confirmMessage = shop.coffeeCount > 0 
+    ? `Are you sure you want to delete "${shop.name}"? This shop has ${shop.coffeeCount} coffee${shop.coffeeCount !== 1 ? 's' : ''} associated with it.`
+    : `Are you sure you want to delete "${shop.name}"?`
+  
+  if (!confirm(confirmMessage)) {
+    return
+  }
+  
+  try {
+    const { supabase } = await import('../lib/supabase')
+    
+    // Check if shop has associated coffees
+    if (shop.coffeeCount > 0) {
+      warning(
+        'Cannot delete shop', 
+        `"${shop.name}" has ${shop.coffeeCount} coffee${shop.coffeeCount !== 1 ? 's' : ''} associated with it. Please remove or reassign the coffees first.`
+      )
+      return
+    }
+    
+    const { error } = await supabase
+      .from('shops')
+      .delete()
+      .eq('id', shop.id)
+    
+    if (error) {
+      throw error
+    }
+    
+    // Remove from local list
+    await fetchShops()
+    
+    success('Shop deleted', `"${shop.name}" has been deleted successfully`)
+    
+  } catch (err) {
+    console.error('Error deleting shop:', err)
+    error('Delete failed', `Could not delete "${shop.name}". Please try again.`)
+  }
+}
+
+const handleUrlClick = (shop) => {
+  success('Opening website', `Opening ${shop.name} in new tab`)
+}
+
+// Add click outside handler
+const handleClickOutside = () => {
+  closeAllMenus()
+}
+
+// Update onMounted and onUnmounted
+onMounted(async () => {
+  try {
+    await Promise.all([
+      fetchCoffees(),
+      fetchShops()
+    ])
+  } catch (error) {
+    console.error('Error loading data:', error)
+    warning('Load Error', 'Could not load data')
+  }
+  
+  // Add click outside listener
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  // Remove click outside listener
+  document.removeEventListener('click', handleClickOutside)
 })
 
 // Filtered shops based on search
@@ -306,14 +429,6 @@ const viewShop = (shop) => {
   console.log('View shop:', shop)
 }
 
-const openShopWebsite = (shop) => {
-  if (shop.url) {
-    const fullUrl = shop.url.startsWith('http') ? shop.url : `https://${shop.url}`
-    window.open(fullUrl, '_blank', 'noopener,noreferrer')
-    success('Opening website', `Opening ${shop.name} in new tab`)
-  }
-}
-
 const viewCoffees = (shop) => {
   // Navigate to coffee tab filtered by this shop
   router.push({
@@ -323,7 +438,7 @@ const viewCoffees = (shop) => {
   success('Filtering coffees', `Showing coffees from ${shop.name}`)
 }
 
-// NEW: Trigger add shop form
+// Trigger add shop form
 const triggerAddShop = () => {
   emit('trigger-add-shop')
 }
@@ -382,6 +497,136 @@ onMounted(async () => {
 .counter-text {
   font-size: 1rem;
   color: #666;
+}
+
+.coffee-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  border: none;
+  color: white;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.coffee-btn:hover {
+  background: linear-gradient(135deg, #7c3aed, #9333ea);
+  transform: scale(1.05);
+}
+
+/* Default green badge (count > 0) */
+.coffee-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: transparent;
+  color: #16a34a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.125rem 0.375rem;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.2;
+  border: 2px solid #16a34a;
+  z-index: 1;
+}
+
+/* Red badge when count is 0 */
+.coffee-badge--empty {
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+/* Shop menu styles */
+.shop-menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  z-index: 200;
+}
+
+.shop-menu-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+  background: #f3f4f6;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 1;
+}
+
+.shop-menu-btn:hover,
+.shop-menu-btn.active {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.shop-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 140px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 300;
+}
+
+.dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  color: #374151;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  z-index: 200;
+}
+
+.dropdown-item:hover {
+  background: #f9fafb;
+}
+
+.dropdown-item.delete {
+  color: #ef4444;
+}
+
+.dropdown-item.delete:hover {
+  background: #fef2f2;
+}
+
+/* Dropdown animation */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+}
+
+/* Update shop actions layout */
+.shop-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: 1rem;
+  align-items: center;
 }
 
 /* Search Section */
@@ -523,13 +768,25 @@ onMounted(async () => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border-left: 4px solid #8b5cf6;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .shop-card:hover {
   box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
   transform: translateY(-2px);
   border-left-color: #7c3aed;
+  z-index: 2;
+}
+
+.shop-card.menu-open {
+  z-index: 100; /* Higher than hover */
+}
+
+/* Ensure cards with open menus stay above other hovered cards */
+.shop-card:has(.shop-dropdown) {
+  z-index: 50;
 }
 
 .shop-card.highlighted,
@@ -557,7 +814,15 @@ onMounted(async () => {
 .shop-header {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.shop-main {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
 }
 
 .shop-logo {
@@ -565,6 +830,9 @@ onMounted(async () => {
   height: 56px;
   margin-right: 1rem;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .shop-logo-fallback {
@@ -590,6 +858,7 @@ onMounted(async () => {
   font-weight: 600;
   color: #333;
   margin: 0 0 0.25rem 0;
+  word-wrap: break-word;
 }
 
 .shop-url {
@@ -597,6 +866,30 @@ onMounted(async () => {
   font-size: 0.875rem;
   margin: 0 0 0.25rem 0;
   word-break: break-word;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-block;
+  border-radius: 4px;
+  padding: 0.125rem 0.25rem;
+  margin-left: -0.25rem;
+}
+
+.shop-url:hover {
+  color: #7c3aed;
+  background-color: rgba(139, 92, 246, 0.1);
+  text-decoration: underline;
+  transform: translateY(-1px);
+}
+
+.shop-url:active {
+  transform: translateY(0);
+}
+
+/* Ensure the URL doesn't interfere with card click */
+.shop-url:focus {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 2px;
 }
 
 .shop-stats {
@@ -605,22 +898,26 @@ onMounted(async () => {
   margin: 0;
 }
 
+/* Update shop actions to be in top-right corner */
 .shop-actions {
   display: flex;
   gap: 0.5rem;
+  align-items: flex-start;
+  flex-shrink: 0;
   margin-left: 1rem;
 }
 
 .action-btn {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .action-btn.primary {
@@ -776,33 +1073,91 @@ onMounted(async () => {
   }
 }
 
-/* Responsive Design */
+/* Mobile responsive design */
 @media (max-width: 640px) {
   .shop-card {
     padding: 1rem;
   }
   
+  /* Keep the same layout on mobile - no column switch */
   .shop-header {
-    flex-direction: column;
+    display: flex;
     align-items: flex-start;
+    justify-content: space-between;
+  }
+  
+  .shop-main {
+    display: flex;
+    align-items: flex-start;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .shop-url {
+    font-size: 0.8125rem;
+    padding: 0.25rem 0.375rem;
+    margin-left: -0.375rem;
   }
   
   .shop-actions {
-    margin-left: 0;
-    margin-top: 0.75rem;
-    align-self: flex-end;
+    display: flex;
+    gap: 0.375rem;
+    align-items: flex-start;
+    flex-shrink: 0;
+    margin-left: 0.75rem;
   }
   
-  .shop-details {
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  .action-btn {
+    width: 28px;
+    height: 28px;
   }
   
-  .info-card {
+  .shop-menu-btn {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .shop-logo {
+    width: 48px;
+    height: 48px;
+    margin-right: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .shop-logo-fallback {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+  
+  .shop-name {
+    font-size: 1.125rem;
+  }
+  
+  .shop-dropdown {
+    right: -0.5rem;
+    min-width: 160px;
+  }
+  
+  .dropdown-item {
     padding: 1rem;
+    font-size: 1rem;
+  }
+
+  .coffee-btn {
+    width: 28px;
+    height: 28px;
   }
   
-  .search-section {
-    flex-direction: column;
+  .coffee-badge {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.25rem;
+    min-width: 14px;
+    top: -6px;
+    right: -6px;
+    border-width: 1.5px;
   }
 }
 
