@@ -8,10 +8,10 @@
         {
           'fab--extended': extended,
           'fab--hidden': hidden,
-          'fab--mini': mini
+          'fab--mini': mini,
+          'fab--disabled': disabled
         }
       ]"
-      :disabled="disabled"
       :aria-label="ariaLabel"
       @click="handleClick"
     >
@@ -150,7 +150,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['click'])
+const emit = defineEmits(['click', 'disabled-click'])
 
 // Computed properties
 const iconSize = computed(() => {
@@ -165,14 +165,15 @@ const iconSize = computed(() => {
 
 // Event handlers
 const handleClick = (event) => {
-  if (props.disabled || props.loading) return
+  if (props.loading) return
   
-  // Haptic feedback for mobile devices
-  if ('vibrate' in navigator) {
+  // Always emit click - let the parent handle disabled logic
+  emit('click', event)
+  
+  // Only add haptic feedback if not disabled
+  if (!props.disabled && 'vibrate' in navigator) {
     navigator.vibrate(50)
   }
-  
-  emit('click', event)
 }
 </script>
 
@@ -207,20 +208,19 @@ const handleClick = (event) => {
   user-select: none;
   
   box-shadow: var(--fab-shadow, 0 4px 12px rgba(0, 0, 0, 0.15));
-  
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: center;
 }
 
-/* Hover States */
-.fab:hover:not(:disabled) {
+/* Hover States - only for enabled buttons */
+.fab:hover:not(.fab--disabled) {
   transform: scale(1.05);
   box-shadow: var(--fab-hover-shadow, 0 6px 16px rgba(0, 0, 0, 0.2));
   background: var(--fab-hover-bg, var(--primary-green-hover, #16a34a));
 }
 
-/* Active States */
-.fab:active:not(:disabled) {
+/* Active States - only for enabled buttons */
+.fab:active:not(.fab--disabled) {
   transform: scale(0.95);
   transition-duration: 0.1s;
 }
@@ -231,13 +231,33 @@ const handleClick = (event) => {
   outline-offset: 3px;
 }
 
-/* Disabled States */
-.fab:disabled {
-  background: var(--fab-disabled-bg, #d1d5db);
-  color: var(--fab-disabled-color, #9ca3af);
-  cursor: not-allowed;
+/* Disabled States - inactive appearance but still clickable */
+.fab--disabled {
+  background: var(--fab-disabled-bg, #d1d5db) !important;
+  color: var(--fab-disabled-color, #9ca3af) !important;
+  cursor: pointer; /* Keep clickable for login notification */
+  opacity: 0.6;
   transform: none;
-  box-shadow: var(--fab-disabled-shadow, 0 1px 3px rgba(0, 0, 0, 0.1));
+  box-shadow: var(--fab-disabled-shadow, 0 1px 3px rgba(0, 0, 0, 0.1)) !important;
+}
+
+.fab--disabled:hover {
+  background: var(--fab-disabled-bg, #d1d5db) !important;
+  color: var(--fab-disabled-color, #9ca3af) !important;
+  transform: none !important;
+  box-shadow: var(--fab-disabled-shadow, 0 1px 3px rgba(0, 0, 0, 0.1)) !important;
+  opacity: 0.6;
+}
+
+/* Ensure primary styles don't override disabled styles */
+.fab--primary.fab--disabled {
+  background: var(--fab-disabled-bg, #d1d5db) !important;
+  color: var(--fab-disabled-color, #9ca3af) !important;
+}
+
+.fab--primary.fab--disabled:hover {
+  background: var(--fab-disabled-bg, #d1d5db) !important;
+  color: var(--fab-disabled-color, #9ca3af) !important;
 }
 
 /* Hidden State */
@@ -260,7 +280,6 @@ const handleClick = (event) => {
   --fab-font-size: 1.125rem;
 }
 
-/* Mini FAB */
 .fab--mini {
   --fab-size: 40px;
   --fab-font-size: 0.875rem;
@@ -283,21 +302,6 @@ const handleClick = (event) => {
 .fab--secondary {
   --fab-bg: var(--fab-secondary-bg, #6b7280);
   --fab-hover-bg: var(--fab-secondary-hover-bg, #4b5563);
-}
-
-.fab--success {
-  --fab-bg: var(--fab-success-bg, #10b981);
-  --fab-hover-bg: var(--fab-success-hover-bg, #059669);
-}
-
-.fab--warning {
-  --fab-bg: var(--fab-warning-bg, #f59e0b);
-  --fab-hover-bg: var(--fab-warning-hover-bg, #d97706);
-}
-
-.fab--danger {
-  --fab-bg: var(--fab-danger-bg, #ef4444);
-  --fab-hover-bg: var(--fab-danger-hover-bg, #dc2626);
 }
 
 /* Icon Styles */
@@ -334,12 +338,8 @@ const handleClick = (event) => {
 }
 
 @keyframes fab-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes fab-spinner-dash {
@@ -363,7 +363,6 @@ const handleClick = (event) => {
     --fab-bottom: calc(1rem + env(safe-area-inset-bottom));
     --fab-right: 1rem;
     --fab-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    z-index: 1001; /* Ensure it's above sticky elements */
   }
   
   .fab--small {
@@ -389,7 +388,7 @@ const handleClick = (event) => {
 
 /* Tablet and up */
 @media (min-width: 768px) {
-  .fab:hover:not(:disabled) {
+  .fab:hover:not(.fab--disabled) {
     transform: scale(1.1);
   }
 }
@@ -401,22 +400,9 @@ const handleClick = (event) => {
     --fab-hover-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
   }
   
-  .fab:disabled {
+  .fab--disabled {
     --fab-disabled-bg: #374151;
     --fab-disabled-color: #6b7280;
-  }
-}
-
-/* High Contrast Mode */
-@media (prefers-contrast: high) {
-  .fab {
-    border: 2px solid currentColor;
-    --fab-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  }
-  
-  .fab:focus-visible {
-    outline-width: 3px;
-    outline-offset: 4px;
   }
 }
 
@@ -426,11 +412,8 @@ const handleClick = (event) => {
     transition: none;
   }
   
-  .fab:hover:not(:disabled) {
-    transform: none;
-  }
-  
-  .fab:active:not(:disabled) {
+  .fab:hover:not(.fab--disabled),
+  .fab:active:not(.fab--disabled) {
     transform: none;
   }
   

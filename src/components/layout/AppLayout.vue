@@ -73,6 +73,7 @@
       @click="handleAddNew"
       :icon="getFabIcon"
       :aria-label="getFabTitle"
+      :disabled="!isLoggedIn"
     />
 
     <!-- Toast Container -->
@@ -95,6 +96,9 @@ import { useCoffeeData } from '../../composables/useCoffeeData'
 import { Plus, PackagePlus, Store, ArrowUp } from 'lucide-vue-next'
 import ShopForm from '../shops/ShopForm.vue'
 import { useShops } from '../../composables/useShops'
+import { useAuth } from '../../composables/useAuth'
+import { useToast } from '../../composables/useToast'
+import StorePlusIcon from '../shared/StorePlusIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -107,6 +111,12 @@ const { fetchCoffees, coffees, addCoffeeToList, highlightCoffee } = useCoffeeDat
 
 // Use shops composable for fetching
 const { fetchShops, addShopToList, highlightShop } = useShops()
+
+// Use useAuth composable for authentication
+const { isLoggedIn, user } = useAuth()
+
+// Use Toast notifications
+const { warning } = useToast()
 
 // Form state management
 const showAddCoffeeForm = ref(false)
@@ -135,7 +145,7 @@ const getFabIcon = computed(() => {
   const icons = {
     coffee: Plus,
     containers: PackagePlus,
-    shops: Store
+    shops: StorePlusIcon
   }
   return icons[activeTab.value] || Plus
 })
@@ -175,14 +185,23 @@ const handleTabChange = (tabId) => {
 }
 
 const handleAddNew = () => {
+  // Check if user is logged in first
+  if (!isLoggedIn.value) {
+    if (activeTab.value === 'coffee') {
+      warning('Login Required', 'Please log in to add coffee entries')
+    } else if (activeTab.value === 'shops') {
+      warning('Login Required', 'Please log in to add coffee shops')
+    } else {
+      warning('Login Required', 'Please log in to add new entries')
+    }
+    return
+  }
+
   if (activeTab.value === 'coffee') {
-    // Show the coffee form instead of navigating
     handleTriggerAddForm()
   } else if (activeTab.value === 'shops') {
-    // Show the shop form
     handleTriggerAddShop()
   } else {
-    // For other tabs, navigate to new routes
     const routes = {
       containers: '/containers/new'
     }
@@ -191,6 +210,16 @@ const handleAddNew = () => {
     if (newRoute) {
       router.push(newRoute)
     }
+  }
+}
+
+const handleDisabledClick = () => {
+  if (activeTab.value === 'coffee') {
+    warning('Login Required', 'Please log in to add coffee entries')
+  } else if (activeTab.value === 'shops') {
+    warning('Login Required', 'Please log in to add coffee shops')
+  } else {
+    warning('Login Required', 'Please log in to add new entries')
   }
 }
 
@@ -356,19 +385,14 @@ onMounted(() => {
   
   // Initial data fetch
   fetchCoffees()
-})
 
-// Back to top
-onMounted(() => {
+  // Back to top listener
   window.addEventListener('scroll', handleScroll)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
 })
 
 // Cleanup on unmount
 onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll)
   window.removeEventListener('popstate', handlePopState)
 })
 </script>

@@ -56,6 +56,8 @@
         v-else 
         @click="triggerAddShop" 
         class="add-shop-btn"
+        :disabled="!isLoggedIn"
+        :class="{ 'btn-disabled': !isLoggedIn }"
       >
         <Plus :size="20" />
         Add Your First Shop
@@ -214,6 +216,7 @@ import LogoImage from '../components/shared/LogoImage.vue'
 import { useCoffeeData } from '../composables/useCoffeeData'
 import { useShops } from '../composables/useShops'
 import { useToast } from '../composables/useToast'
+import { useAuth } from '../composables/useAuth'
 
 const router = useRouter()
 const { success, info, warning } = useToast()
@@ -229,6 +232,9 @@ const {
   fetchShops,
   highlightedShopId: globalHighlightedShopId 
 } = useShops()
+
+// Authentication status
+const { isLoggedIn } = useAuth()
 
 // Local state
 const searchQuery = ref('')
@@ -440,6 +446,10 @@ const viewCoffees = (shop) => {
 
 // Trigger add shop form
 const triggerAddShop = () => {
+  if (!isLoggedIn.value) {
+    warning('Login Required', 'Please log in to add coffee shops')
+    return
+  }
   emit('trigger-add-shop')
 }
 
@@ -664,6 +674,40 @@ onMounted(async () => {
 }
 
 .clear-btn:hover {
+  background: #e5e7eb;
+}
+
+.add-shop-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--primary-green, #22c55e);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-shop-btn:hover:not(:disabled) {
+  background: var(--primary-green-hover, #16a34a);
+  transform: translateY(-1px);
+}
+
+.add-shop-btn:disabled,
+.add-shop-btn.btn-disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.add-shop-btn:disabled:hover,
+.add-shop-btn.btn-disabled:hover {
+  transform: none;
   background: #e5e7eb;
 }
 
