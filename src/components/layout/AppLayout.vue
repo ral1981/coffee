@@ -38,6 +38,18 @@
         @cancel="handleShopFormClose"
       />
       
+      <!-- Add Container Form - shows when container tab is active and form is triggered -->
+      <ContainerForm
+        v-if="showAddContainerForm && activeTab === 'containers'"
+        :mode="editingContainer ? 'edit' : 'add'"
+        :initial-data="editingContainer || {}"
+        :fetchContainers="fetchContainers"
+        @container-saved="handleContainerSaved"
+        @container-updated="handleContainerUpdated"
+        @close="handleContainerFormClose"
+        @cancel="handleContainerFormClose"
+      />
+
       <!-- Regular router content -->
       <router-view v-slot="{ Component }">
         <keep-alive>
@@ -46,10 +58,13 @@
             :key="$route.fullPath"
             :highlighted-coffee-id="newlyAddedCoffeeId"
             :highlighted-shop-id="newlyAddedShopId"
+            :highlighted-container-id="newlyAddedContainerId"
             @edit-coffee="handleEditCoffee"
             @edit-shop="handleEditShop"
+            @edit-container="handleEditContainer"
             @trigger-add-form="handleTriggerAddForm"
             @trigger-add-shop="handleTriggerAddShop"
+            @trigger-add-container="handleTriggerAddContainer"
           />
         </keep-alive>
       </router-view>
@@ -69,7 +84,7 @@
 
     <!-- Floating Action Button -->
     <FloatingActionButton 
-      v-if="!showAddCoffeeForm && !showAddShopForm"
+      v-if="!showAddCoffeeForm && !showAddShopForm && !showAddContainerForm"
       @click="handleAddNew"
       :icon="getFabIcon"
       :aria-label="getFabTitle"
@@ -99,6 +114,8 @@ import { useShops } from '../../composables/useShops'
 import { useAuth } from '../../composables/useAuth'
 import { useToast } from '../../composables/useToast'
 import StorePlusIcon from '../shared/StorePlusIcon.vue'
+import ContainerForm from '../containers/ContainerForm.vue'
+import {useContainers} from '../../composables/useContainers'
 
 const route = useRoute()
 const router = useRouter()
@@ -107,10 +124,14 @@ const router = useRouter()
 const { activeTab, tabs: mainTabs, setActiveTab } = useTabNavigation()
 
 // Use coffee data composable for fetching
-const { fetchCoffees, coffees, addCoffeeToList, highlightCoffee } = useCoffeeData()
+const { fetchCoffees, addCoffeeToList, highlightCoffee } = useCoffeeData()
 
 // Use shops composable for fetching
 const { fetchShops, addShopToList, highlightShop } = useShops()
+
+// Use containers composable
+const { fetchContainers, addContainerToList, highlightContainer } = useContainers()
+
 
 // Use useAuth composable for authentication
 const { isLoggedIn, user } = useAuth()
@@ -125,6 +146,9 @@ const editingCoffee = ref(null)
 const editingShop = ref(null)
 const newlyAddedCoffeeId = ref(null)
 const newlyAddedShopId = ref(null)
+const showAddContainerForm = ref(false)
+const editingContainer = ref(null)
+const newlyAddedContainerId = ref(null)
 
 // Back to top button
 const showBackToTop = ref(false)
@@ -178,6 +202,7 @@ const handleTabChange = (tabId) => {
   // Close any open forms when switching tabs
   handleFormClose()
   handleShopFormClose()
+  handleContainerFormClose()
   
   setActiveTab(tabId)
   // Navigate to the corresponding route
@@ -188,9 +213,11 @@ const handleAddNew = () => {
   // Check if user is logged in first
   if (!isLoggedIn.value) {
     if (activeTab.value === 'coffee') {
-      warning('Login Required', 'Please log in to add coffee entries')
+      warning('Login Required', 'Please log in to add coffee')
     } else if (activeTab.value === 'shops') {
       warning('Login Required', 'Please log in to add coffee shops')
+    } else if (activeTab.value === 'containers') {
+      warning('Login Required', 'Please log in to add containers')
     } else {
       warning('Login Required', 'Please log in to add new entries')
     }
@@ -201,15 +228,8 @@ const handleAddNew = () => {
     handleTriggerAddForm()
   } else if (activeTab.value === 'shops') {
     handleTriggerAddShop()
-  } else {
-    const routes = {
-      containers: '/containers/new'
-    }
-    
-    const newRoute = routes[activeTab.value]
-    if (newRoute) {
-      router.push(newRoute)
-    }
+  } else if (activeTab.value === 'containers') {
+    handleTriggerAddContainer()
   }
 }
 
@@ -351,6 +371,70 @@ const scrollToNewShop = (shopId) => {
   }, 300) // Wait for DOM update
 }
 
+// Container form handlers
+
+const handleTriggerAddContainer = () => {
+  editingContainer.value = null
+  showAddContainerForm.value = true
+}
+
+const handleEditContainer = (container) => {
+  editingContainer.value = container
+  showAddContainerForm.value = true
+}
+
+const handleContainerSaved = async (savedContainer) => {
+  console.log('🎉 Container saved in AppLayout:', savedContainer)
+  
+  // Validate that we have a complete container object
+  if (!savedContainer || !savedContainer.id) {
+    console.error('❌ Invalid container object received:', savedContainer)
+    return
+  }
+  
+  // Store the newly added container ID for highlighting
+  newlyAddedContainerId.value = savedContainer.id
+  
+  console.log('➕ Adding container to GLOBAL list via composable...')
+  
+  // Add to GLOBAL list immediately - this should trigger reactivity in ContainersView
+  addContainerToList(savedContainer)
+  
+  console.log('✨ Highlighting newly added container...')
+  
+  // Highlight the newly added container
+  highlightContainer(savedContainer.id)
+  
+  // Close the form
+  handleContainerFormClose()
+  
+  // Clear the highlight reference after 5 seconds
+  setTimeout(() => {
+    if (newlyAddedContainerId.value === savedContainer.id) {
+      console.log('🧹 Clearing highlight reference')
+      newlyAddedContainerId.value = null
+    }
+  }, 5000)
+}
+
+const handleContainerUpdated = async (updatedContainer) => {
+  console.log('Container updated:', updatedContainer)
+  
+  // Refresh the containers list
+  await fetchContainers()
+  
+  // Close the form
+  handleContainerFormClose()
+  
+  // Highlight the updated container
+  highlightContainer(updatedContainer.id)
+}
+
+const handleContainerFormClose = () => {
+  showAddContainerForm.value = false
+  editingContainer.value = null
+}
+
 // Sync active tab with route changes
 watch(() => route.path, (newPath) => {
   const pathTab = newPath.split('/')[1] || 'coffee'
@@ -367,6 +451,9 @@ watch(activeTab, (newTab, oldTab) => {
   if (oldTab === 'shops' && newTab !== 'shops') {
     handleShopFormClose()
   }
+  if (oldTab === 'containers' && newTab !== 'containers') {
+    handleContainerFormClose()
+  }
 })
 
 // Handle browser back button when form is open
@@ -376,6 +463,9 @@ const handlePopState = () => {
   }
   if (showAddShopForm.value) {
     handleShopFormClose()
+  }
+  if (showAddContainerForm.value) {
+    handleContainerFormClose()
   }
 }
 
