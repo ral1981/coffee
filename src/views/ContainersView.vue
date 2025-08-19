@@ -1,149 +1,16 @@
 <template>
-  <div class="containers-view">
-    <!-- Results Counter -->
-    <div class="results-counter">
-      <span class="counter-text">
-        <strong>{{ containerCount }}</strong> Containers Available
-      </span>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-section">
-      <div class="loading-spinner">
-        <svg class="spinner" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" />
-        </svg>
-      </div>
-      <p class="loading-text">Loading containers...</p>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="!containers || containers.length === 0" class="empty-state">
-      <div class="empty-state-icon">
-        <Package :size="48" />
-      </div>
-      <h3 class="empty-state-title">No containers found</h3>
-      <p class="empty-state-description">
-        Container data will be loaded from your coffee database.
-      </p>
-    </div>
-
-    <!-- Containers Grid -->
-    <div v-else-if="containers && containers.length > 0" class="containers-grid">
-      <div
-        v-for="container in containers"
-        :key="container.id"
-        class="container-card"
-        :class="{ 
-          'highlighted': highlightedContainerId === container.id,
-          'new-container': newlyAddedContainerId === container.id 
-        }"
-        :style="{ borderLeftColor: container.color }"
-        :data-container-id="container.id"
-      >
-        <!-- Header with name and menu -->
-        <div class="container-header">
-          <div class="container-main">
-            <!-- Container icon -->
-            <div class="container-icon">
-              <div 
-                class="container-dot"
-                :style="{ background: container.color }"
-              ></div>
-            </div>
-            
-            <!-- Container name -->
-            <h3 class="container-name">{{ container.name }}</h3>
-          </div>
-          
-          <!-- Three dots menu -->
-          <div class="menu-container">
-            <button 
-              type="button"
-              class="menu-trigger"
-              @click="toggleMenu(container.id)"
-              :class="{ active: activeMenuId === container.id }"
-            >
-              <MoreVertical :size="20" />
-            </button>
-            
-            <!-- Dropdown menu -->
-            <div v-if="activeMenuId === container.id" class="menu-dropdown">
-              <button 
-                type="button" 
-                class="menu-item"
-                @click="handleViewCoffee(container)"
-                :disabled="!getAssignedCoffee(container.id)"
-                :title="getAssignedCoffee(container.id) ? `Filter coffees in ${container.name}` : 'Container is empty'"
-              >
-                <Coffee :size="16" />
-                View Coffee
-              </button>
-              
-              <button 
-                type="button" 
-                class="menu-item"
-                @click="editContainer(container)"
-                title="Edit container details"
-              >
-                <Edit :size="16" />
-                Edit
-              </button>
-              
-              <button 
-                type="button" 
-                class="menu-item menu-item-danger"
-                @click="handleDeleteContainer(container)"
-                :title="getAssignedCoffee(container.id) ? 'Delete container (will remove coffee assignment)' : 'Delete container'"
-              >
-                <Trash2 :size="16" />
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Status and content section -->
-        <div class="container-content">
-          <!-- Current Status -->
-          <div class="status-section">
-            <span class="status-label">Current Status</span>
-            <span 
-              class="status-badge"
-              :class="getAssignedCoffee(container.id) ? 'status-in-use' : 'status-empty'"
-            >
-              {{ getAssignedCoffee(container.id) ? 'In Use' : 'Empty' }}
-            </span>
-          </div>
-          
-          <!-- Contains information -->
-          <div class="contains-section">
-            <span class="contains-text">
-              {{ getAssignedCoffee(container.id) 
-                  ? `Contains: ${getAssignedCoffee(container.id).name}` 
-                  : 'Contains: Nothing' }}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Info Section -->
-    <div class="info-section">
-      <div class="info-card">
-        <div class="info-icon">
-          <Package :size="24" />
-        </div>
-        <div class="info-content">
-          <h4 class="info-title">Container Management</h4>
-          <p class="info-description">
-            Organize your coffee collection using labeled containers.
-            Each container can hold different types of beans and helps you 
-            keep track of your inventory. Containers are loaded from your database.
-          </p>
-        </div>
-      </div>
-    </div>
+  <div class="containers-grid">
+    <ContainerCard
+      v-for="container in containers"
+      :key="container.id"
+      :container="container"
+      :assigned-coffee="getAssignedCoffee(container.id)"
+      :is-highlighted="highlightedContainerId === container.id"
+      :is-newly-added="newlyAddedContainerId === container.id"
+      @view-coffee="handleViewCoffee"
+      @edit="handleEditContainer"
+      @delete="handleDeleteContainer"
+    />
   </div>
 </template>
 
@@ -154,6 +21,7 @@ import { Package, Edit, Coffee, MoreVertical, Trash2 } from 'lucide-vue-next'
 import { useContainers } from '../composables/useContainers'
 import { useCoffeeData } from '../composables/useCoffeeData'
 import { useToast } from '../composables/useToast'
+import ContainerCard from '../components/containers/ContainerCard.vue'
 
 const router = useRouter()
 const { success, info, warning, error: showError } = useToast()
@@ -243,60 +111,42 @@ const closeMenu = () => {
   activeMenuId.value = null
 }
 
-// Edit container
-const editContainer = (container) => {
+// Handlers
+const handleEditContainer = (container) => {
   console.log('Edit container:', container)
-  closeMenu()
   // TODO: Emit to parent to open container form in edit mode
 }
 
-// Delete container
 const handleDeleteContainer = async (container) => {
   const assignedCoffee = getAssignedCoffee(container.id)
   
-  // Check if container has coffee assigned
   if (assignedCoffee) {
     const confirmMessage = `"${container.name}" currently contains "${assignedCoffee.name}". Deleting this container will remove the coffee assignment. Are you sure you want to continue?`
-    if (!confirm(confirmMessage)) {
-      return
-    }
+    if (!confirm(confirmMessage)) return
   } else {
-    if (!confirm(`Are you sure you want to delete "${container.name}"?`)) {
-      return
-    }
+    if (!confirm(`Are you sure you want to delete "${container.name}"?`)) return
   }
 
   try {
     if (deleteContainer) {
       await deleteContainer(container.id)
       success('Container Deleted', `${container.name} has been deleted`)
-      
-      // Refresh coffee data to update assignments
       await fetchCoffees()
     } else {
       info('Delete Feature', 'Delete functionality coming soon!')
     }
-    closeMenu()
   } catch (err) {
     showError('Delete Failed', 'Could not delete container')
   }
 }
 
-// View coffee - navigate to coffee list with container filter
 const handleViewCoffee = (container) => {
- const assignedCoffee = getAssignedCoffee(container.id)
- 
- if (assignedCoffee) {
-   // Navigate to coffee list with container filter applied
-   router.push({
-     path: '/coffee',
-     query: { container: container.id }
-   })
-   success('Filtering by container', `Showing coffees in ${container.name}`)
- } else {
-   info('No Coffee', 'This container is currently empty')
- }
- closeMenu()
+
+  router.push({
+    path: '/coffee',
+    query: { container: container.id }
+  })
+  success('Filtering by container', `Showing coffees in ${container.name}`)
 }
 
 const viewCoffees = (container) => {

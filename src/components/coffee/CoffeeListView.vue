@@ -97,6 +97,7 @@ import { useFilters } from '../../composables/useFilters'
 import { useToast } from '../../composables/useToast'
 import { useContainerConflict } from '../../composables/useContainerConflict'
 import { useAuth } from '../../composables/useAuth'
+import { useContainers } from '../../composables/useContainers'
 
 const { userId } = useAuth()
 
@@ -113,6 +114,7 @@ const emit = defineEmits(['edit-coffee', 'trigger-add-form'])
 
 const route = useRoute()
 const router = useRouter()
+const { containers } = useContainers()
 const { error, success, info, warning } = useToast()
 
 console.log('CoffeeListView - Starting without auth dependencies')
@@ -151,7 +153,19 @@ const {
   refreshConflictData
 } = useContainerConflict()
 
-// FIX: Add missing pagination state
+const applyContainerFilter = async (containerId) => {
+  if (!containerId || !containers.value) return
+  
+  // Find the container object by ID
+  const container = containers.value.find(c => c.id === containerId)
+  if (container) {
+    // Apply the container filter
+    activeContainers.value = [container]
+    console.log('Applied container filter:', container.name)
+  }
+}
+
+// Pagination state
 const itemsPerPage = ref(12)
 const itemsToShow = ref(12) // THIS WAS MISSING!
 const isLoadingMore = ref(false)
@@ -608,12 +622,31 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error in onMounted:', error)
   }
+
+  // Check for container query parameter and apply filter
+  if (route.query.container) {
+    // Wait a bit for containers to load if needed
+    await nextTick()
+    if (containers.value.length === 0) {
+      // Wait for containers to load
+      watch(containers, (newContainers) => {
+        if (newContainers.length > 0) {
+          applyContainerFilter(route.query.container)
+        }
+      }, { once: true })
+    } else {
+      applyContainerFilter(route.query.container)
+    }
+  }
 })
 
 // Refresh data when route changes
-watch(() => route.path, (newPath, oldPath) => {
-  if (newPath === '/coffee' && oldPath?.startsWith('/coffee/')) {
-    refreshCoffees()
+watch(() => route.query.container, (newContainerId) => {
+  if (newContainerId) {
+    applyContainerFilter(newContainerId)
+  } else {
+    // Clear container filter if no container in URL
+    activeContainers.value = []
   }
 })
 
