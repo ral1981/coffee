@@ -55,8 +55,8 @@
       </button>
     </div>
 
-    <!-- Coffee Grid -->
-    <CoffeeGrid 
+    <!-- Coffee Card -->
+    <CoffeeCard 
       v-else
       :coffees="paginatedCoffees"
       :expanded-cards="expandedCards"
@@ -91,7 +91,7 @@ import ResultsCounter from '../filters/ResultsCounter.vue'
 import SearchSection from './SearchSection.vue'
 import FiltersSection from '../filters/FiltersSection.vue'
 import ContainerQuickFilters from '../filters/ContainerQuickFilters.vue'
-import CoffeeGrid from '../coffee/CoffeeGrid.vue'
+import CoffeeCard from '../coffee/CoffeeCard.vue'
 import { useCoffeeData } from '../../composables/useCoffeeData'
 import { useFilters } from '../../composables/useFilters'
 import { useToast } from '../../composables/useToast'
