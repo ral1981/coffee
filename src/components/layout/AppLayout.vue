@@ -1,32 +1,34 @@
 <template>
-  <div class="app-container">
-    <!-- Mobile-first header -->
+  <div class="app-layout">
+    <!-- App Header -->
     <AppHeader 
       @profile-click="handleProfile"
       @back-click="handleBack"
+      :show-back="route.meta?.showBack || false"
     />
-    
-    <!-- Tab navigation -->
+
+    <!-- Tab Navigation -->
     <TabNavigation 
-      v-model="activeTab" 
+      v-model="activeTab"
       :tabs="mainTabs"
       @tab-change="handleTabChange"
     />
-    
-    <!-- Dynamic content with keep-alive for performance -->
+
+    <!-- Main Content Area -->
     <main class="main-content">
-      <!-- Add Coffee Form - shows when coffee tab is active and form is triggered -->
+      <!-- Coffee Form - shows when coffee tab is active and form is triggered -->
       <CoffeeForm
         v-if="showAddCoffeeForm && activeTab === 'coffee'"
-        :mode="'add'"
+        :mode="editingCoffee ? 'edit' : 'add'"
+        :initial-data="editingCoffee || {}"
         :fetchCoffees="fetchCoffees"
         @coffee-saved="handleCoffeeSaved"
         @coffee-updated="handleCoffeeUpdated"
         @close="handleFormClose"
         @cancel="handleFormClose"
       />
-
-      <!-- Add Shop Form - shows when shops tab is active and form is triggered -->
+      
+      <!-- Shop Form - shows when shop tab is active and form is triggered -->
       <ShopForm
         v-if="showAddShopForm && activeTab === 'shops'"
         :mode="editingShop ? 'edit' : 'add'"
@@ -59,12 +61,14 @@
             :highlighted-coffee-id="newlyAddedCoffeeId"
             :highlighted-shop-id="newlyAddedShopId"
             :highlighted-container-id="newlyAddedContainerId"
+            :expanded-cards="expandedCards"
             @edit-coffee="handleEditCoffee"
             @edit-shop="handleEditShop"
             @edit-container="handleEditContainer"
             @trigger-add-form="handleTriggerAddForm"
             @trigger-add-shop="handleTriggerAddShop"
             @trigger-add-container="handleTriggerAddContainer"
+            @card-expand="handleCardExpand"
           />
         </keep-alive>
       </router-view>
@@ -79,6 +83,28 @@
         aria-label="Back to top"
       >
         <ArrowUp class="back-to-top-icon" />
+      </button>
+    </Transition>
+
+    <!-- Expand/Collapse All Cards Floating Button -->
+    <Transition name="fade">
+      <button
+        v-if="showExpandCollapseButton"
+        @click="toggleExpandAll"
+        :disabled="isFormOpen || !hasExpandableCards"
+        :class="[
+          'expand-collapse-fab',
+          {
+            'expand-collapse-fab--disabled': isFormOpen || !hasExpandableCards,
+            'expand-collapse-fab--active': !isFormOpen && hasExpandableCards,
+            'expand-collapse-fab--visible': hasExpandableCards
+          }
+        ]"
+        :title="allExpanded ? 'Collapse All Cards' : 'Expand All Cards'"
+        :aria-label="allExpanded ? 'Collapse All Cards' : 'Expand All Cards'"
+      >
+        <ChevronDown v-if="allExpanded" class="expand-collapse-icon" />
+        <ChevronRight v-else class="expand-collapse-icon" />
       </button>
     </Transition>
 
@@ -108,14 +134,14 @@ import CoffeeForm from '../coffee/CoffeeForm.vue'
 import ToastContainer from '../shared/ToastContainer.vue'
 import { useTabNavigation } from '../../composables/useTabNavigation'
 import { useCoffeeData } from '../../composables/useCoffeeData'
-import { Plus, PackagePlus, Store, ArrowUp } from 'lucide-vue-next'
+import { Plus, PackagePlus, Store, ArrowUp, ChevronDown, ChevronRight } from 'lucide-vue-next'
 import ShopForm from '../shops/ShopForm.vue'
 import { useShops } from '../../composables/useShops'
 import { useAuth } from '../../composables/useAuth'
 import { useToast } from '../../composables/useToast'
 import StorePlusIcon from '../shared/StorePlusIcon.vue'
 import ContainerForm from '../containers/ContainerForm.vue'
-import {useContainers} from '../../composables/useContainers'
+import { useContainers } from '../../composables/useContainers'
 
 const route = useRoute()
 const router = useRouter()
@@ -123,15 +149,21 @@ const router = useRouter()
 // Use the new tab navigation composable
 const { activeTab, tabs: mainTabs, setActiveTab } = useTabNavigation()
 
-// Use coffee data composable for fetching
-const { fetchCoffees, addCoffeeToList, highlightCoffee } = useCoffeeData()
+// Use coffee data composable for fetching and card expansion
+const { 
+  fetchCoffees, 
+  addCoffeeToList, 
+  highlightCoffee, 
+  expandedCards, 
+  toggleCardExpansion,
+  filteredCoffees
+} = useCoffeeData()
 
 // Use shops composable for fetching
 const { fetchShops, addShopToList, highlightShop } = useShops()
 
 // Use containers composable
-const { fetchContainers, addContainerToList, highlightContainer } = useContainers()
-
+const { fetchContainers, addContainerToList, highlightContainer, containers } = useContainers()
 
 // Use useAuth composable for authentication
 const { isLoggedIn, user } = useAuth()
@@ -153,8 +185,125 @@ const newlyAddedContainerId = ref(null)
 // Back to top button
 const showBackToTop = ref(false)
 
+// Expand/Collapse All Cards Functionality
+const expandAllTimer = ref(null)
+
+// Computed properties for expand/collapse functionality
+const isFormOpen = computed(() => 
+  showAddCoffeeForm.value || showAddShopForm.value || showAddContainerForm.value
+)
+
+const hasExpandableCards = computed(() => {
+  // Check if current route has expandable cards
+  switch (route.path) {
+    case '/coffee':
+    case '/':
+      return filteredCoffees.value && filteredCoffees.value.length > 0
+    case '/containers':
+      return containers.value && containers.value.length > 0
+    case '/shops':
+      // Shops typically don't have expandable cards
+      return false
+    default:
+      // Handle nested routes
+      if (route.path.startsWith('/coffee')) {
+        return filteredCoffees.value && filteredCoffees.value.length > 0
+      } else if (route.path.startsWith('/containers')) {
+        return containers.value && containers.value.length > 0
+      }
+      return false
+  }
+})
+
+const showExpandCollapseButton = computed(() => {
+  return hasExpandableCards.value && !route.path.startsWith('/shops')
+})
+
+const allExpanded = computed(() => {
+  if (!hasExpandableCards.value) return false
+  
+  const relevantCards = getCurrentTabCards()
+  if (relevantCards.length === 0) return false
+  
+  return relevantCards.every(card => expandedCards.value.has(card.id))
+})
+
+const getCurrentTabCards = () => {
+  // Get cards based on the current route/tab
+  switch (route.path) {
+    case '/coffee':
+    case '/':
+      return filteredCoffees.value || []
+    case '/containers':
+      return containers.value || []
+    case '/shops':
+      // Shops typically don't have expandable cards
+      return []
+    default:
+      // Handle nested routes
+      if (route.path.startsWith('/coffee')) {
+        return filteredCoffees.value || []
+      } else if (route.path.startsWith('/containers')) {
+        return containers.value || []
+      } else if (route.path.startsWith('/shops')) {
+        return []
+      }
+      return []
+  }
+}
+
+// Expand/Collapse All functionality
+const toggleExpandAll = () => {
+  if (!hasExpandableCards.value) return
+  
+  const relevantCards = getCurrentTabCards()
+  if (relevantCards.length === 0) return
+  
+  // Clear any existing timer
+  if (expandAllTimer.value) {
+    clearTimeout(expandAllTimer.value)
+    expandAllTimer.value = null
+  }
+  
+  if (allExpanded.value) {
+    // Collapse all cards
+    collapseAllCards(relevantCards)
+  } else {
+    // Expand all cards
+    expandAllCards(relevantCards)
+  }
+}
+
+const expandAllCards = (cards) => {
+  let delay = 0
+  const increment = 50 // 50ms delay between each card
+  
+  cards.forEach((card, index) => {
+    setTimeout(() => {
+      if (!expandedCards.value.has(card.id)) {
+        toggleCardExpansion(card.id)
+      }
+    }, delay)
+    delay += increment
+  })
+}
+
+const collapseAllCards = (cards) => {
+  let delay = 0
+  const increment = 30 // Faster collapse
+  
+  cards.forEach((card, index) => {
+    setTimeout(() => {
+      if (expandedCards.value.has(card.id)) {
+        toggleCardExpansion(card.id)
+      }
+    }, delay)
+    delay += increment
+  })
+}
+
 const handleScroll = () => {
-  showBackToTop.value = window.scrollY > 100
+  showBackToTop.value = window.scrollY > 200
 }
 
 const scrollToTop = () => {
@@ -162,6 +311,11 @@ const scrollToTop = () => {
     top: 0,
     behavior: 'smooth'
   })
+}
+
+// Handle card expansion from child components
+const handleCardExpand = (cardId) => {
+  toggleCardExpansion(cardId)
 }
 
 // Computed FAB properties based on active tab
@@ -198,48 +352,42 @@ const handleBack = () => {
   }
 }
 
-const handleTabChange = (tabId) => {
+const handleTabChange = async (tabId) => {
   // Close any open forms when switching tabs
-  handleFormClose()
-  handleShopFormClose()
-  handleContainerFormClose()
+  if (showAddCoffeeForm.value) handleFormClose()
+  if (showAddShopForm.value) handleShopFormClose()
+  if (showAddContainerForm.value) handleContainerFormClose()
   
-  setActiveTab(tabId)
   // Navigate to the corresponding route
-  router.push(`/${tabId}`)
+  const tab = mainTabs.value.find(t => t.id === tabId)
+  if (tab && tab.route) {
+    try {
+      await router.push(tab.route)
+      setActiveTab(tabId)
+    } catch (error) {
+      console.error(`Failed to navigate to tab '${tabId}':`, error)
+    }
+  }
 }
 
 const handleAddNew = () => {
-  // Check if user is logged in first
   if (!isLoggedIn.value) {
-    if (activeTab.value === 'coffee') {
-      warning('Login Required', 'Please log in to add coffee')
-    } else if (activeTab.value === 'shops') {
-      warning('Login Required', 'Please log in to add coffee shops')
-    } else if (activeTab.value === 'containers') {
-      warning('Login Required', 'Please log in to add containers')
-    } else {
-      warning('Login Required', 'Please log in to add new entries')
-    }
+    warning('Please log in to add items')
     return
   }
 
-  if (activeTab.value === 'coffee') {
-    handleTriggerAddForm()
-  } else if (activeTab.value === 'shops') {
-    handleTriggerAddShop()
-  } else if (activeTab.value === 'containers') {
-    handleTriggerAddContainer()
-  }
-}
-
-const handleDisabledClick = () => {
-  if (activeTab.value === 'coffee') {
-    warning('Login Required', 'Please log in to add coffee entries')
-  } else if (activeTab.value === 'shops') {
-    warning('Login Required', 'Please log in to add coffee shops')
-  } else {
-    warning('Login Required', 'Please log in to add new entries')
+  switch (activeTab.value) {
+    case 'coffee':
+      handleTriggerAddForm()
+      break
+    case 'containers':
+      handleTriggerAddContainer()
+      break
+    case 'shops':
+      handleTriggerAddShop()
+      break
+    default:
+      handleTriggerAddForm()
   }
 }
 
@@ -247,11 +395,13 @@ const handleDisabledClick = () => {
 const handleTriggerAddForm = () => {
   editingCoffee.value = null
   showAddCoffeeForm.value = true
+  window.history.pushState(null, '', window.location.href)
 }
 
 const handleEditCoffee = (coffee) => {
   editingCoffee.value = coffee
   showAddCoffeeForm.value = true
+  window.history.pushState(null, '', window.location.href)
 }
 
 const handleCoffeeSaved = async (savedCoffee) => {
@@ -310,35 +460,44 @@ const handleFormClose = () => {
 const handleTriggerAddShop = () => {
   editingShop.value = null
   showAddShopForm.value = true
+  window.history.pushState(null, '', window.location.href)
 }
 
 const handleEditShop = (shop) => {
   editingShop.value = shop
   showAddShopForm.value = true
+  window.history.pushState(null, '', window.location.href)
 }
 
 const handleShopSaved = async (savedShop) => {
   console.log('🎉 Shop saved in AppLayout:', savedShop)
   
-  // Add to GLOBAL shops list immediately
+  // Validate that we have a complete shop object
+  if (!savedShop || !savedShop.bean_url) {
+    console.error('❌ Invalid shop object received:', savedShop)
+    return
+  }
+  
+  // Store the newly added shop ID for highlighting
+  newlyAddedShopId.value = savedShop.bean_url
+  
+  console.log('➕ Adding shop to GLOBAL list via composable...')
+  
+  // Add to GLOBAL list immediately - this should trigger reactivity in ShopsView
   addShopToList(savedShop)
   
-  // Highlight the newly added shop
-  highlightShop(savedShop.id)
+  console.log('✨ Highlighting newly added shop...')
   
-  // Store for template highlighting
-  newlyAddedShopId.value = savedShop.id
+  // Highlight the newly added shop
+  highlightShop(savedShop.bean_url)
   
   // Close the form
   handleShopFormClose()
   
-  // Scroll to new shop
-  await nextTick()
-  scrollToNewShop(savedShop.id)
-  
-  // Clear highlight after 5 seconds
+  // Clear the highlight reference after 5 seconds
   setTimeout(() => {
-    if (newlyAddedShopId.value === savedShop.id) {
+    if (newlyAddedShopId.value === savedShop.bean_url) {
+      console.log('🧹 Clearing highlight reference')
       newlyAddedShopId.value = null
     }
   }, 5000)
@@ -352,6 +511,9 @@ const handleShopUpdated = async (updatedShop) => {
   
   // Close the form
   handleShopFormClose()
+  
+  // Highlight the updated shop
+  highlightShop(updatedShop.bean_url)
 }
 
 const handleShopFormClose = () => {
@@ -359,28 +521,17 @@ const handleShopFormClose = () => {
   editingShop.value = null
 }
 
-const scrollToNewShop = (shopId) => {
-  setTimeout(() => {
-    const shopElement = document.querySelector(`[data-shop-id="${shopId}"]`)
-    if (shopElement) {
-      shopElement.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      })
-    }
-  }, 300) // Wait for DOM update
-}
-
 // Container form handlers
-
 const handleTriggerAddContainer = () => {
   editingContainer.value = null
   showAddContainerForm.value = true
+  window.history.pushState(null, '', window.location.href)
 }
 
 const handleEditContainer = (container) => {
   editingContainer.value = container
   showAddContainerForm.value = true
+  window.history.pushState(null, '', window.location.href)
 }
 
 const handleContainerSaved = async (savedContainer) => {
@@ -437,21 +588,30 @@ const handleContainerFormClose = () => {
 
 // Sync active tab with route changes
 watch(() => route.path, (newPath) => {
-  const pathTab = newPath.split('/')[1] || 'coffee'
+  // Map routes to tabs
+  const routeToTab = {
+    '/': 'coffee',
+    '/coffee': 'coffee',
+    '/containers': 'containers',
+    '/shops': 'shops'
+  }
+  
+  const pathTab = routeToTab[newPath] || newPath.split('/')[1] || 'coffee'
   if (mainTabs.value.some(tab => tab.id === pathTab)) {
     setActiveTab(pathTab)
   }
 }, { immediate: true })
 
 // Close form when navigating away from tabs
-watch(activeTab, (newTab, oldTab) => {
-  if (oldTab === 'coffee' && newTab !== 'coffee') {
+watch(() => route.path, (newPath, oldPath) => {
+  // Close forms when navigating away from the appropriate routes
+  if (oldPath?.startsWith('/coffee') && !newPath.startsWith('/coffee')) {
     handleFormClose()
   }
-  if (oldTab === 'shops' && newTab !== 'shops') {
+  if (oldPath?.startsWith('/shops') && !newPath.startsWith('/shops')) {
     handleShopFormClose()
   }
-  if (oldTab === 'containers' && newTab !== 'containers') {
+  if (oldPath?.startsWith('/containers') && !newPath.startsWith('/containers')) {
     handleContainerFormClose()
   }
 })
@@ -470,123 +630,295 @@ const handlePopState = () => {
 }
 
 onMounted(() => {
-  // Add event listener for browser back button
-  window.addEventListener('popstate', handlePopState)
-  
-  // Initial data fetch
-  fetchCoffees()
-
-  // Back to top listener
+  console.log('AppLayout mounted, setting up event listeners')
   window.addEventListener('scroll', handleScroll)
+  window.addEventListener('popstate', handlePopState)
 })
 
-// Cleanup on unmount
 onUnmounted(() => {
-    window.removeEventListener('scroll', handleScroll)
+  console.log('AppLayout unmounting, cleaning up event listeners')
+  window.removeEventListener('scroll', handleScroll)
   window.removeEventListener('popstate', handlePopState)
+  
+  // Clean up any expand/collapse timers
+  if (expandAllTimer.value) {
+    clearTimeout(expandAllTimer.value)
+  }
 })
 </script>
 
 <style scoped>
-.app-container {
+/* CSS Variables for design system */
+:root {
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --primary-green: #22c55e;
+  --primary-green-hover: #16a34a;
+  --background: #f8fafc;
+  --card-background: #ffffff;
+  --border-light: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --header-height: 80px;
+  --tab-height: 64px;
+  --fab-size: 56px;
+}
+
+.app-layout {
+  font-family: var(--font-family);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--background);
   min-height: 100vh;
-  background-color: var(--background, #f5f5f5);
-  display: flex;
-  flex-direction: column;
+  position: relative;
 }
 
+/* Main layout */
 .main-content {
-  flex: 1;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem;
-  padding-bottom: 6rem;
-  width: 100%;
-  box-sizing: border-box;
-  overflow-x: hidden;
+  min-height: calc(100vh - var(--header-height) - var(--tab-height));
+  background-color: var(--background);
+  position: relative;
+  padding-bottom: 100px; /* Space for FABs */
 }
 
-.main-content > * {
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-/* Mobile responsive for dropdown */
-@media (max-width: 640px) {
-  .shop-dropdown {
-    right: -0.5rem;
-    min-width: 160px;
-  }
-  
-  .dropdown-item {
-    padding: 1rem;
-    font-size: 1rem;
-  }
-  
-  .shop-menu-btn {
-    width: 36px;
-    height: 36px;
-  }
-}
-
-/* Form overlay styling */
-.main-content:has(.coffee-form) {
-  /* When form is present, adjust spacing if needed */
-}
-
-/* Responsive adjustments */
-@media (min-width: 768px) {
-  .main-content {
-    padding: 1.5rem 2rem;
-    padding-bottom: 6rem;
-  }
-}
-
-/* Animation for form appearance */
-.coffee-form {
-  animation: slideInUp 0.3s ease-out;
-}
-
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Back to top */
+/* Back to top button */
 .back-to-top {
   position: fixed;
-  bottom: 2rem;
+  bottom: 4rem;
   left: 2rem;
-  width: 48px;
-  height: 48px;
-  background: var(--card-background, #ffffff);
-  color: var(--text-secondary, #666);
-  border: 1px solid var(--border-light, #e5e5e5);
+  width: var(--fab-size);
+  height: var(--fab-size);
+  background: var(--card-background);
+  color: var(--text-secondary);
+  border: 2px solid var(--primary-green);
   border-radius: 50%;
-  box-shadow: var(--shadow-lg, 0 8px 25px rgba(0, 0, 0, 0.15));
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 40;
+  outline: none;
 }
 
 .back-to-top:hover {
-  color: var(--text-primary, #333);
-  border-color: var(--border-medium, #d1d5db);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg, 0 12px 30px rgba(0, 0, 0, 0.2));
+  color: var(--primary-green);
+  border-color: var(--primary-green);
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+}
+
+.back-to-top:active {
+  transform: scale(0.95);
 }
 
 .back-to-top-icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
+  color: var(--primary-green);
+  transition: transform 0.2s ease;
+}
+
+/* Expand/Collapse All Floating Action Button */
+.expand-collapse-fab {
+  position: fixed;
+  bottom: 10rem;
+  left: 2rem;
+  width: var(--fab-size);
+  height: var(--fab-size);
+  background: var(--card-background);
+  color: var(--text-secondary);
+  border: 2px solid var(--primary-green);
+  border-radius: 50%;
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 45;
+  outline: none;
+}
+
+.expand-collapse-fab--visible {
+  border-color: var(--primary-green);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+}
+
+.expand-collapse-fab--active:hover {
+  color: var(--text-primary);
+  border-color: var(--primary-green);
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+  background: var(--card-background);
+}
+
+.expand-collapse-fab--active:active {
+  transform: scale(0.95);
+}
+
+.expand-collapse-fab--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-color: var(--border-medium);
+  color: var(--text-tertiary);
+}
+
+.expand-collapse-fab--disabled:hover {
+  transform: none !important;
+  border-color: var(--border-medium);
+  color: var(--text-tertiary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.expand-collapse-icon {
+  width: 24px;
+  height: 24px;
+  transition: transform 0.2s ease;
+}
+
+.expand-collapse-fab--active .expand-collapse-icon {
+  color: var(--primary-green);
+}
+
+.expand-collapse-fab--disabled .expand-collapse-icon {
+  color: var(--text-tertiary);
+}
+
+/* Animations */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .expand-collapse-fab {
+    bottom: 8rem;
+    left: 1rem;
+    width: 48px;
+    height: 48px;
+  }
+  
+  .expand-collapse-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .back-to-top {
+    bottom: 3rem;
+    left: 1rem;
+    width: 48px;
+    height: 48px;
+  }
+  
+  .back-to-top-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .expand-collapse-icon,
+  .back-to-top-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .expand-collapse-fab {
+    bottom: 7rem;
+    left: 0.75rem;
+    width: 44px;
+    height: 44px;
+  }
+  
+  .back-to-top {
+    bottom: 2.5rem;
+    left: 0.75rem;
+    width: 44px;
+    height: 44px;
+  }
+  
+  .expand-collapse-icon,
+  .back-to-top-icon {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .expand-collapse-icon {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .expand-collapse-fab {
+    border-width: 2px;
+  }
+  
+  .expand-collapse-fab--active {
+    border-color: var(--primary-green);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .expand-collapse-fab,
+  .back-to-top,
+  .expand-collapse-icon {
+    transition: none;
+  }
+  
+  .expand-collapse-fab--active:hover {
+    transform: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .expand-collapse-fab {
+    background: #374151;
+    border-color: #4b5563;
+    color: #d1d5db;
+  }
+  
+  .expand-collapse-fab--active:hover {
+    background: #4b5563;
+    border-color: var(--primary-green);
+    color: #f3f4f6;
+  }
+  
+  .back-to-top {
+    background: #374151;
+    border-color: var(--primary-green);
+    color: var(--primary-green);
+  }
+  
+  .back-to-top:hover {
+    background: #4b5563;
+    color: var(--primary-green);
+  }
+  
+  .back-to-top-icon {
+    color: var(--primary-green);
+  }
 }
 </style>
