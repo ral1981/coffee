@@ -10,7 +10,7 @@
         'menu-open': activeMenuId === coffee.id
       }"
       :data-coffee-id="coffee.id"
-      @click="toggleCardExpansion(coffee.id)"
+      @click="handleCardClick(coffee)"
     >
       <!-- Header -->
       <div class="card-header">
@@ -47,7 +47,7 @@
             <button 
               type="button" 
               class="menu-item"
-              @click="handleEditCoffee(coffee)"
+              @click.stop="handleEditCoffee(coffee)"
               :disabled="!isLoggedIn"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -60,7 +60,7 @@
             <button 
               type="button" 
               class="menu-item menu-item-danger"
-              @click="handleDeleteCoffee(coffee)"
+              @click.stop="handleDeleteCoffee(coffee)"
               :disabled="!isLoggedIn"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -294,11 +294,22 @@ const closeMenu = () => {
   activeMenuId.value = null
 }
 
-// Same pattern as ContainersCard.vue - just emit the edit event
+// Emit edit event
 const handleEditCoffee = (coffee) => {
   console.log('Edit coffee:', coffee)
   closeMenu()
-  emit('edit-coffee', coffee) // ← Same pattern as containers and shops!
+  emit('edit-coffee', coffee)
+}
+
+// Card click handler
+const handleCardClick = (coffee) => {
+  // Don't expand/collapse if menu is open or if clicking inside menu
+  if (activeMenuId.value === coffee.id) {
+    return
+  }
+  
+  // Normal toggle behavior
+  toggleCardExpansion(coffee.id)
 }
 
 const handleDeleteCoffee = (coffee) => {

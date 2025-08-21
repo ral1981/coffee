@@ -125,7 +125,7 @@
 <script setup>
 console.log('AppLayout script running')
 
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '../layout/AppHeader.vue'
 import TabNavigation from '../layout/TabNavigation.vue'
@@ -181,6 +181,9 @@ const newlyAddedShopId = ref(null)
 const showAddContainerForm = ref(false)
 const editingContainer = ref(null)
 const newlyAddedContainerId = ref(null)
+
+// Track coffee being edited
+const editingCoffeePosition = ref(null)
 
 // Back to top button
 const showBackToTop = ref(false)
@@ -399,9 +402,26 @@ const handleTriggerAddForm = () => {
 }
 
 const handleEditCoffee = (coffee) => {
+  console.log('🎯 Starting edit for coffee:', coffee.name)
+  
+  // Store the coffee being edited and its current scroll position
   editingCoffee.value = coffee
+  editingCoffeePosition.value = {
+    coffeeId: coffee.id,
+    scrollPosition: window.scrollY
+  }
+  
+  // Open the form
   showAddCoffeeForm.value = true
   window.history.pushState(null, '', window.location.href)
+  
+  // Scroll to top of page to show the edit form
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+  
+  console.log('📝 Edit form opened, scrolled to top')
 }
 
 const handleCoffeeSaved = async (savedCoffee) => {
@@ -439,7 +459,7 @@ const handleCoffeeSaved = async (savedCoffee) => {
 }
 
 const handleCoffeeUpdated = async (updatedCoffee) => {
-  console.log('Coffee updated:', updatedCoffee)
+  console.log('✅ Coffee updated:', updatedCoffee.name)
   
   // Refresh the coffee list
   await fetchCoffees()
@@ -449,11 +469,74 @@ const handleCoffeeUpdated = async (updatedCoffee) => {
   
   // Highlight the updated coffee
   highlightCoffee(updatedCoffee.id)
+  
+  // Scroll back to the coffee card after a short delay
+  setTimeout(() => {
+    scrollToCoffeeCard(updatedCoffee.id, 'Coffee updated successfully!')
+  }, 100)
 }
 
 const handleFormClose = () => {
+  console.log('📝 Form closing...')
+  
+  // Store the coffee ID before clearing edit state
+  const coffeeId = editingCoffee.value?.id
+  
+  // Close the form and clear editing state
   showAddCoffeeForm.value = false
   editingCoffee.value = null
+  
+  // If we were editing a coffee and user cancelled, scroll back to it
+  if (coffeeId && editingCoffeePosition.value?.coffeeId === coffeeId) {
+    setTimeout(() => {
+      scrollToCoffeeCard(coffeeId, 'Edit cancelled')
+    }, 100)
+  }
+  
+  // Clear the position reference
+  editingCoffeePosition.value = null
+}
+
+// Utility to scroll to a specific coffee card
+const scrollToCoffeeCard = (coffeeId, message = '') => {
+  console.log('🎯 Scrolling to coffee card:', coffeeId)
+  
+  // Use nextTick to ensure DOM is updated
+  nextTick(() => {
+    // Try multiple selectors to find the coffee card
+    const selectors = [
+      `[data-coffee-id="${coffeeId}"]`,
+      `[data-id="${coffeeId}"]`,
+      `.coffee-card[data-coffee-id="${coffeeId}"]`
+    ]
+    
+    let coffeeElement = null
+    
+    for (const selector of selectors) {
+      coffeeElement = document.querySelector(selector)
+      if (coffeeElement) break
+    }
+    
+    if (coffeeElement) {
+      // Scroll to the coffee card with some offset for better visibility
+      const offset = 100 // Space from top for header/tabs
+      const elementTop = coffeeElement.getBoundingClientRect().top + window.scrollY
+      const scrollToPosition = Math.max(0, elementTop - offset)
+      
+      window.scrollTo({
+        top: scrollToPosition,
+        behavior: 'smooth'
+      })
+      
+      console.log('📍 Scrolled to coffee card:', coffeeId)
+      if (message) {
+        console.log('💬 Message:', message)
+      }
+    } else {
+      console.warn('⚠️ Could not find coffee card element for:', coffeeId)
+      console.log('Available coffee cards:', document.querySelectorAll('[data-coffee-id]'))
+    }
+  })
 }
 
 // Shop form handlers
