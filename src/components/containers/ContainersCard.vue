@@ -6,7 +6,8 @@
       class="container-card"
       :class="{ 
         'highlighted': isHighlighted(container.id),
-        'new-container': isNewlyAdded(container.id) 
+        'new-container': isNewlyAdded(container.id),
+        'menu-open': activeMenuId === container.id
       }"
       :style="{ borderLeftColor: container.color }"
       :data-container-id="container.id"
@@ -50,11 +51,11 @@
               :disabled="!getAssignedCoffee(container.id)"
               :title="getAssignedCoffee(container.id) 
                 ? `View ${getAssignedCoffee(container.id).name}` 
-                : 'No coffee assigned'"
+                : 'Container is empty'"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="21 21l-4.35-4.35"/>
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
               </svg>
               View Coffee
             </button>
@@ -63,10 +64,11 @@
               type="button" 
               class="menu-item"
               @click="handleEditContainer(container)"
+              :disabled="!isLoggedIn"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
               Edit Container
             </button>
@@ -75,10 +77,11 @@
               type="button" 
               class="menu-item menu-item-danger"
               @click="handleDeleteContainer(container)"
+              :disabled="!isLoggedIn"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3,6 5,6 21,6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
                 <line x1="10" y1="11" x2="10" y2="17"/>
                 <line x1="14" y1="11" x2="14" y2="17"/>
               </svg>
@@ -116,6 +119,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCoffeeData } from '../../composables/useCoffeeData'
 import { useToast } from '../../composables/useToast'
+import { useAuth } from '../../composables/useAuth'
 
 // Props
 const props = defineProps({
@@ -130,12 +134,13 @@ const props = defineProps({
   }
 })
 
-// Events
+// Events - Same pattern as ShopsCard.vue
 const emit = defineEmits(['edit-container', 'view-coffee'])
 
 const router = useRouter()
 const { coffees, fetchCoffees } = useCoffeeData()
 const { success, warning, info } = useToast()
+const { isLoggedIn } = useAuth()
 
 // Local state
 const activeMenuId = ref(null)
@@ -213,13 +218,20 @@ const handleViewCoffee = (container) => {
   emit('view-coffee', container)
 }
 
+// Same pattern as ShopsCard.vue - just emit the edit event
 const handleEditContainer = (container) => {
   console.log('Edit container:', container)
   closeMenu()
-  emit('edit-container', container)
+  emit('edit-container', container) // ← Same pattern as shops!
 }
 
 const handleDeleteContainer = async (container) => {
+  if (!isLoggedIn.value) {
+    info('Login required', 'Please log in to delete containers')
+    closeMenu()
+    return
+  }
+
   const assignedCoffee = getAssignedCoffee(container.id)
   
   if (assignedCoffee) {
@@ -239,8 +251,12 @@ const handleDeleteContainer = async (container) => {
   }
 }
 
+// Click outside to close menu
 const handleClickOutside = (event) => {
-  if (!event.target.closest('.menu-container')) {
+  const menuElements = document.querySelectorAll('.menu-container')
+  const isClickInside = Array.from(menuElements).some(el => el.contains(event.target))
+  
+  if (!isClickInside) {
     closeMenu()
   }
 }
@@ -284,11 +300,17 @@ onUnmounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border-left: 4px solid #e5e7eb;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
 }
 
 .container-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
+}
+
+.container-card.menu-open {
+  z-index: 100;
 }
 
 /* Highlighting styles */
@@ -382,7 +404,7 @@ onUnmounted(() => {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border: 1px solid #e5e7eb;
-  min-width: 140px;
+  min-width: 160px;
   z-index: 10;
   overflow: hidden;
 }
@@ -439,14 +461,12 @@ onUnmounted(() => {
   font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
-  display: inline-block;
-  width: fit-content;
+  letter-spacing: 0.05em;
 }
 
 .status-in-use {
-  background: #d1fae5;
-  color: #065f46;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .status-empty {
@@ -455,7 +475,7 @@ onUnmounted(() => {
 }
 
 .contains-section {
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .contains-text {
@@ -464,95 +484,18 @@ onUnmounted(() => {
 }
 
 .coffee-name {
-  font-weight: bold;
+  font-weight: 500;
   color: #374151;
 }
 
-/* Responsive */
+/* Responsive adjustments */
 @media (max-width: 640px) {
-  .containers-list-view {
-    padding: 0 0.5rem;
-  }
-  
-  .container-name {
-    font-size: 1.125rem;
-  }
-
-  .container-icon {
-    width: 40px;
-    height: 40px;
-    margin-right: 0.75rem;
-  }
-
-  .container-dot {
-    width: 20px;
-    height: 20px;
-  }
-
-  .menu-trigger {
-    width: 28px;
-    height: 28px;
-  }
-
-  .menu-dropdown {
-    right: -0.5rem;
-    min-width: 120px;
-  }
-
-  .menu-item {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.8125rem;
-  }
-
-  .status-badge {
-    font-size: 0.6875rem;
-    padding: 0.1875rem 0.625rem;
-  }
-
-  .contains-text {
-    font-size: 0.8125rem;
-  }
-}
-
-/* Reduced Motion */
-@media (prefers-reduced-motion: reduce) {
-  .container-card:hover {
-    transform: none;
-  }
-  
-  .container-card.highlighted,
-  .container-card.new-container {
-    animation: none;
-    transform: none;
-  }
-}
-
-/* Focus states for accessibility */
-.menu-trigger:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-.menu-item:focus {
-  background: #f3f4f6;
-  outline: none;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
   .container-card {
-    border: 2px solid #000;
+    padding: 1rem;
   }
   
-  .status-in-use {
-    background: #000;
-    color: #fff;
-  }
-  
-  .status-empty {
-    background: #fff;
-    color: #000;
-    border: 1px solid #000;
+  .container-header {
+    margin-bottom: 1rem;
   }
 }
 </style>

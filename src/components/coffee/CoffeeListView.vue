@@ -64,6 +64,7 @@
       :highlighted-coffee-id="highlightedCoffeeId"
       @card-expand="toggleCardExpansion"
       @card-action="handleCardAction"
+      @edit-coffee="$emit('edit-coffee', $event)"
       @container-assignment-changed="handleContainerAssignment"
     />
 
