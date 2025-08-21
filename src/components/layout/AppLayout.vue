@@ -182,8 +182,9 @@ const showAddContainerForm = ref(false)
 const editingContainer = ref(null)
 const newlyAddedContainerId = ref(null)
 
-// Track coffee being edited
+// Track card being edited
 const editingCoffeePosition = ref(null)
+const editingContainerPosition = ref(null)
 
 // Back to top button
 const showBackToTop = ref(false)
@@ -612,9 +613,26 @@ const handleTriggerAddContainer = () => {
 }
 
 const handleEditContainer = (container) => {
+  console.log('🎯 Starting edit for container:', container.name)
+  
+  // Store the container being edited and its current scroll position
   editingContainer.value = container
+  editingContainerPosition.value = {
+    containerId: container.id,
+    scrollPosition: window.scrollY
+  }
+  
+  // Open the form
   showAddContainerForm.value = true
   window.history.pushState(null, '', window.location.href)
+  
+  // Scroll to top of page to show the edit form
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+  
+  console.log('📝 Container edit form opened, scrolled to top')
 }
 
 const handleContainerSaved = async (savedContainer) => {
@@ -652,7 +670,7 @@ const handleContainerSaved = async (savedContainer) => {
 }
 
 const handleContainerUpdated = async (updatedContainer) => {
-  console.log('Container updated:', updatedContainer)
+  console.log('✅ Container updated:', updatedContainer.name)
   
   // Refresh the containers list
   await fetchContainers()
@@ -662,11 +680,73 @@ const handleContainerUpdated = async (updatedContainer) => {
   
   // Highlight the updated container
   highlightContainer(updatedContainer.id)
+  
+  // Scroll back to the container card after a short delay
+  setTimeout(() => {
+    scrollToContainerCard(updatedContainer.id, 'Container updated successfully!')
+  }, 100)
 }
 
 const handleContainerFormClose = () => {
+  console.log('📝 Container form closing...')
+  
+  // Store the container ID before clearing edit state
+  const containerId = editingContainer.value?.id
+  
+  // Close the form and clear editing state
   showAddContainerForm.value = false
   editingContainer.value = null
+  
+  // If we were editing a container and user cancelled, scroll back to it
+  if (containerId && editingContainerPosition.value?.containerId === containerId) {
+    setTimeout(() => {
+      scrollToContainerCard(containerId, 'Edit cancelled')
+    }, 100)
+  }
+  
+  // Clear the position reference
+  editingContainerPosition.value = null
+}
+
+const scrollToContainerCard = (containerId, message = '') => {
+  console.log('🎯 Scrolling to container card:', containerId)
+  
+  // Use nextTick to ensure DOM is updated
+  nextTick(() => {
+    // Try multiple selectors to find the container card
+    const selectors = [
+      `[data-container-id="${containerId}"]`,
+      `[data-id="${containerId}"]`,
+      `.container-card[data-container-id="${containerId}"]`
+    ]
+    
+    let containerElement = null
+    
+    for (const selector of selectors) {
+      containerElement = document.querySelector(selector)
+      if (containerElement) break
+    }
+    
+    if (containerElement) {
+      // Scroll to the container card with some offset for better visibility
+      const offset = 100 // Space from top for header/tabs
+      const elementTop = containerElement.getBoundingClientRect().top + window.scrollY
+      const scrollToPosition = Math.max(0, elementTop - offset)
+      
+      window.scrollTo({
+        top: scrollToPosition,
+        behavior: 'smooth'
+      })
+      
+      console.log('📍 Scrolled to container card:', containerId)
+      if (message) {
+        console.log('💬 Message:', message)
+      }
+    } else {
+      console.warn('⚠️ Could not find container card element for:', containerId)
+      console.log('Available container cards:', document.querySelectorAll('[data-container-id]'))
+    }
+  })
 }
 
 // Sync active tab with route changes

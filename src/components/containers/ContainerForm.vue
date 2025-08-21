@@ -1,157 +1,146 @@
 <template>
-  <div class="container-form-overlay">
-    <div class="container-form">
-      <!-- Header -->
-      <div class="form-header">
-        <div class="header-left">
-          <div class="form-icon">
-            <Package class="icon" />
+  <div class="container-form">
+    <!-- Header -->
+    <div class="form-header">
+      <div class="header-left">
+        <div class="form-icon">
+          <Package class="icon" />
+        </div>
+        <div class="header-text">
+          <h2 class="form-title">
+            {{ mode === 'edit' ? 'Edit Container' : 'Add New Container' }}
+          </h2>
+          <p class="form-subtitle">
+            {{ mode === 'edit' ? 'Update your container details' : 'Create a custom container to organize your coffee collection' }}
+          </p>
+        </div>
+      </div>
+      <button type="button" @click="handleCancel" class="close-btn">
+        <X :size="20" />
+      </button>
+    </div>
+
+    <!-- Form Content -->
+    <form @submit.prevent="handleSubmit" class="form-content">
+      <div class="form-section">
+        <h3 class="section-title">Container Details</h3>
+        
+        <!-- Container Name -->
+        <div class="form-group">
+          <label for="container-name" class="form-label">
+            Container Name <span class="required">*</span>
+          </label>
+          <input
+            id="container-name"
+            v-model="form.name"
+            type="text"
+            class="form-input"
+            :class="{ 'error': validationErrors.name }"
+            placeholder="Enter container name"
+            maxlength="100"
+            :disabled="loading"
+          />
+          <div v-if="validationErrors.name" class="error-message">
+            {{ validationErrors.name }}
           </div>
-          <div>
-            <h2 class="form-title">Add New Container</h2>
-            <p class="form-subtitle">Create a custom container to organize your coffee collection</p>
+          <div v-else class="form-hint">
+            Choose a memorable name for your container
           </div>
         </div>
-        <button 
-          @click="handleCancel"
-          class="close-btn"
-          type="button"
-          aria-label="Close form"
-        >
-          <X :size="20" />
-        </button>
+
+        <!-- Container Color -->
+        <div class="form-group">
+          <label for="container-color" class="form-label">
+            Container Color <span class="required">*</span>
+          </label>
+          
+          <div class="color-input-section">
+            <div class="color-preview" :style="{ backgroundColor: form.color }"></div>
+            <input
+              id="container-color"
+              v-model="form.color"
+              type="text"
+              class="form-input color-input"
+              :class="{ 'error': validationErrors.color }"
+              placeholder="#ef4444"
+              pattern="^#[0-9A-Fa-f]{6}$"
+              maxlength="7"
+              :disabled="loading"
+            />
+          </div>
+          
+          <div v-if="validationErrors.color" class="error-message">
+            {{ validationErrors.color }}
+          </div>
+          <div v-else class="form-hint">
+            Enter a hex color code or use the color picker
+          </div>
+          
+          <!-- Preset Colors -->
+          <div class="preset-colors-section">
+            <label class="preset-label">Or choose a preset color:</label>
+            <div class="preset-colors">
+              <button
+                v-for="color in presetColors"
+                :key="color"
+                type="button"
+                class="color-preset"
+                :class="{ 'selected': form.color === color }"
+                :style="{ backgroundColor: color }"
+                @click="selectColor(color)"
+                :disabled="loading"
+                :title="`Select ${color}`"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Form Content -->
-      <form @submit.prevent="handleSubmit" class="form-content">
-        <div class="form-section">
-          <h3 class="section-title">Container Details</h3>
-          
-          <!-- Container Name -->
-          <div class="form-group">
-            <label for="container-name" class="form-label">
-              Container Name <span class="required">*</span>
-            </label>
-            <input
-              id="container-name"
-              v-model="form.name"
-              type="text"
-              class="form-input"
-              placeholder="Enter container name (e.g., Blue, Premium, Daily Brew)"
-              :disabled="loading"
-              required
-            />
-            <div class="form-hint">
-              Choose a memorable name for your container
-            </div>
-            <div v-if="validationErrors.name" class="error-message">
-              {{ validationErrors.name }}
-            </div>
-          </div>
-
-          <!-- Container Color -->
-          <div class="form-group">
-            <label class="form-label">
-              Container Color <span class="required">*</span>
-            </label>
-            
-            <!-- Color Picker Input -->
-            <div class="color-input-section">
-              <div class="color-preview" :style="{ backgroundColor: form.color }"></div>
-              <input
-                v-model="form.color"
-                type="text"
-                class="color-input"
-                placeholder="#3b82f6"
-                :disabled="loading"
-                pattern="^#[0-9A-Fa-f]{6}$"
-              />
-              <div class="color-input-hint">
-                Enter a hex color code or use the color picker
-              </div>
-            </div>
-
-            <!-- Preset Colors -->
-            <div class="preset-colors-section">
-              <div class="preset-label">Or choose a preset color:</div>
-              <div class="preset-colors">
-                <button
-                  v-for="color in presetColors"
-                  :key="color.hex"
-                  type="button"
-                  class="color-preset"
-                  :class="{ active: form.color === color.hex }"
-                  :style="{ backgroundColor: color.hex }"
-                  :title="color.name"
-                  @click="selectColor(color.hex)"
-                >
-                </button>
-              </div>
-            </div>
-            
-            <div v-if="validationErrors.color" class="error-message">
-              {{ validationErrors.color }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Preview Section -->
+      <!-- Preview Section -->
+      <div class="form-section">
+        <h3 class="section-title">Preview</h3>
         <div class="preview-section">
-          <h3 class="section-title">Preview</h3>
-          
-          <div class="preview-card">
-            <div class="preview-label">Coffee card highlight:</div>
-            <div 
-              class="preview-highlight"
-              :style="{ borderLeftColor: form.color + ' !important' }"
-            >
-              <div class="highlight-dot" :style="{ backgroundColor: form.color }"></div>
-              <span class="highlight-text">{{ form.name || 'Container Name' }} Coffee Highlight</span>
-            </div>
-            
-            <div class="preview-label">Filter tag:</div>
-            <div 
-              class="preview-tag"
-              :style="{ 
-                backgroundColor: `${form.color}20 !important`, 
-                borderColor: form.color + ' !important' 
-              }"
-            >
+          <label class="preview-label">Coffee card highlight:</label>
+          <div 
+            class="preview-tag-container"
+            :style="{ '--highlight-color': form.color, borderLeftColor: form.color }"
+          >
+            <div class="preview-tag">
               <div class="tag-dot" :style="{ backgroundColor: form.color }"></div>
-              <span class="tag-text">{{ form.name || 'Container' }}</span>
+              <span class="tag-text" :style="{ color: form.color }">{{ form.name || 'Container' }} Coffee Highlight</span>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Form Actions -->
-        <div class="form-actions">
-          <button
-            type="button"
-            @click="handleCancel"
-            class="btn btn-secondary"
-            :disabled="loading"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            :disabled="!isFormValid || loading"
-          >
-            <div v-if="loading" class="btn-spinner">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.25"/>
-                <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <span v-else>
-              <Check class="btn-icon" />
-              Save
-            </span>
-          </button>
-        </div>
-      </form>
-    </div>
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button
+          type="button"
+          @click="handleCancel"
+          class="btn btn-secondary"
+          :disabled="loading"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          :disabled="!isFormValid || loading"
+        >
+          <div v-if="loading" class="btn-spinner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.25"/>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span v-else>
+            <Check class="btn-icon" />
+            {{ mode === 'edit' ? 'Update Container' : 'Add Container' }}
+          </span>
+        </button>
+      </div>
+    </form>
   </div>
 </template>
 
@@ -194,8 +183,23 @@ const form = ref({
 const loading = ref(false)
 const validationErrors = ref({})
 
-// Preset colors from composable
-const presetColors = ref(containerPresetColors)
+// Preset colors - hardcoded array to ensure they always load
+const presetColors = ref([
+  '#3b82f6', // Blue
+  '#10b981', // Emerald
+  '#8b5cf6', // Violet
+  '#f59e0b', // Amber
+  '#ef4444', // Red
+  '#f97316', // Orange
+  '#06b6d4', // Cyan
+  '#84cc16', // Lime
+  '#ec4899', // Pink
+  '#22c55e', // Green
+  '#6366f1', // Indigo
+  '#a855f7', // Purple
+  '#0ea5e9', // Sky
+  '#6b7280'  // Gray
+])
 
 // Computed properties
 const isFormValid = computed(() => {
@@ -311,27 +315,15 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.container-form-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 1rem;
-  overflow-y: auto;
-}
-
+/* Remove overlay styles, make form inline like CoffeeForm */
 .container-form {
   background: white;
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   width: 100%;
   max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  margin: 2rem 0;
+  margin: 0 auto;
+  overflow: hidden;
 }
 
 /* Header */
@@ -454,6 +446,10 @@ onMounted(() => {
   opacity: 0.6;
 }
 
+.form-input.error {
+  border-color: #ef4444;
+}
+
 .form-hint {
   font-size: 0.8125rem;
   color: #6b7280;
@@ -486,15 +482,8 @@ onMounted(() => {
 .color-input {
   flex: 1;
   padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.875rem;
   font-family: monospace;
-}
-
-.color-input-hint {
-  font-size: 0.75rem;
-  color: #6b7280;
+  text-transform: uppercase;
 }
 
 /* Preset Colors */
@@ -503,6 +492,7 @@ onMounted(() => {
 }
 
 .preset-label {
+  display: block;
   font-size: 0.875rem;
   color: #6b7280;
   margin-bottom: 0.75rem;
@@ -515,8 +505,8 @@ onMounted(() => {
 }
 
 .color-preset {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
   border: 2px solid transparent;
   cursor: pointer;
@@ -526,69 +516,66 @@ onMounted(() => {
 
 .color-preset:hover {
   transform: scale(1.1);
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-color: #d1d5db;
 }
 
-.color-preset.active {
-  border-color: #ffffff;
-  box-shadow: 0 0 0 2px #8b5cf6;
-  transform: scale(1.05);
+.color-preset.selected {
+  border-color: #374151;
+  transform: scale(1.1);
+}
+
+.color-preset.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
 }
 
 /* Preview Section */
 .preview-section {
-  background: #f8f9fa;
-  border-radius: 12px;
   padding: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.preview-card {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
 }
 
 .preview-label {
+  display: block;
   font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
+  color: #6b7280;
+  margin-bottom: 1rem;
 }
 
-.preview-highlight {
+.preview-tag-container {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid var(--highlight-color, #ef4444);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: white;
-  border-radius: 8px;
-  border-left: 4px solid #3b82f6; /* Default fallback */
+  gap: 0.75rem;
+  position: relative;
 }
 
-.highlight-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.highlight-text {
-  font-size: 0.875rem;
-  color: #374151;
-  font-weight: 500;
+.highlight-bar {
+  display: none; /* Hide since we're using border-left instead */
 }
 
 .preview-tag {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: rgba(59, 130, 246, 0.1); /* Default fallback */
-  border: 2px solid #3b82f6; /* Default fallback */
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #e5e7eb;
   border-radius: 20px;
+  background: white;
   font-size: 0.875rem;
-  width: fit-content;
 }
 
 .tag-dot {
@@ -599,7 +586,6 @@ onMounted(() => {
 }
 
 .tag-text {
-  color: #3b82f6; /* Default fallback */
   font-weight: 500;
 }
 
@@ -674,13 +660,9 @@ onMounted(() => {
 
 /* Responsive Design */
 @media (max-width: 640px) {
-  .container-form-overlay {
-    padding: 0.5rem;
-  }
-  
   .container-form {
     border-radius: 12px;
-    margin: 1rem 0;
+    margin: 0;
   }
   
   .form-header {
