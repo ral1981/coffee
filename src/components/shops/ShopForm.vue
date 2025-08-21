@@ -1,118 +1,116 @@
 <template>
-  <div class="shop-form-container">
-    <div class="shop-form">
-      <!-- Header -->
-      <div class="form-header">
-        <h2 class="form-title">
-          {{ mode === 'add' ? 'Add New Shop' : 'Edit Shop' }}
-        </h2>
-        <button 
-          @click="handleCancel"
-          class="close-btn"
-          type="button"
-          aria-label="Close form"
-        >
-          <X :size="20" />
-        </button>
+  <div class="shop-form">
+    <!-- Form Header -->
+    <div class="form-header">
+      <div class="header-left">
+        <div class="form-icon">
+          <Store class="icon" />
+        </div>
+        <div>
+          <h2 class="form-title">{{ mode === 'add' ? 'Add New Shop' : 'Edit Shop' }}</h2>
+          <p class="form-subtitle">{{ mode === 'add' ? 'Add a new coffee shop' : 'Update shop information' }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Content -->
+    <form @submit.prevent="handleSubmit" class="form-content">
+      <!-- Shop Name -->
+      <div class="form-group">
+        <label for="shop-name" class="form-label">
+          Shop Name <span class="required">*</span>
+        </label>
+        <input
+          id="shop-name"
+          v-model="form.name"
+          type="text"
+          class="form-input"
+          :class="{ 'form-input--error': validationErrors.name }"
+          placeholder="e.g., Blue Bottle Coffee"
+          :disabled="loading"
+          required
+        />
+        <div v-if="validationErrors.name" class="error-message">
+          {{ validationErrors.name }}
+        </div>
       </div>
 
-      <!-- Form Content -->
-      <form @submit.prevent="handleSubmit" class="form-content">
-        <!-- Shop Name -->
-        <div class="form-group">
-          <label for="shop-name" class="form-label">
-            Shop Name <span class="required">*</span>
-          </label>
-          <input
-            id="shop-name"
-            v-model="form.name"
-            type="text"
-            class="form-input"
-            placeholder="e.g., Blue Bottle Coffee"
-            :disabled="loading"
-            required
+      <!-- Shop URL -->
+      <div class="form-group">
+        <label for="shop-url" class="form-label">
+          Website URL <span class="required">*</span>
+        </label>
+        <input
+          id="shop-url"
+          v-model="form.url"
+          type="url"
+          class="form-input"
+          :class="{ 'form-input--error': validationErrors.url }"
+          placeholder="e.g., https://bluebottlecoffee.com"
+          :disabled="loading"
+          required
+        />
+        <div class="form-hint">
+          The website URL will be used to automatically fetch the shop logo
+        </div>
+        <div v-if="validationErrors.url" class="error-message">
+          {{ validationErrors.url }}
+        </div>
+      </div>
+
+      <!-- Logo Preview -->
+      <div v-if="form.url && validUrl(form.url)" class="form-group">
+        <div class="logo-preview-label">Logo Preview</div>
+        <div class="logo-preview">
+          <LogoImage
+            :url="form.url"
+            :custom-logo="form.logo"
+            :size="64"
+            alt="Shop logo preview"
+            class-name="rounded-lg"
           />
-          <div v-if="validationErrors.name" class="error-message">
-            {{ validationErrors.name }}
-          </div>
-        </div>
-
-        <!-- Shop URL -->
-        <div class="form-group">
-          <label for="shop-url" class="form-label">
-            Website URL <span class="required">*</span>
-          </label>
-          <input
-            id="shop-url"
-            v-model="form.url"
-            type="url"
-            class="form-input"
-            placeholder="e.g., https://bluebottlecoffee.com"
-            :disabled="loading"
-            required
-          />
-          <div class="form-hint">
-            The website URL will be used to automatically fetch the shop logo
-          </div>
-          <div v-if="validationErrors.url" class="error-message">
-            {{ validationErrors.url }}
-          </div>
-        </div>
-
-        <!-- Logo Preview -->
-        <div v-if="form.url && validUrl(form.url)" class="form-group">
-          <div class="logo-preview-label">Logo Preview</div>
-          <div class="logo-preview">
-            <LogoImage
-              :url="form.url"
-              :custom-logo="form.logo"
-              :size="64"
-              alt="Shop logo preview"
-              class-name="rounded-lg"
-            />
-            <div class="logo-info">
-              <div class="logo-text">
-                Logo will be automatically fetched from the website
-              </div>
-              <div class="logo-domain">{{ getDomain(form.url) }}</div>
+          <div class="logo-info">
+            <div class="logo-text">
+              Logo will be automatically fetched from the website
             </div>
+            <div class="logo-domain">{{ getDomain(form.url) }}</div>
           </div>
         </div>
+      </div>
 
-        <!-- Form Actions -->
-        <div class="form-actions">
-          <button
-            type="button"
-            @click="handleCancel"
-            class="btn btn-secondary"
-            :disabled="loading"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            :disabled="!isFormValid || loading"
-          >
-            <div v-if="loading" class="btn-spinner">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.25"/>
-                <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <span v-else>
-              {{ mode === 'add' ? 'Add Shop' : 'Update Shop' }}
-            </span>
-          </button>
-        </div>
-      </form>
-    </div>
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button
+          type="button"
+          @click="handleCancel"
+          class="btn btn-secondary"
+          :disabled="loading"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          :disabled="!isFormValid || loading"
+        >
+          <div v-if="loading" class="btn-spinner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.25"/>
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span v-else>
+            {{ mode === 'add' ? 'Add Shop' : 'Update Shop' }}
+          </span>
+        </button>
+      </div>
+    </form>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { X } from 'lucide-vue-next'
+import { Store } from 'lucide-vue-next'
 import LogoImage from '../shared/LogoImage.vue'
 import { useShopForm } from '../../composables/useShopForm'
 import { useToast } from '../../composables/useToast'
@@ -235,75 +233,64 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.shop-form-container {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-
+/* Remove overlay styles - make form inline like CoffeeForm and ContainerForm */
 .shop-form {
   background: white;
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: slideInUp 0.3s ease-out;
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+  overflow: hidden;
 }
 
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
+/* Header - updated to match CoffeeForm/ContainerForm pattern */
 .form-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 1.5rem 1.5rem 0 1.5rem;
-  margin-bottom: 1.5rem;
+  padding: 2rem 2rem 1rem 2rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.header-left {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+}
+
+.form-icon {
+  background: #8b5cf6;
+  border-radius: 12px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  color: white;
 }
 
 .form-title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1f2937;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+}
+
+.form-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
   margin: 0;
 }
 
-.close-btn {
-  background: #f3f4f6;
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #6b7280;
-}
-
-.close-btn:hover {
-  background: #e5e7eb;
-  color: #374151;
-}
-
+/* Content */
 .form-content {
-  padding: 0 1.5rem 1.5rem 1.5rem;
+  padding: 1rem 2rem 2rem 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -338,6 +325,10 @@ onMounted(() => {
   outline: none;
   border-color: var(--primary-green, #22c55e);
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.form-input--error {
+  border-color: #ef4444;
 }
 
 .form-input:disabled {
@@ -415,6 +406,7 @@ onMounted(() => {
   transition: all 0.2s;
   min-width: 100px;
   min-height: 44px;
+  border: none;
 }
 
 .btn:disabled {
@@ -442,7 +434,6 @@ onMounted(() => {
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-green-hover, #16a34a);
   border-color: var(--primary-green-hover, #16a34a);
-  transform: translateY(-1px);
 }
 
 .btn-spinner {
@@ -454,37 +445,52 @@ onMounted(() => {
   to { transform: rotate(360deg); }
 }
 
-/* Responsive */
-@media (max-width: 640px) {
-  .shop-form-container {
-    padding: 0.5rem;
-  }
-  
+/* Responsive Design */
+@media (max-width: 768px) {
   .form-header {
-    padding: 1rem 1rem 0 1rem;
-    margin-bottom: 1rem;
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
   }
-  
+
+  .form-content {
+    padding: 1rem 1.5rem 1.5rem 1.5rem;
+  }
+
+  .header-left {
+    gap: 0.75rem;
+  }
+
   .form-title {
     font-size: 1.25rem;
   }
-  
-  .form-content {
-    padding: 0 1rem 1rem 1rem;
+
+  .form-actions {
+    flex-direction: column;
   }
-  
+
+  .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .shop-form {
+    border-radius: 12px;
+    margin: 0 auto 1rem auto;
+  }
+
+  .form-header {
+    padding: 1rem;
+  }
+
+  .form-content {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
   .logo-preview {
     flex-direction: column;
     text-align: center;
     gap: 0.75rem;
-  }
-  
-  .form-actions {
-    flex-direction: column-reverse;
-  }
-  
-  .btn {
-    width: 100%;
   }
 }
 
@@ -497,16 +503,6 @@ onMounted(() => {
   
   .form-title {
     color: #f9fafb;
-  }
-  
-  .close-btn {
-    background: #374151;
-    color: #9ca3af;
-  }
-  
-  .close-btn:hover {
-    background: #4b5563;
-    color: #d1d5db;
   }
   
   .form-label {

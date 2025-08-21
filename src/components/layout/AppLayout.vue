@@ -184,6 +184,7 @@ const newlyAddedContainerId = ref(null)
 
 // Track card being edited
 const editingCoffeePosition = ref(null)
+const editingShopPosition = ref(null)  // Added for shop navigation
 const editingContainerPosition = ref(null)
 
 // Back to top button
@@ -226,88 +227,52 @@ const showExpandCollapseButton = computed(() => {
 const allExpanded = computed(() => {
   if (!hasExpandableCards.value) return false
   
-  const relevantCards = getCurrentTabCards()
-  if (relevantCards.length === 0) return false
+  let items = []
+  if (route.path.startsWith('/coffee') || route.path === '/') {
+    items = filteredCoffees.value || []
+  } else if (route.path.startsWith('/containers')) {
+    items = containers.value || []
+  }
   
-  return relevantCards.every(card => expandedCards.value.has(card.id))
+  return items.length > 0 && items.every(item => expandedCards.value.has(item.id))
 })
 
-const getCurrentTabCards = () => {
-  // Get cards based on the current route/tab
-  switch (route.path) {
-    case '/coffee':
-    case '/':
-      return filteredCoffees.value || []
-    case '/containers':
-      return containers.value || []
-    case '/shops':
-      // Shops typically don't have expandable cards
-      return []
-    default:
-      // Handle nested routes
-      if (route.path.startsWith('/coffee')) {
-        return filteredCoffees.value || []
-      } else if (route.path.startsWith('/containers')) {
-        return containers.value || []
-      } else if (route.path.startsWith('/shops')) {
-        return []
-      }
-      return []
-  }
+// Handle scroll for back to top button
+const handleScroll = () => {
+  showBackToTop.value = window.scrollY > 300
 }
 
 // Expand/Collapse All functionality
 const toggleExpandAll = () => {
-  if (!hasExpandableCards.value) return
+  let items = []
   
-  const relevantCards = getCurrentTabCards()
-  if (relevantCards.length === 0) return
-  
-  // Clear any existing timer
-  if (expandAllTimer.value) {
-    clearTimeout(expandAllTimer.value)
-    expandAllTimer.value = null
+  if (route.path.startsWith('/coffee') || route.path === '/') {
+    items = filteredCoffees.value || []
+  } else if (route.path.startsWith('/containers')) {
+    items = containers.value || []
   }
   
-  if (allExpanded.value) {
-    // Collapse all cards
-    collapseAllCards(relevantCards)
+  if (items.length === 0) return
+  
+  const shouldExpand = !allExpanded.value
+  
+  if (shouldExpand) {
+    // Expand all cards with staggered animation
+    items.forEach((item, index) => {
+      setTimeout(() => {
+        if (!expandedCards.value.has(item.id)) {
+          toggleCardExpansion(item.id)
+        }
+      }, index * 50) // 50ms delay between each card
+    })
   } else {
-    // Expand all cards
-    expandAllCards(relevantCards)
+    // Collapse all cards immediately
+    items.forEach(item => {
+      if (expandedCards.value.has(item.id)) {
+        toggleCardExpansion(item.id)
+      }
+    })
   }
-}
-
-const expandAllCards = (cards) => {
-  let delay = 0
-  const increment = 50 // 50ms delay between each card
-  
-  cards.forEach((card, index) => {
-    setTimeout(() => {
-      if (!expandedCards.value.has(card.id)) {
-        toggleCardExpansion(card.id)
-      }
-    }, delay)
-    delay += increment
-  })
-}
-
-const collapseAllCards = (cards) => {
-  let delay = 0
-  const increment = 30 // Faster collapse
-  
-  cards.forEach((card, index) => {
-    setTimeout(() => {
-      if (expandedCards.value.has(card.id)) {
-        toggleCardExpansion(card.id)
-      }
-    }, delay)
-    delay += increment
-  })
-}
-
-const handleScroll = () => {
-  showBackToTop.value = window.scrollY > 200
 }
 
 const scrollToTop = () => {
@@ -548,9 +513,26 @@ const handleTriggerAddShop = () => {
 }
 
 const handleEditShop = (shop) => {
+  console.log('🎯 Starting edit for shop:', shop.name)
+  
+  // Store the shop being edited and its current scroll position
   editingShop.value = shop
+  editingShopPosition.value = {
+    shopId: shop.bean_url, // Use bean_url as the identifier for shops
+    scrollPosition: window.scrollY
+  }
+  
+  // Open the form
   showAddShopForm.value = true
   window.history.pushState(null, '', window.location.href)
+  
+  // Scroll to top of page to show the edit form
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+  
+  console.log('📝 Shop edit form opened, scrolled to top')
 }
 
 const handleShopSaved = async (savedShop) => {
@@ -588,7 +570,7 @@ const handleShopSaved = async (savedShop) => {
 }
 
 const handleShopUpdated = async (updatedShop) => {
-  console.log('Shop updated:', updatedShop)
+  console.log('✅ Shop updated:', updatedShop.name)
   
   // Refresh the shops list
   await fetchShops()
@@ -598,11 +580,75 @@ const handleShopUpdated = async (updatedShop) => {
   
   // Highlight the updated shop
   highlightShop(updatedShop.bean_url)
+  
+  // Scroll back to the shop card after a short delay
+  setTimeout(() => {
+    scrollToShopCard(updatedShop.bean_url, 'Shop updated successfully!')
+  }, 100)
 }
 
 const handleShopFormClose = () => {
+  console.log('📝 Shop form closing...')
+  
+  // Store the shop ID before clearing edit state
+  const shopId = editingShop.value?.bean_url
+  
+  // Close the form and clear editing state
   showAddShopForm.value = false
   editingShop.value = null
+  
+  // If we were editing a shop and user cancelled, scroll back to it
+  if (shopId && editingShopPosition.value?.shopId === shopId) {
+    setTimeout(() => {
+      scrollToShopCard(shopId, 'Edit cancelled')
+    }, 100)
+  }
+  
+  // Clear the position reference
+  editingShopPosition.value = null
+}
+
+// New utility function to scroll to a specific shop card
+const scrollToShopCard = (shopId, message = '') => {
+  console.log('🎯 Scrolling to shop card:', shopId)
+  
+  // Use nextTick to ensure DOM is updated
+  nextTick(() => {
+    // Try multiple selectors to find the shop card
+    const selectors = [
+      `[data-shop-id="${shopId}"]`,
+      `[data-bean-url="${shopId}"]`,
+      `[data-id="${shopId}"]`,
+      `.shop-card[data-shop-id="${shopId}"]`
+    ]
+    
+    let shopElement = null
+    
+    for (const selector of selectors) {
+      shopElement = document.querySelector(selector)
+      if (shopElement) break
+    }
+    
+    if (shopElement) {
+      // Scroll to the shop card with some offset for better visibility
+      const offset = 100 // Space from top for header/tabs
+      const elementTop = shopElement.getBoundingClientRect().top + window.scrollY
+      const scrollToPosition = Math.max(0, elementTop - offset)
+      
+      window.scrollTo({
+        top: scrollToPosition,
+        behavior: 'smooth'
+      })
+      
+      console.log('📍 Scrolled to shop card:', shopId)
+      if (message) {
+        console.log('💬 Message:', message)
+      }
+    } else {
+      console.warn('⚠️ Could not find shop card element for:', shopId)
+      console.log('Available shop cards:', document.querySelectorAll('[data-shop-id]'))
+    }
+  })
 }
 
 // Container form handlers
@@ -672,7 +718,7 @@ const handleContainerSaved = async (savedContainer) => {
 const handleContainerUpdated = async (updatedContainer) => {
   console.log('✅ Container updated:', updatedContainer.name)
   
-  // Refresh the containers list
+  // Refresh the container list
   await fetchContainers()
   
   // Close the form
@@ -813,275 +859,221 @@ onUnmounted(() => {
 <style scoped>
 /* CSS Variables for design system */
 :root {
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --header-height: 72px;
+  --tab-height: 60px;
+  --fab-size: 56px;
+  --border-radius-sm: 8px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 20px;
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  
+  /* Colors */
   --primary-green: #22c55e;
   --primary-green-hover: #16a34a;
   --background: #f8fafc;
   --card-background: #ffffff;
-  --border-light: #e2e8f0;
-  --border-medium: #cbd5e1;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --text-tertiary: #94a3b8;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --header-height: 80px;
-  --tab-height: 64px;
-  --fab-size: 56px;
+  --border-light: #f1f5f9;
+  --border-medium: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
 }
 
+/* Layout */
 .app-layout {
-  font-family: var(--font-family);
-  line-height: 1.6;
-  color: var(--text-primary);
-  background-color: var(--background);
   min-height: 100vh;
-  position: relative;
+  background-color: var(--background);
+  font-family: var(--font-family);
 }
 
-/* Main layout */
 .main-content {
+  padding-top: calc(var(--header-height) + var(--tab-height));
   min-height: calc(100vh - var(--header-height) - var(--tab-height));
-  background-color: var(--background);
-  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: var(--spacing-lg);
+  padding-right: var(--spacing-lg);
   padding-bottom: 100px; /* Space for FABs */
 }
 
-/* Back to top button */
+/* Back to Top Button */
 .back-to-top {
   position: fixed;
-  bottom: 4rem;
-  left: 2rem;
-  width: var(--fab-size);
-  height: var(--fab-size);
+  bottom: 6rem;
+  right: 1.5rem;
+  width: 48px;
+  height: 48px;
   background: var(--card-background);
-  color: var(--text-secondary);
-  border: 2px solid var(--primary-green);
+  border: 2px solid var(--border-medium);
   border-radius: 50%;
-  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.3s ease;
   z-index: 40;
-  outline: none;
 }
 
 .back-to-top:hover {
-  color: var(--primary-green);
-  border-color: var(--primary-green);
-  transform: scale(1.1);
-  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
-}
-
-.back-to-top:active {
-  transform: scale(0.95);
+  background: var(--background);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
 }
 
 .back-to-top-icon {
-  width: 24px;
-  height: 24px;
-  color: var(--primary-green);
-  transition: transform 0.2s ease;
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
 }
 
-/* Expand/Collapse All Floating Action Button */
+/* Expand/Collapse All Button */
 .expand-collapse-fab {
   position: fixed;
-  bottom: 10rem;
-  left: 2rem;
-  width: var(--fab-size);
-  height: var(--fab-size);
+  bottom: 1.5rem;
+  left: 1.5rem;
+  width: 48px;
+  height: 48px;
   background: var(--card-background);
-  color: var(--text-secondary);
-  border: 2px solid var(--primary-green);
+  border: 2px solid var(--border-medium);
   border-radius: 50%;
-  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 45;
-  outline: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.3s ease;
+  z-index: 40;
 }
 
-.expand-collapse-fab--visible {
-  border-color: var(--primary-green);
-  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
-}
-
-.expand-collapse-fab--active:hover {
-  color: var(--text-primary);
-  border-color: var(--primary-green);
-  transform: scale(1.1);
-  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
-  background: var(--card-background);
-}
-
-.expand-collapse-fab--active:active {
-  transform: scale(0.95);
+.expand-collapse-fab:hover:not(.expand-collapse-fab--disabled) {
+  background: var(--background);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl);
 }
 
 .expand-collapse-fab--disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-color: var(--border-medium);
-  color: var(--text-tertiary);
 }
 
-.expand-collapse-fab--disabled:hover {
-  transform: none !important;
-  border-color: var(--border-medium);
-  color: var(--text-tertiary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.expand-collapse-fab--active:hover {
+  background: var(--primary-green);
+  border-color: var(--primary-green);
+}
+
+.expand-collapse-fab--active:hover .expand-collapse-icon {
+  color: white;
 }
 
 .expand-collapse-icon {
-  width: 24px;
-  height: 24px;
-  transition: transform 0.2s ease;
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
 }
 
-.expand-collapse-fab--active .expand-collapse-icon {
-  color: var(--primary-green);
-}
-
-.expand-collapse-fab--disabled .expand-collapse-icon {
-  color: var(--text-tertiary);
-}
-
-/* Animations */
+/* Transitions */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: translateY(10px);
 }
 
-/* Responsive adjustments */
+/* Responsive Design */
 @media (max-width: 768px) {
-  .expand-collapse-fab {
-    bottom: 8rem;
-    left: 1rem;
-    width: 48px;
-    height: 48px;
-  }
-  
-  .expand-collapse-icon {
-    width: 20px;
-    height: 20px;
-  }
-  
-  .back-to-top {
-    bottom: 3rem;
-    left: 1rem;
-    width: 48px;
-    height: 48px;
-  }
-  
-  .back-to-top-icon {
-    width: 18px;
-    height: 18px;
+  :root {
+    --header-height: 64px;
+    --tab-height: 56px;
+    --fab-size: 52px;
   }
 
-  .expand-collapse-icon,
-  .back-to-top-icon {
-    width: 20px;
-    height: 20px;
+  .main-content {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+
+  .back-to-top {
+    bottom: 5rem;
+    right: 1rem;
+    width: 44px;
+    height: 44px;
+  }
+
+  .expand-collapse-fab {
+    bottom: 1rem;
+    left: 1rem;
+    width: 44px;
+    height: 44px;
+  }
+
+  .back-to-top-icon,
+  .expand-collapse-icon {
+    width: 18px;
+    height: 18px;
   }
 }
 
 @media (max-width: 480px) {
-  .expand-collapse-fab {
-    bottom: 7rem;
-    left: 0.75rem;
-    width: 44px;
-    height: 44px;
-  }
-  
-  .back-to-top {
-    bottom: 2.5rem;
-    left: 0.75rem;
-    width: 44px;
-    height: 44px;
-  }
-  
-  .expand-collapse-icon,
-  .back-to-top-icon {
-    width: 18px;
-    height: 18px;
-  }
-  
-  .expand-collapse-icon {
-    width: 18px;
-    height: 18px;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .expand-collapse-fab {
-    border-width: 2px;
-  }
-  
-  .expand-collapse-fab--active {
-    border-color: var(--primary-green);
-  }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  .expand-collapse-fab,
-  .back-to-top,
-  .expand-collapse-icon {
-    transition: none;
-  }
-  
-  .expand-collapse-fab--active:hover {
-    transform: none;
+  .main-content {
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-sm);
   }
 }
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
-  .expand-collapse-fab {
-    background: #374151;
-    border-color: #4b5563;
-    color: #d1d5db;
+  :root {
+    --background: #0f172a;
+    --card-background: #1e293b;
+    --border-light: #334155;
+    --border-medium: #475569;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #64748b;
   }
-  
-  .expand-collapse-fab--active:hover {
-    background: #4b5563;
-    border-color: var(--primary-green);
-    color: #f3f4f6;
-  }
-  
+
   .back-to-top {
-    background: #374151;
-    border-color: var(--primary-green);
-    color: var(--primary-green);
+    background: #334155;
+    border-color: #475569;
   }
-  
+
   .back-to-top:hover {
-    background: #4b5563;
-    color: var(--primary-green);
+    background: #475569;
   }
-  
-  .back-to-top-icon {
-    color: var(--primary-green);
+
+  .expand-collapse-fab {
+    background: #334155;
+    border-color: #475569;
   }
+
+  .expand-collapse-fab:hover:not(.expand-collapse-fab--disabled) {
+    background: #475569;
+  }
+}
+
+/* Performance optimizations */
+.main-content {
+  will-change: transform;
+}
+
+.back-to-top,
+.expand-collapse-fab {
+  will-change: transform;
 }
 </style>
