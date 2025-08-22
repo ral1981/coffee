@@ -26,7 +26,14 @@
     <ContainerQuickFilters 
       v-model="activeContainers"
       :containers="availableContainers"
-      @container-click="handleContainerFilter"
+      :container-counts="containerCounts"
+      :filtered-count="filteredCount"
+      :show-favorites="showFavoritesOnly"
+      @container-click="toggleContainerFilter"
+      @toggle-favorites="toggleFavoritesFilter"
+      @clear-filters="clearAllFilters"
+      @export-favorites="handleExportFavorites"
+      @add-all-to-favorites="handleAddAllToFavorites"
     />
 
     <!-- Loading State -->
@@ -146,7 +153,12 @@ const {
   clearAllFilters,
   clearSearch,
   syncFiltersWithRoute,
-  updateRoute
+  updateRoute,
+  showFavoritesOnly,
+  toggleFavoritesFilter,
+  toggleContainerFilter,
+  addAllFilteredToFavorites,
+  exportFavoritesData
 } = useFilters(coffees)
 
 const {
@@ -555,6 +567,25 @@ const handleContainerFilter = (container) => {
     activeContainers.value.splice(index, 1)
   } else {
     activeContainers.value.push(container)
+  }
+}
+
+const handleExportFavorites = async () => {
+  try {
+    await exportFavoritesData()
+    success('Export Complete', 'Your favorites have been exported to CSV')
+  } catch (err) {
+    error('Export Failed', 'Could not export favorites')
+  }
+}
+
+const handleAddAllToFavorites = async () => {
+  try {
+    const results = await addAllFilteredToFavorites()
+    const successCount = results.filter(r => r.result?.success).length
+    success('Added to Favorites', `${successCount} coffees added to your favorites`)
+  } catch (err) {
+    error('Failed to Add Favorites', 'Could not add coffees to favorites')
   }
 }
 
