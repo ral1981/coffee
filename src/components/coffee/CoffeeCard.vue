@@ -27,6 +27,26 @@
           </div>
         </div>
         
+        <!-- Favorites Button -->
+        <button
+          v-if="isLoggedIn"
+          @click.stop="handleToggleFavorite(coffee)"
+          class="favorite-btn"
+          :class="{ 'favorited': isFavorited(coffee.id) }"
+          :disabled="favoriteLoading[coffee.id]"
+          :title="isFavorited(coffee.id) ? 'Remove from favorites' : 'Add to favorites'"
+        >
+          <svg v-if="favoriteLoading[coffee.id]" class="favorite-spinner" width="20" height="20" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="31.416" stroke-dashoffset="31.416">
+              <animate attributeName="stroke-dasharray" dur="2s" values="0 31.416;15.708 15.708;0 31.416" repeatCount="indefinite"/>
+              <animate attributeName="stroke-dashoffset" dur="2s" values="0;-15.708;-31.416" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path :class="{ 'heart-filled': isFavorited(coffee.id) }" d="m12,21.35l-1.45-1.32C5.4,15.36 2,12.28 2,8.5 2,5.42 4.42,3 7.5,3c1.74,0 3.41,0.81 4.5,2.09C13.09,3.81 14.76,3 16.5,3 19.58,3 22,5.42 22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z"/>
+          </svg>
+        </button>
+        
         <!-- Three dots menu -->
         <div class="menu-container">
           <button 
@@ -55,6 +75,18 @@
                 <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
               </svg>
               Edit Coffee
+            </button>
+            
+            <button 
+              type="button" 
+              class="menu-item"
+              @click.stop="handleToggleFavorite(coffee)"
+              :disabled="!isLoggedIn || favoriteLoading[coffee.id]"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path :class="{ 'heart-filled': isFavorited(coffee.id) }" d="m12,21.35l-1.45-1.32C5.4,15.36 2,12.28 2,8.5 2,5.42 4.42,3 7.5,3c1.74,0 3.41,0.81 4.5,2.09C13.09,3.81 14.76,3 16.5,3 19.58,3 22,5.42 22,8.5c0,3.78-3.4,6.86-8.55,11.54L12,21.35z"/>
+              </svg>
+              {{ isFavorited(coffee.id) ? 'Remove from Favorites' : 'Add to Favorites' }}
             </button>
             
             <button 
@@ -111,6 +143,27 @@
 
       <!-- Expanded Content -->
       <div v-if="expandedCards.has(coffee.id)" class="expanded-content">
+        <!-- Favorite Notes Section -->
+        <div v-if="isFavorited(coffee.id)" class="favorite-notes-section" @click.stop>
+          <div class="favorite-notes-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="star-icon">
+              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+            </svg>
+            <span>Favorite Notes</span>
+          </div>
+          <div class="favorite-notes-content">
+            <textarea
+              v-model="editingNotes[coffee.id]"
+              placeholder="Add personal notes about why you love this coffee..."
+              class="favorite-notes-input"
+              @blur="updateFavoriteNotes(coffee.id)"
+              @keydown.meta.enter="updateFavoriteNotes(coffee.id)"
+              @keydown.ctrl.enter="updateFavoriteNotes(coffee.id)"
+              rows="2"
+            />
+          </div>
+        </div>
+
         <!-- Details Grid -->
         <div class="details-grid">
           <!-- Altitude -->
@@ -219,7 +272,29 @@
           </button>
           <button class="modal-btn modal-btn-danger" @click="confirmDeleteAction" :disabled="isDeleting">
             <span v-if="isDeleting">Deleting...</span>
-            <span v-else>Delete</span>
+            <span v-else">Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Favorite Confirmation Modal -->
+    <div v-if="showFavoriteModal" class="modal-overlay" @click="cancelUnfavorite">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">Remove from Favorites</h3>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to remove "<strong>{{ coffeeToUnfavorite?.name }}</strong>" from your favorites?</p>
+          <p class="modal-warning">Any personal notes you've added will also be removed.</p>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-cancel" @click="cancelUnfavorite">
+            Keep Favorite
+          </button>
+          <button class="modal-btn modal-btn-danger" @click="confirmUnfavoriteAction" :disabled="isUnfavoriting">
+            <span v-if="isUnfavoriting">Removing...</span>
+            <span v-else>Remove from Favorites</span>
           </button>
         </div>
       </div>
@@ -228,13 +303,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import LogoImage from '../shared/LogoImage.vue'
 import { useAuth } from '../../composables/useAuth'
 import { useToast } from '../../composables/useToast'
 import { useContainerAssignment } from '../../composables/useContainerAssignment'
 import { useRecipeUtils } from '../../composables/useRecipeUtils'
 import { useCoffeeData } from '../../composables/useCoffeeData'
+import { useFavorites } from '../../composables/useFavorites'
 
 const props = defineProps({
   coffees: { type: Array, default: () => [] },
@@ -270,11 +346,68 @@ const {
 
 const { deleteCoffee } = useCoffeeData()
 
+// Favorites composable
+const {
+  isFavorited,
+  toggleFavorite,
+  getFavoriteRecord,
+  updateFavoriteNotes: updateNotes,
+  fetchFavorites
+} = useFavorites()
+
 // Local state
 const activeMenuId = ref(null)
 const showDeleteModal = ref(false)
 const coffeeToDelete = ref(null)
 const isDeleting = ref(false)
+const favoriteLoading = ref({})
+const editingNotes = ref({})
+const showFavoriteModal = ref(false)
+const coffeeToUnfavorite = ref(null)
+const isUnfavoriting = ref(false)
+
+// Initialize favorite notes for editing
+const initializeFavoriteNotes = () => {
+  props.coffees.forEach(coffee => {
+    if (isFavorited(coffee.id)) {
+      const favoriteRecord = getFavoriteRecord(coffee.id)
+      editingNotes.value[coffee.id] = favoriteRecord?.notes || ''
+    }
+  })
+}
+
+const showModal = (type) => {
+  if (type === 'favorite') {
+    showFavoriteModal.value = true
+  } else if (type === 'delete') {
+    showDeleteModal.value = true
+  }
+  
+  // Force scroll to top and lock body
+  nextTick(() => {
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${window.scrollY}px`
+    document.body.style.width = '100%'
+  })
+}
+
+const hideModal = (type) => {
+  if (type === 'favorite') {
+    showFavoriteModal.value = false
+  } else if (type === 'delete') {
+    showDeleteModal.value = false
+  }
+  
+  // Restore body scroll
+  const scrollY = document.body.style.top
+  document.body.style.overflow = ''
+  document.body.style.position = ''
+  document.body.style.top = ''
+  document.body.style.width = ''
+  window.scrollTo(0, parseInt(scrollY || '0') * -1)
+}
+
 
 // Methods
 const isHighlighted = (coffeeId) => {
@@ -312,6 +445,92 @@ const handleCardClick = (coffee) => {
   toggleCardExpansion(coffee.id)
 }
 
+// Favorites handler
+const handleToggleFavorite = async (coffee) => {
+  if (favoriteLoading.value[coffee.id]) return
+  
+  // If already favorited, show confirmation modal
+  if (isFavorited(coffee.id)) {
+    coffeeToUnfavorite.value = coffee
+    showModal('favorite') 
+    closeMenu()
+    return
+  }
+  
+  // If not favorited, add directly (no confirmation needed)
+  favoriteLoading.value[coffee.id] = true
+  
+  try {
+    const result = await toggleFavorite(coffee.id)
+    
+    if (result.success && isFavorited(coffee.id)) {
+      // Initialize notes if newly favorited
+      editingNotes.value[coffee.id] = ''
+    }
+  } catch (err) {
+    console.error('Error adding to favorites:', err)
+  } finally {
+    favoriteLoading.value[coffee.id] = false
+    closeMenu()
+  }
+}
+
+// Handle confirmed unfavoriting
+const confirmUnfavoriteAction = async () => {
+  if (!coffeeToUnfavorite.value) return
+  
+  const coffeeId = coffeeToUnfavorite.value.id
+  const coffeeName = coffeeToUnfavorite.value.name
+  
+  isUnfavoriting.value = true
+  favoriteLoading.value[coffeeId] = true
+  
+  try {
+    const result = await toggleFavorite(coffeeId)
+    
+    if (result.success) {
+      // Clean up notes when unfavorited
+      delete editingNotes.value[coffeeId]
+      success('Removed from Favorites', `${coffeeName} has been removed from your favorites`)
+    }
+  } catch (err) {
+    console.error('Error removing from favorites:', err)
+    error('Failed to remove favorite', 'Could not remove coffee from favorites')
+  } finally {
+    // Always clear loading states in finally block
+    favoriteLoading.value[coffeeId] = false
+    isUnfavoriting.value = false
+    showFavoriteModal.value = false
+    coffeeToUnfavorite.value = null
+  }
+}
+
+// Cancel unfavoriting
+const cancelUnfavorite = () => {
+  hideModal('favorite') // Use new function
+  coffeeToUnfavorite.value = null
+  isUnfavoriting.value = false
+}
+
+// Update favorite notes
+const updateFavoriteNotes = async (coffeeId) => {
+  if (!isFavorited(coffeeId)) return
+  
+  const notes = editingNotes.value[coffeeId]
+  const favoriteRecord = getFavoriteRecord(coffeeId)
+  
+  // Only update if notes have changed
+  if (notes === favoriteRecord?.notes) return
+  
+  try {
+    await updateNotes(coffeeId, notes)
+  } catch (err) {
+    console.error('Error updating favorite notes:', err)
+    // Revert to original notes on error
+    editingNotes.value[coffeeId] = favoriteRecord?.notes || ''
+  }
+}
+
 const handleDeleteCoffee = (coffee) => {
   if (!isLoggedIn.value) {
     info('Login required', 'Please log in to delete coffee entries')
@@ -320,12 +539,12 @@ const handleDeleteCoffee = (coffee) => {
   }
   
   coffeeToDelete.value = coffee
-  showDeleteModal.value = true
+  showModal('delete')
   closeMenu()
 }
 
 const cancelDelete = () => {
-  showDeleteModal.value = false
+  hideModal('delete')
   coffeeToDelete.value = null
   isDeleting.value = false
 }
@@ -356,13 +575,35 @@ const handleClickOutside = (event) => {
   }
 }
 
+const handleKeyDown = (event) => {
+  if (event.key === 'Escape') {
+    if (showFavoriteModal.value) {
+      cancelUnfavorite()
+    }
+    if (showDeleteModal.value) {
+      cancelDelete()
+    }
+  }
+}
+
+// Watch for changes in coffees to update notes
+watch(() => props.coffees, initializeFavoriteNotes, { immediate: true })
+
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleKeyDown)
+  
+  // Load favorites if user is logged in
+  if (isLoggedIn.value) {
+    await fetchFavorites()
+    initializeFavoriteNotes()
+  }
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleKeyDown)
 })
 </script>
 
@@ -425,12 +666,14 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+  gap: 0.5rem;
 }
 
 .header-main {
   display: flex;
   align-items: center;
   flex: 1;
+  min-width: 0;
 }
 
 .shop-logo {
@@ -443,6 +686,7 @@ onUnmounted(() => {
 
 .coffee-info {
   flex: 1;
+  min-width: 0;
 }
 
 .coffee-name {
@@ -450,16 +694,62 @@ onUnmounted(() => {
   font-weight: 600;
   color: #1f2937;
   margin: 0 0 0.25rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .coffee-shop {
   font-size: 0.875rem;
   color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Favorites Button */
+.favorite-btn {
+  padding: 0.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.favorite-btn:hover {
+  background: #f3f4f6;
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.favorite-btn.favorited {
+  color: #ef4444;
+}
+
+.favorite-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.favorite-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.heart-filled {
+  fill: currentColor;
 }
 
 /* Menu */
 .menu-container {
   position: relative;
+  flex-shrink: 0;
 }
 
 .menu-trigger {
@@ -490,7 +780,7 @@ onUnmounted(() => {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border: 1px solid #e5e7eb;
-  min-width: 140px;
+  min-width: 180px;
   z-index: 10;
   overflow: hidden;
 }
@@ -526,6 +816,12 @@ onUnmounted(() => {
 .menu-item-danger:hover:not(:disabled) {
   background: #fef2f2;
   color: #dc2626;
+}
+
+/* Menu heart icon styling */
+.menu-item .heart-filled {
+  fill: #ef4444;
+  color: #ef4444;
 }
 
 /* Content */
@@ -621,6 +917,63 @@ onUnmounted(() => {
   border-top: 1px solid #f3f4f6;
   padding-top: 1rem;
   margin-top: 1rem;
+}
+
+/* Favorite Notes Section */
+.favorite-notes-section {
+  background: #fef7e7;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.favorite-notes-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 0.75rem;
+}
+
+.star-icon {
+  color: #fbbf24;
+  fill: #fbbf24;
+}
+
+.favorite-notes-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.favorite-notes-input {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 60px;
+  background: white;
+  font-family: inherit;
+  line-height: 1.4;
+  box-sizing: border-box
+}
+
+.favorite-notes-input:focus {
+  outline: none;
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+}
+
+.favorite-notes-input::placeholder {
+  color: #9ca3af;
+  font-style: italic;
 }
 
 .details-grid {
@@ -777,6 +1130,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  overflow-y: auto;
 }
 
 .modal-content {
@@ -786,6 +1140,8 @@ onUnmounted(() => {
   max-width: 400px;
   width: 100%;
   margin: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto ;
 }
 
 .modal-header {
@@ -861,12 +1217,80 @@ onUnmounted(() => {
     padding: 0.875rem;
   }
   
+  .card-header {
+    gap: 0.25rem;
+  }
+  
+  .coffee-name {
+    font-size: 1rem;
+  }
+  
+  .coffee-shop {
+    font-size: 0.8125rem;
+  }
+  
+  .favorite-btn {
+    padding: 0.375rem;
+  }
+  
+  .menu-trigger {
+    width: 28px;
+    height: 28px;
+  }
+  
   .details-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   
   .recipe-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .favorite-notes-section {
+    padding: 0.75rem;
+  }
+  
+  .favorite-notes-input {
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .favorite-btn {
+    border: 1px solid currentColor;
+  }
+  
+  .favorite-notes-section {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .coffee-card,
+  .favorite-btn,
+  .menu-trigger {
+    transition: none;
+  }
+  
+  .coffee-card:hover {
+    transform: none;
+  }
+  
+  .favorite-btn:hover {
+    transform: none;
+  }
+  
+  .favorite-spinner {
+    animation: none;
+  }
+  
+  @keyframes highlight {
+    0%, 100% {
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+    }
   }
 }
 </style>
