@@ -911,77 +911,109 @@ onUnmounted(() => {
 .back-to-top {
   position: fixed;
   bottom: 6rem;
-  right: 1.5rem;
-  width: 48px;
-  height: 48px;
+  right: 2rem;
+  left: auto;
+  width: var(--fab-size);
+  height: var(--fab-size);
   background: var(--card-background);
-  border: 2px solid var(--border-medium);
+  color: var(--text-secondary);
+  border: 2px solid var(--primary-green);
   border-radius: 50%;
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow-lg);
-  transition: all 0.3s ease;
   z-index: 40;
+  outline: none;
 }
 
 .back-to-top:hover {
-  background: var(--background);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-xl);
+  color: var(--primary-green);
+  border-color: var(--primary-green);
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+}
+
+.back-to-top:active {
+  transform: scale(0.95);
 }
 
 .back-to-top-icon {
-  width: 20px;
-  height: 20px;
-  color: var(--text-secondary);
+  width: 24px;
+  height: 24px;
+  color: var(--primary-green);
+  transition: transform 0.2s ease;
 }
 
 /* Expand/Collapse All Button */
 .expand-collapse-fab {
   position: fixed;
-  bottom: 1.5rem;
-  left: 1.5rem;
-  width: 48px;
-  height: 48px;
+  bottom: 2rem;
+  right: 2rem;
+  left: auto;
+  width: var(--fab-size);
+  height: var(--fab-size);
   background: var(--card-background);
-  border: 2px solid var(--border-medium);
+  color: var(--text-secondary);
+  border: 2px solid var(--primary-green);
   border-radius: 50%;
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow-lg);
-  transition: all 0.3s ease;
-  z-index: 40;
+  z-index: 45;
+  outline: none;
 }
 
-.expand-collapse-fab:hover:not(.expand-collapse-fab--disabled) {
-  background: var(--background);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-xl);
-}
-
-.expand-collapse-fab--disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.expand-collapse-fab--visible {
+  border-color: var(--primary-green);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
 }
 
 .expand-collapse-fab--active:hover {
-  background: var(--primary-green);
+  color: var(--text-primary);
   border-color: var(--primary-green);
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+  background: var(--card-background);
 }
 
-.expand-collapse-fab--active:hover .expand-collapse-icon {
-  color: white;
+.expand-collapse-fab--active:active {
+  transform: scale(0.95);
+}
+
+.expand-collapse-fab--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-color: var(--border-medium);
+  color: var(--text-tertiary);
+}
+
+.expand-collapse-fab--disabled:hover {
+  transform: none !important;
+  border-color: var(--border-medium);
+  color: var(--text-tertiary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .expand-collapse-icon {
-  width: 20px;
-  height: 20px;
-  color: var(--text-secondary);
-  transition: color 0.2s ease;
+  width: 24px;
+  height: 24px;
+  transition: transform 0.2s ease;
+}
+
+.expand-collapse-fab--active .expand-collapse-icon {
+  color: var(--primary-green);
+}
+
+.expand-collapse-fab--disabled .expand-collapse-icon {
+  color: var(--text-tertiary);
 }
 
 /* Transitions */
@@ -1008,24 +1040,34 @@ onUnmounted(() => {
     padding-right: var(--spacing-md);
   }
 
-  .back-to-top {
-    bottom: 5rem;
-    right: 1rem;
-    width: 44px;
-    height: 44px;
+  .expand-collapse-fab {
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 48px;
+    height: 48px;
   }
 
-  .expand-collapse-fab {
-    bottom: 1rem;
-    left: 1rem;
-    width: 44px;
-    height: 44px;
+  .expand-collapse-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .back-to-top {
+    bottom: 5rem;
+    right: 1.5rem; 
+    width: 48px;
+    height: 48px;
+  }
+  
+  .back-to-top-icon {
+    width: 18px;
+    height: 18px;
   }
 
   .back-to-top-icon,
   .expand-collapse-icon {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
 }
 
@@ -1033,6 +1075,26 @@ onUnmounted(() => {
   .main-content {
     padding-left: var(--spacing-sm);
     padding-right: var(--spacing-sm);
+  }
+
+  .expand-collapse-fab {
+    bottom: 2rem;
+    right: 0.75rem;
+    width: 44px;
+    height: 44px;
+  }
+  
+  .back-to-top {
+    bottom: 5.5rem;
+    right: 0.75rem;
+    width: 44px;
+    height: 44px;
+  }
+  
+  .expand-collapse-icon,
+  .back-to-top-icon {
+    width: 18px;
+    height: 18px;
   }
 }
 
@@ -1048,18 +1110,24 @@ onUnmounted(() => {
     --text-tertiary: #64748b;
   }
 
-  .back-to-top {
-    background: #334155;
-    border-color: #475569;
-  }
-
-  .back-to-top:hover {
-    background: #475569;
-  }
-
   .expand-collapse-fab {
-    background: #334155;
-    border-color: #475569;
+    bottom: 7rem; /* Original: 7rem instead of 1rem */
+    right: 0.75rem;
+    width: 44px;
+    height: 44px;
+  }
+  
+  .back-to-top {
+    bottom: 2.5rem;
+    right: 0.75rem;
+    width: 44px;
+    height: 44px;
+  }
+  
+  .expand-collapse-icon,
+  .back-to-top-icon {
+    width: 18px;
+    height: 18px;
   }
 
   .expand-collapse-fab:hover:not(.expand-collapse-fab--disabled) {

@@ -144,7 +144,7 @@ const props = defineProps({
     type: Object,
     default: () => ({
       bottom: '2rem',
-      right: '2rem'
+      left: '2rem'
     })
   }
 })
@@ -182,7 +182,8 @@ const handleClick = (event) => {
 .fab {
   position: fixed;
   bottom: var(--fab-bottom, 2rem);
-  right: var(--fab-right, 2rem);
+  left: var(--fab-left, 2rem);
+  right: auto;
   z-index: var(--fab-z-index, 1001);
   
   display: flex;
@@ -272,7 +273,7 @@ const handleClick = (event) => {
   --fab-size: 40px;
   --fab-font-size: 0.875rem;
   --fab-bottom: 1.5rem;
-  --fab-right: 1.5rem;
+  --fab-left: 1.5rem;
 }
 
 .fab--large {
@@ -360,15 +361,15 @@ const handleClick = (event) => {
 @media (max-width: 640px) {
   .fab {
     --fab-size: 48px;
-    --fab-bottom: calc(1rem + env(safe-area-inset-bottom));
-    --fab-right: 1rem;
+    --fab-bottom: 2rem;
+    --fab-left: 0.75rem;
     --fab-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
   
   .fab--small {
     --fab-size: 36px;
-    --fab-bottom: 0.75rem;
-    --fab-right: 0.75rem;
+    --fab-bottom: 0.5rem;
+    --fab-left: 0.5rem;
   }
   
   .fab--large {
