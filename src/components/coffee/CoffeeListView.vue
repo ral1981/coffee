@@ -20,6 +20,7 @@
       :origins="availableOrigins"
       :shops="availableShops"
       @clear-all="clearAllFilters"
+      @clear-filters="clearFilters"
     />
 
     <!-- Container Quick Filters -->

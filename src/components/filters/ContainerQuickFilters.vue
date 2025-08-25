@@ -5,7 +5,17 @@
       <div class="filter-header">
         <Heart :size="16" class="header-icon" />
         <strong>Favorites</strong>
-        <span v-if="favoritesCount > 0" class="count-badge">{{ favoritesCount }}</span>
+        <span v-if="isShowingFavorites" class="selection-count-badge">
+          1 selected
+        </span>
+        <button
+          v-if="isShowingFavorites"
+          @click="clearFavoritesFilter"
+          class="clear-btn"
+          title="Clear favorites filter"
+        >
+          <X :size="12" />
+        </button>
       </div>
       <div class="filter-content">
         <button
@@ -293,6 +303,17 @@ const toggleFavoritesFilter = () => {
   const newValue = !isShowingFavorites.value
   isShowingFavorites.value = newValue
   emit('toggle-favorites', newValue)
+}
+
+const clearAdditionalFilters = () => {
+  filters.value = {
+    origin: '',
+    shop: ''
+  }
+}
+
+const clearFavoritesFilter = () => {
+  toggleFavoritesFilter(false)
 }
 
 const clearContainerFilters = () => {
