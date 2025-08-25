@@ -34,11 +34,6 @@
         </select>
       </div>
     </div>
-    <div class="filters-actions">
-      <button class="clear-filters-btn" @click="$emit('clear-all')">
-        Clear All Filters
-      </button>
-    </div>
   </div>
 </template>
 
@@ -52,7 +47,7 @@ const props = defineProps({
   shops: { type: Array, default: () => [] }
 })
 
-const emit = defineEmits(['update:modelValue', 'clear-all', 'clear-additional'])
+const emit = defineEmits(['update:modelValue'])
 
 const hasActiveFilters = computed(() => {
   return props.modelValue.origin !== '' || props.modelValue.shop !== ''
@@ -66,7 +61,7 @@ const activeFiltersCount = computed(() => {
 })
 
 const clearAdditionalFilters = () => {
-  emit('clear-filters')
+  emit('update:modelValue', { origin: '', shop: '' })
 }
 
 const updateOrigin = (event) => {
@@ -102,7 +97,11 @@ const updateShop = (event) => {
   padding: 1rem;
 }
 
-.filter-group { display: flex; flex-direction: column; }
+.filter-group { 
+  display: flex; 
+  flex-direction: column; 
+}
+
 .filter-label {
   font-size: 0.875rem;
   font-weight: 500;
@@ -115,16 +114,6 @@ const updateShop = (event) => {
   border: 1px solid #e5e5e5;
   border-radius: 8px;
   background: white;
-}
-
-.filters-actions { padding: 0 1rem 1rem 1rem; }
-.clear-filters-btn {
-  padding: 0.5rem 0.75rem;
-  background: none;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  color: #666;
-  cursor: pointer;
 }
 
 .selection-count-badge {

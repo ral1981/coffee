@@ -14,22 +14,17 @@
       @clear="clearSearch"
     />
 
-    <!-- Filters Section -->
-    <FiltersSection 
-      v-model="filters"
+    <!-- All Filters in a Single Collapsible Container -->
+    <FiltersContainer 
+      v-model:filters="filters"
+      v-model:active-containers="activeContainers"
       :origins="availableOrigins"
       :shops="availableShops"
-      @clear-all="clearAllFilters"
-      @clear-filters="clearFilters"
-    />
-
-    <!-- Container Quick Filters -->
-    <ContainerQuickFilters 
-      v-model="activeContainers"
       :containers="availableContainers"
       :container-counts="containerCounts"
       :filtered-count="filteredCount"
       :show-favorites="showFavoritesOnly"
+      :default-expanded="false"
       @toggle-favorites="toggleFavoritesFilter"
       @clear-filters="clearAllFilters"
       @export-favorites="handleExportFavorites"
@@ -57,12 +52,9 @@
       <p class="empty-state-description">
         {{ hasActiveFilters ? 'Try adjusting your search or filters.' : 'No coffee data available.' }}
       </p>
-      <button v-if="hasActiveFilters" @click="clearAllFilters" class="clear-filters-btn">
-        Clear All Filters
-      </button>
     </div>
 
-    <!-- Coffee Card -->
+    <!-- Coffee Cards -->
     <CoffeeCard 
       v-else
       :coffees="paginatedCoffees"
@@ -92,13 +84,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Coffee } from 'lucide-vue-next'
 import ResultsCounter from '../filters/ResultsCounter.vue'
 import SearchSection from './SearchSection.vue'
-import FiltersSection from '../filters/FiltersSection.vue'
-import ContainerQuickFilters from '../filters/ContainerQuickFilters.vue'
+import FiltersContainer from '../filters/FiltersContainer.vue'
 import CoffeeCard from '../coffee/CoffeeCard.vue'
 import { useCoffeeData } from '../../composables/useCoffeeData'
 import { useFilters } from '../../composables/useFilters'
@@ -109,7 +100,7 @@ import { useContainers } from '../../composables/useContainers'
 
 const { userId } = useAuth()
 
-// Props - Added highlighting support
+// Props
 const props = defineProps({
   highlightedCoffeeId: {
     type: [String, Number],
@@ -125,9 +116,7 @@ const router = useRouter()
 const { containers } = useContainers()
 const { error, success, info, warning } = useToast()
 
-console.log('CoffeeListView - Starting without auth dependencies')
-
-// Composables - Enhanced with highlighting
+// Composables
 const { 
   coffees, 
   loading, 
@@ -158,7 +147,8 @@ const {
   toggleFavoritesFilter,
   toggleContainerFilter,
   addAllFilteredToFavorites,
-  exportFavoritesData
+  exportFavoritesData,
+  clearFilters
 } = useFilters(coffees)
 
 const {
@@ -180,7 +170,7 @@ const applyContainerFilter = async (containerId) => {
 
 // Pagination state
 const itemsPerPage = ref(12)
-const itemsToShow = ref(12) // THIS WAS MISSING!
+const itemsToShow = ref(12)
 const isLoadingMore = ref(false)
 
 // All available containers (fetched separately)
@@ -223,7 +213,8 @@ const hasActiveFilters = computed(() => {
   return searchQuery.value || 
          filters.value.origin || 
          filters.value.shop || 
-         activeContainers.value.length > 0
+         activeContainers.value.length > 0 ||
+         showFavoritesOnly.value
 })
 
 const paginatedCoffees = computed(() => {
@@ -261,16 +252,31 @@ const availableShops = computed(() => {
   return Array.from(shops).sort()
 })
 
-const availableContainers = computed(() => {
-  // Use all containers from the separate fetch, not just assigned ones
-  return allContainers.value.sort((a, b) => 
-    (a.display_order || 0) - (b.display_order || 0)
-  )
+const availableContainers = computed(() => allContainers.value)
+
+const containerCounts = computed(() => {
+  const counts = {}
+  const relevantCoffees = showFavoritesOnly.value 
+    ? coffees.value.filter(coffee => {
+        // Add your favorites logic here
+        return true // placeholder
+      })
+    : filteredCoffees.value
+  
+  relevantCoffees.forEach(coffee => {
+    if (coffee.containerIds) {
+      coffee.containerIds.forEach(containerId => {
+        counts[containerId] = (counts[containerId] || 0) + 1
+      })
+    }
+  })
+  
+  return counts
 })
 
 // Methods
 const loadMoreCoffees = () => {
-  console.log('🔄 Loading more coffees...')
+  console.log('📄 Loading more coffees...')
   
   if (isLoadingMore.value) {
     console.log('⏳ Already loading, skip')
@@ -313,7 +319,7 @@ const handleCardAction = async (action, coffee) => {
 
 const handleUpdateCoffee = async (updatedCoffee) => {
   try {
-    console.log('🔄 Updating coffee:', updatedCoffee.name)
+    console.log('📝 Updating coffee:', updatedCoffee.name)
     
     // Show loading toast
     info('Saving...', 'Updating coffee details...')
@@ -485,14 +491,15 @@ const handleDeleteCoffee = async (coffee) => {
 
 const handleContainerAssignment = async ({ coffee, container, action }) => {
   console.log('🔍 CoffeeListView debugging info:', {
-  hasAssignContainersWithConflictResolution: typeof assignContainersWithConflictResolution === 'function',
-  hasRefreshCoffees: typeof refreshCoffees === 'function',
-  hasRefreshConflictData: typeof refreshConflictData === 'function',
-  hasHighlightCoffee: typeof highlightCoffee === 'function',
-  userId: userId?.value
-})
+    hasAssignContainersWithConflictResolution: typeof assignContainersWithConflictResolution === 'function',
+    hasRefreshCoffees: typeof refreshCoffees === 'function',
+    hasRefreshConflictData: typeof refreshConflictData === 'function',
+    hasHighlightCoffee: typeof highlightCoffee === 'function',
+    userId: userId?.value
+  })
+  
   try {
-    console.log('🔄 CoffeeListView handling container assignment:', {
+    console.log('📝 CoffeeListView handling container assignment:', {
       coffeeId: coffee.id,
       containerId: container.id,
       action
@@ -573,7 +580,7 @@ const handleContainerFilter = (container) => {
 const handleExportFavorites = async () => {
   try {
     await exportFavoritesData()
-    success('Export Complete', 'Your favorites have been exported to CSV')
+    success('Export Complete', 'Your favorites have been exported successfully!')
   } catch (err) {
     error('Export Failed', 'Could not export favorites')
   }
@@ -581,11 +588,15 @@ const handleExportFavorites = async () => {
 
 const handleAddAllToFavorites = async () => {
   try {
-    const results = await addAllFilteredToFavorites()
-    const successCount = results.filter(r => r.result?.success).length
-    success('Added to Favorites', `${successCount} coffees added to your favorites`)
+    const result = await addAllFilteredToFavorites()
+    if (result.success) {
+      success('Favorites Updated', `${result.addedCount} coffees added to favorites!`)
+    } else {
+      throw new Error(result.error || 'Failed to add favorites')
+    }
   } catch (err) {
-    error('Failed to Add Favorites', 'Could not add coffees to favorites')
+    console.error('Add all to favorites error:', err)
+    error('Add to Favorites Failed', err.message)
   }
 }
 
@@ -630,7 +641,7 @@ watch(() => props.highlightedCoffeeId, (newId, oldId) => {
 
 // Reset pagination when filters change
 watch([searchQuery, filters, activeContainers], () => {
-  console.log('🔄 Filters changed, resetting pagination')
+  console.log('📄 Filters changed, resetting pagination')
   itemsToShow.value = 12
 }, { deep: true })
 
@@ -815,6 +826,15 @@ watch(filteredCoffees, (newFiltered, oldFiltered) => {
   transform: translateY(-1px);
 }
 
+.clear-filters-btn:active {
+  transform: translateY(0);
+}
+
+.clear-filters-btn:focus {
+  outline: 2px solid var(--primary-green, #22c55e);
+  outline-offset: 2px;
+}
+
 /* Load More Section */
 .load-more-section {
   display: flex;
@@ -842,11 +862,22 @@ watch(filteredCoffees, (newFiltered, oldFiltered) => {
   background: var(--primary-green, #22c55e);
   color: white;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+}
+
+.load-more-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.load-more-btn:focus {
+  outline: 2px solid var(--primary-green, #22c55e);
+  outline-offset: 2px;
 }
 
 .load-more-btn:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+  transform: none;
 }
 
 .spinner-small {
@@ -879,8 +910,167 @@ watch(filteredCoffees, (newFiltered, oldFiltered) => {
   }
 }
 
+/* Fade in animation for content loading */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.coffee-list-view > * {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Pulse animation for loading state */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loading-text {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Hover effects and micro-interactions */
+.empty-state {
+  transition: all 0.3s ease;
+}
+
+.empty-state:hover {
+  box-shadow: var(--card-shadow-hover, 0 4px 12px rgba(0, 0, 0, 0.15));
+}
+
+/* Focus states for accessibility */
+.coffee-list-view *:focus {
+  outline: 2px solid var(--focus-color, #22c55e);
+  outline-offset: 2px;
+}
+
+.coffee-list-view *:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Loading state variants */
+.loading-section.small {
+  padding: var(--spacing-4, 1rem);
+}
+
+.loading-section.small .spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.loading-section.large {
+  padding: var(--spacing-12, 3rem);
+}
+
+.loading-section.large .spinner {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Empty state variants */
+.empty-state.compact {
+  padding: var(--spacing-6, 1.5rem);
+}
+
+.empty-state.compact .empty-state-title {
+  font-size: var(--text-lg, 1.125rem);
+}
+
+.empty-state.compact .empty-state-description {
+  font-size: var(--text-sm, 0.875rem);
+}
+
+/* Button states and variants */
+.clear-filters-btn.secondary {
+  background: var(--card-background, #ffffff);
+  color: var(--primary-green, #22c55e);
+  border: 2px solid var(--primary-green, #22c55e);
+}
+
+.clear-filters-btn.secondary:hover {
+  background: var(--primary-green, #22c55e);
+  color: white;
+}
+
+.load-more-btn.loading {
+  pointer-events: none;
+}
+
+.load-more-btn.loading .spinner-small {
+  color: var(--primary-green, #22c55e);
+}
+
+/* Filter Container Integration Styles */
+.coffee-list-view :deep(.filters-container) {
+  /* Ensure the filters container integrates well with the overall layout */
+  margin-bottom: 0;
+}
+
+/* Adjust spacing when filters are expanded/collapsed */
+.coffee-list-view :deep(.filters-container .filters-content.expanded) {
+  /* Add subtle visual enhancement when filters are expanded */
+  background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+}
+
+/* Enhance the filter container's visual hierarchy */
+.coffee-list-view :deep(.filters-container .filters-main-header) {
+  /* Subtle border enhancement for better definition */
+  border-bottom: 2px solid #f0f2f5;
+}
+
+/* Style adjustments for child filter components within the container */
+.coffee-list-view :deep(.filters-sections .filters-section),
+.coffee-list-view :deep(.filters-sections .quick-filters-section > div) {
+  /* Remove conflicting shadows and borders since they're now in a container */
+  box-shadow: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.coffee-list-view :deep(.filters-sections .filters-section:hover),
+.coffee-list-view :deep(.filters-sections .quick-filters-section > div:hover) {
+  border-color: #d1d5db;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Ensure proper spacing between filter sections */
+.coffee-list-view :deep(.filters-sections) {
+  gap: 0.875rem;
+}
+
+/* Active filter pills styling within the container */
+.coffee-list-view :deep(.filter-summary) {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+}
+
+/* Quick actions button styling within the container */
+.coffee-list-view :deep(.action-btn) {
+  transition: all 0.2s ease;
+}
+
+.coffee-list-view :deep(.action-btn:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 /* Responsive Design */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .coffee-list-view {
     gap: var(--spacing-3, 0.75rem);
   }
@@ -893,38 +1083,230 @@ watch(filteredCoffees, (newFiltered, oldFiltered) => {
     font-size: var(--text-lg, 1.125rem);
   }
   
+  .empty-state-description {
+    font-size: var(--text-sm, 0.875rem);
+  }
+  
   .load-more-btn {
     padding: 0.625rem 1.25rem;
     font-size: 0.8125rem;
+  }
+  
+  .loading-section {
+    padding: var(--spacing-6, 1.5rem);
+  }
+  
+  .spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  /* Filter container mobile adjustments */
+  .coffee-list-view :deep(.filters-sections) {
+    gap: 0.75rem;
+    padding: 0.875rem;
+  }
+  
+  .coffee-list-view :deep(.filters-container .filters-main-header) {
+    padding: 0.875rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .coffee-list-view {
+    gap: var(--spacing-2, 0.5rem);
+  }
+  
+  .empty-state {
+    padding: var(--spacing-4, 1rem);
+    margin: var(--spacing-2, 0.5rem);
+  }
+  
+  .empty-state-title {
+    font-size: var(--text-base, 1rem);
+  }
+  
+  .clear-filters-btn,
+  .load-more-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+  
+  .loading-section {
+    padding: var(--spacing-4, 1rem);
+  }
+
+  /* Mobile-specific filter container styling */
+  .coffee-list-view :deep(.filters-sections) {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  
+  .coffee-list-view :deep(.filters-container .filters-main-header) {
+    padding: 0.75rem;
+  }
+  
+  .coffee-list-view :deep(.header-content) {
+    gap: 0.5rem;
+  }
+  
+  .coffee-list-view :deep(.header-title) {
+    font-size: 0.875rem;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .empty-state {
+    padding: var(--spacing-3, 0.75rem);
+  }
+  
+  .empty-state-icon {
+    margin-bottom: var(--spacing-2, 0.5rem);
+  }
+  
+  .load-more-section {
+    padding: var(--spacing-4, 1rem) 0;
+  }
+  
+  .clear-filters-btn,
+  .load-more-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Extra small screen filter adjustments */
+  .coffee-list-view :deep(.filters-sections .filters-section),
+  .coffee-list-view :deep(.filters-sections .quick-filters-section > div) {
+    margin: 0 -0.25rem;
+  }
+}
+
+/* Large screens */
+@media (min-width: 1024px) {
+  .coffee-list-view {
+    gap: var(--spacing-6, 1.5rem);
+  }
+  
+  .empty-state {
+    padding: var(--spacing-12, 3rem);
+  }
+  
+  .empty-state-title {
+    font-size: var(--text-2xl, 1.5rem);
+  }
+  
+  .loading-section {
+    padding: var(--spacing-12, 3rem);
+  }
+  
+  .spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  /* Large screen filter enhancements */
+  .coffee-list-view :deep(.filters-container) {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+  
+  .coffee-list-view :deep(.filters-sections) {
+    gap: 1.25rem;
+    padding: 1.25rem;
   }
 }
 
 /* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
+  .coffee-list-view {
+    background: var(--background-dark, #0f172a);
+  }
+  
   .spinner {
-    color: var(--primary-green, #22c55e);
+    color: var(--primary-green-dark, #34d399);
   }
   
   .loading-text {
-    color: var(--text-secondary-dark, #d1d5db);
+    color: var(--text-secondary-dark, #94a3b8);
   }
   
   .empty-state {
-    background: var(--card-background-dark, #1f2937);
+    background: var(--card-background-dark, #1e293b);
+    border: 1px solid var(--border-dark, #334155);
+  }
+  
+  .empty-state-icon {
+    color: var(--text-tertiary-dark, #64748b);
   }
   
   .empty-state-title {
-    color: var(--text-primary-dark, #f9fafb);
+    color: var(--text-primary-dark, #f1f5f9);
   }
   
   .empty-state-description {
-    color: var(--text-secondary-dark, #d1d5db);
+    color: var(--text-secondary-dark, #94a3b8);
+  }
+  
+  .clear-filters-btn {
+    background: var(--primary-green-dark, #059669);
+  }
+  
+  .clear-filters-btn:hover {
+    background: var(--primary-green-dark-hover, #047857);
   }
   
   .load-more-btn {
-    background: var(--card-background-dark, #1f2937);
+    background: var(--card-background-dark, #1e293b);
+    border-color: var(--border-dark, #334155);
+    color: var(--text-primary-dark, #f1f5f9);
+  }
+  
+  .load-more-btn:hover:not(:disabled) {
+    border-color: var(--primary-green-dark, #34d399);
+    background: var(--primary-green-dark, #059669);
+  }
+
+  /* Dark mode filter container styling */
+  .coffee-list-view :deep(.filters-content.expanded) {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  }
+  
+  .coffee-list-view :deep(.filters-sections .filters-section),
+  .coffee-list-view :deep(.filters-sections .quick-filters-section > div) {
+    background: var(--card-background-dark, #1e293b);
+    border-color: var(--border-dark, #334155);
+  }
+  
+  .coffee-list-view :deep(.filter-summary) {
+    background: var(--card-background-dark, #111827);
     border-color: var(--border-dark, #374151);
-    color: var(--text-primary-dark, #f9fafb);
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .empty-state {
+    border: 2px solid var(--text-primary, #000);
+  }
+  
+  .clear-filters-btn,
+  .load-more-btn {
+    border-width: 2px;
+    font-weight: 600;
+  }
+  
+  .spinner {
+    stroke-width: 3;
+  }
+
+  /* High contrast filter styling */
+  .coffee-list-view :deep(.filters-container) {
+    border-width: 2px;
+  }
+  
+  .coffee-list-view :deep(.filters-sections .filters-section),
+  .coffee-list-view :deep(.filters-sections .quick-filters-section > div) {
+    border-width: 2px;
   }
 }
 
@@ -935,9 +1317,230 @@ watch(filteredCoffees, (newFiltered, oldFiltered) => {
     animation: none;
   }
   
+  .coffee-list-view > * {
+    animation: none;
+  }
+  
+  .loading-text {
+    animation: none;
+  }
+  
   .clear-filters-btn:hover,
   .load-more-btn:hover {
     transform: none;
   }
+  
+  .empty-state {
+    transition: none;
+  }
+  
+  * {
+    transition: none !important;
+  }
+
+  /* Reduced motion for filter container */
+  .coffee-list-view :deep(.filters-content) {
+    transition: none !important;
+  }
+  
+  .coffee-list-view :deep(.expand-toggle.expanded) {
+    transform: none !important;
+  }
+  
+  .coffee-list-view :deep(.action-btn:hover) {
+    transform: none !important;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .loading-section,
+  .load-more-section {
+    display: none;
+  }
+  
+  .empty-state {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+  
+  .clear-filters-btn,
+  .load-more-btn {
+    display: none;
+  }
+
+  /* Print-specific filter container styling */
+  .coffee-list-view :deep(.filters-container) {
+    box-shadow: none;
+    border: 1px solid #000;
+    page-break-inside: avoid;
+  }
+  
+  .coffee-list-view :deep(.expand-toggle) {
+    display: none;
+  }
+  
+  .coffee-list-view :deep(.filters-content) {
+    max-height: none !important;
+  }
+}
+
+/* Custom Properties for Theming */
+:root {
+  --coffee-list-gap: 1rem;
+  --coffee-list-padding: 2rem;
+  --coffee-list-border-radius: 12px;
+  --coffee-list-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --coffee-list-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --coffee-list-transition: all 0.2s ease;
+  --coffee-list-focus-ring: 2px solid #22c55e;
+  --coffee-list-filter-gap: 0.875rem;
+  --coffee-list-filter-padding: 1rem;
+}
+
+/* Component-specific focus management */
+.coffee-list-view {
+  --focus-ring-color: var(--primary-green, #22c55e);
+  --focus-ring-offset: 2px;
+  --focus-ring-width: 2px;
+}
+
+/* Enhanced button styles */
+.clear-filters-btn,
+.load-more-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.clear-filters-btn::before,
+.load-more-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.clear-filters-btn:hover::before,
+.load-more-btn:hover::before {
+  left: 100%;
+}
+
+/* Loading shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.loading-section.shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Success and error states */
+.empty-state.success {
+  border-color: var(--success-color, #10b981);
+}
+
+.empty-state.success .empty-state-icon {
+  color: var(--success-color, #10b981);
+}
+
+.empty-state.error {
+  border-color: var(--error-color, #ef4444);
+}
+
+.empty-state.error .empty-state-icon {
+  color: var(--error-color, #ef4444);
+}
+
+/* Utility classes for state management */
+.is-loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.is-hidden {
+  display: none;
+}
+
+.is-visible {
+  display: flex;
+}
+
+/* Filter container specific animations and transitions */
+@keyframes filterExpand {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 800px;
+    opacity: 1;
+  }
+}
+
+@keyframes filterCollapse {
+  from {
+    max-height: 800px;
+    opacity: 1;
+  }
+  to {
+    max-height: 0;
+    opacity: 0;
+  }
+}
+
+/* Smooth transitions for filter state changes */
+.coffee-list-view :deep(.filters-content) {
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.2s ease-in-out,
+              background-color 0.2s ease;
+}
+
+.coffee-list-view :deep(.expand-toggle) {
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Enhanced visual feedback for interactive elements */
+.coffee-list-view :deep(.filters-main-header):active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+/* Subtle glow effect for active filters */
+.coffee-list-view :deep(.active-count-badge) {
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+  animation: pulseGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  from {
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+  }
+  to {
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+  }
+}
+
+/* Container-specific hover states */
+.coffee-list-view :deep(.filters-container):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Smooth transitions for all interactive filter elements */
+.coffee-list-view :deep(.filter-tag),
+.coffee-list-view :deep(.action-btn),
+.coffee-list-view :deep(.pill-remove) {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
