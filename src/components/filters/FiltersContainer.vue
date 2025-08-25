@@ -203,9 +203,8 @@ const totalActiveFilters = computed(() => {
 
 // Methods
 const toggleExpanded = (event) => {
-  // Prevent expansion/collapse if clicking on the expand button directly
-  // (since it has its own click handler)
-  if (event?.target?.closest('.expand-toggle')) {
+  // Prevent expansion/collapse if clicking on interactive elements
+  if (event?.target?.closest('.expand-toggle, .filter-tag, .action-btn, .clear-btn, .filter-select, button, input, select')) {
     return
   }
   isExpanded.value = !isExpanded.value
@@ -714,6 +713,16 @@ watch(() => props.activeContainers, (newContainers) => {
 .filters-container :deep(.quick-filters-section) {
   gap: 0.5rem; /* Reduced from 1rem */
   margin-bottom: 0.5rem; /* Reduced from 1rem */
+}
+
+.filters-container :deep(.filter-tag),
+.filters-container :deep(.action-btn),
+.filters-container :deep(.clear-btn),
+.filters-container :deep(.filter-select),
+.filters-container :deep(button),
+.filters-container :deep(input),
+.filters-container :deep(select) {
+  pointer-events: auto;
 }
 .filters-main-header:focus {
   outline: 3px solid #22c55e;
