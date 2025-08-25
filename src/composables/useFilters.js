@@ -202,9 +202,11 @@ export function useFilters(coffees) {
     }
     
     if (query.container) {
-      // Handle legacy container parameter
       const containerName = query.container
-      // This will be handled by the parent component
+      console.log('🔗 Single container from URL:', containerName)
+    } else if (query.containers) {
+      const containerNames = query.containers.split(',')
+      console.log('🔗 Multiple containers from URL:', containerNames)
     }
     
     if (query.favorites === 'true') {
@@ -227,21 +229,37 @@ export function useFilters(coffees) {
       query.shop = filters.value.shop
     }
     
+    // Only update URL for single container selections
     if (activeContainers.value.length === 1) {
       query.container = activeContainers.value[0].name
     }
+    // For multiple containers or no containers, don't set container param
     
     if (showFavoritesOnly.value) {
       query.favorites = 'true'
     }
     
-    // Only update route if query actually changed
+    // Check if query actually changed
     const currentQuery = route.query
     const queryChanged = Object.keys(query).length !== Object.keys(currentQuery).length ||
       Object.keys(query).some(key => query[key] !== currentQuery[key])
     
-    if (queryChanged) {
-      router.push({ query }).catch(() => {}) // Ignore navigation errors
+    // Only update route when we have meaningful single-container changes
+    const shouldUpdateRoute = queryChanged && (
+      // Update for search/filter changes
+      query.search !== currentQuery.search ||
+      query.origin !== currentQuery.origin ||
+      query.shop !== currentQuery.shop ||
+      query.favorites !== currentQuery.favorites ||
+      // Update for single container changes only
+      (activeContainers.value.length <= 1 && query.container !== currentQuery.container)
+    )
+    
+    if (shouldUpdateRoute) {
+      console.log('🔄 Updating route with query:', query)
+      router.push({ query }).catch(() => {})
+    } else {
+      console.log('⏭️ Skipping route update - multiple containers or no change')
     }
   }
 

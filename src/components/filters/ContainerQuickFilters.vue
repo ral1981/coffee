@@ -26,23 +26,33 @@
       <div class="filter-header">
         <Box :size="16" class="header-icon" />
         <strong>Containers</strong>
+        <!-- Selection count -->
+        <span v-if="hasActiveContainers" class="selection-count-badge">
+          {{ activeContainers.length }} selected
+        </span>
+        <!-- Clear button with count -->
         <button
           v-if="hasActiveContainers"
           @click="clearContainerFilters"
           class="clear-btn"
-          title="Clear container filters"
+          :title="`Clear ${activeContainers.length} container filter${activeContainers.length > 1 ? 's' : ''}`"
         >
           <X :size="12" />
         </button>
       </div>
+      
       <div class="filter-content">
         <div class="container-tags">
           <button
             v-for="container in containers"
             :key="container.id"
             class="filter-tag container-tag"
-            :class="{ active: isContainerActive(container) }"
+            :class="{ 
+              active: isContainerActive(container),
+              'multi-selected': hasActiveContainers && isContainerActive(container)
+            }"
             @click="handleContainerClick(container)"
+            :title="getContainerTooltip(container)"
           >
             <div 
               class="container-dot" 
@@ -52,6 +62,12 @@
             <span v-if="getContainerCount(container.id)" class="tag-count">
               ({{ getContainerCount(container.id) }})
             </span>
+            <!-- Show checkmark for selected containers -->
+            <div v-if="isContainerActive(container)" class="selection-indicator">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20,6 9,17 4,12"/>
+              </svg>
+            </div>
           </button>
         </div>
       </div>
@@ -97,12 +113,18 @@
       </div>
     </div>
 
-    <!-- Filter Summary -->
+    <!-- Filter Summary with individual container removal -->
     <div v-if="hasActiveFilters || isShowingFavorites" class="filter-summary">
-      <div class="summary-text">
+      <div class="summary-header">
+        <span class="summary-title">Active Filters:</span>
+      </div>
+      <div class="summary-content">
         <span v-if="isShowingFavorites" class="filter-pill favorites-pill">
           <Heart :size="12" />
           Favorites
+          <button @click="toggleFavoritesFilter" class="pill-remove">
+            <X :size="10" />
+          </button>
         </span>
         <span 
           v-for="container in activeContainers" 
@@ -114,7 +136,15 @@
             color: container.color 
           }"
         >
+          <div 
+            class="pill-dot" 
+            :style="{ backgroundColor: container.color }"
+          ></div>
           {{ container.name }}
+          <!-- Individual container removal -->
+          <button @click="removeContainerFromFilter(container)" class="pill-remove" :title="`Remove ${container.name} filter`">
+            <X :size="10" />
+          </button>
         </span>
       </div>
     </div>
@@ -130,7 +160,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { Heart, Box, X, Filter, Download, RotateCcw } from 'lucide-vue-next'
 import { useAuth } from '../../composables/useAuth'
 import { useFavorites } from '../../composables/useFavorites'
@@ -169,8 +199,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
-  'update:modelValue', 
-  'container-click', 
+  'update:modelValue',
   'toggle-favorites',
   'clear-filters',
   'export-favorites',
@@ -186,20 +215,24 @@ const { success, error, info } = useToast()
 const isShowingFavorites = ref(false)
 const addingAllToFavorites = ref(false)
 
+// Internal state that syncs with modelValue properly
+const internalSelectedContainers = ref([])
+
 // Computed properties
 const showFavoritesFilter = computed(() => isLoggedIn.value)
 
-const hasActiveContainers = computed(() => props.modelValue.length > 0)
+const hasActiveContainers = computed(() => internalSelectedContainers.value.length > 0)
 
 const hasActiveFilters = computed(() => 
   hasActiveContainers.value || isShowingFavorites.value
 )
 
-const activeContainers = computed(() => props.modelValue)
+const activeContainers = computed(() => internalSelectedContainers.value)
 
 const debugInfo = computed(() => ({
   containers: props.containers.length,
-  activeContainers: props.modelValue.length,
+  activeContainers: internalSelectedContainers.value.length,
+  modelValue: props.modelValue.length,
   isShowingFavorites: isShowingFavorites.value,
   favoritesCount: favoritesCount.value,
   filteredCount: props.filteredCount
@@ -207,15 +240,53 @@ const debugInfo = computed(() => ({
 
 // Methods
 const isContainerActive = (container) => {
-  return props.modelValue.some(c => c.id === container.id)
+  return internalSelectedContainers.value.some(c => c.id === container.id)
 }
 
 const getContainerCount = (containerId) => {
   return props.containerCounts[containerId] || 0
 }
 
+const getContainerTooltip = (container) => {
+  const isActive = isContainerActive(container)
+  const count = getContainerCount(container.id)
+  
+  if (isActive) {
+    return `Click to remove ${container.name} from filter (${count} coffees)`
+  } else {
+    return `Click to filter by ${container.name} (${count} coffees)`
+  }
+}
+
+// Handle container selection internally and emit update:modelValue
 const handleContainerClick = (container) => {
-  emit('container-click', container)
+  console.log('🎯 Container clicked:', container.name, 'Currently active:', isContainerActive(container))
+  
+  const existingIndex = internalSelectedContainers.value.findIndex(c => c.id === container.id)
+  
+  let newSelection
+  if (existingIndex > -1) {
+    // Remove container
+    newSelection = internalSelectedContainers.value.filter(c => c.id !== container.id)
+    console.log('🗑️ Removing container from selection:', container.name)
+  } else {
+    // Add container
+    newSelection = [...internalSelectedContainers.value, container]
+    console.log('➕ Adding container to selection:', container.name)
+  }
+  
+  // Update internal state
+  internalSelectedContainers.value = newSelection
+  
+  // Emit the change to parent via v-model
+  emit('update:modelValue', newSelection)
+  
+  console.log('📤 Emitted selection update:', newSelection.map(c => c.name))
+}
+
+const removeContainerFromFilter = (container) => {
+  console.log('🗑️ Removing container from filter via pill:', container.name)
+  handleContainerClick(container) // This will remove it since it's currently active
 }
 
 const toggleFavoritesFilter = () => {
@@ -225,11 +296,16 @@ const toggleFavoritesFilter = () => {
 }
 
 const clearContainerFilters = () => {
+  console.log('🧹 Clearing all container filters')
+  internalSelectedContainers.value = []
   emit('update:modelValue', [])
 }
 
 const clearAllFilters = () => {
+  console.log('🧹 Clearing ALL filters')
   isShowingFavorites.value = false
+  internalSelectedContainers.value = []
+  emit('update:modelValue', [])
   emit('clear-filters')
 }
 
@@ -253,6 +329,21 @@ const addAllToFavorites = async () => {
   }
 }
 
+// Sync internal state with modelValue prop changes
+watch(() => props.modelValue, (newValue) => {
+  console.log('🔄 modelValue prop changed:', {
+    previous: internalSelectedContainers.value.map(c => c.name),
+    incoming: newValue.map(c => c.name),
+    hasChanged: JSON.stringify(newValue) !== JSON.stringify(internalSelectedContainers.value)
+  })
+  
+  // Only update if actually different to avoid infinite loops
+  if (JSON.stringify(newValue) !== JSON.stringify(internalSelectedContainers.value)) {
+    internalSelectedContainers.value = [...newValue]
+    console.log('✅ Updated internal state to match modelValue')
+  }
+}, { immediate: true, deep: true })
+
 // Watch for external changes to favorites filter
 watch(() => props.showFavorites, (newValue) => {
   isShowingFavorites.value = newValue
@@ -260,16 +351,18 @@ watch(() => props.showFavorites, (newValue) => {
 
 // Emit favorites filter changes
 watch(isShowingFavorites, (newValue) => {
-  console.log('🔍 ContainerQuickFilters - isShowingFavorites changed:', newValue)
+  console.log('🔄 ContainerQuickFilters - isShowingFavorites changed:', newValue)
   emit('toggle-favorites', newValue)
 })
 
-// Debug logging
-console.log('ContainerQuickFilters - Enhanced with favorites', {
-  containers: props.containers.length,
-  modelValue: props.modelValue.length,
-  favoritesCount: favoritesCount.value
-})
+// Debug logging for multiple selection
+watch(internalSelectedContainers, (newValue, oldValue) => {
+  console.log('🔄 Internal container selection changed:', {
+    previous: oldValue?.map(c => c.name) || [],
+    current: newValue.map(c => c.name),
+    count: newValue.length
+  })
+}, { deep: true })
 </script>
 
 <style scoped>
@@ -315,6 +408,18 @@ console.log('ContainerQuickFilters - Enhanced with favorites', {
   margin-left: auto;
 }
 
+/* Selection count badge */
+.selection-count-badge {
+  background: #3b82f6;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 12px;
+  margin-left: auto;
+  margin-right: 0.5rem;
+}
+
 .clear-btn {
   background: none;
   border: none;
@@ -322,8 +427,8 @@ console.log('ContainerQuickFilters - Enhanced with favorites', {
   cursor: pointer;
   border-radius: 4px;
   color: #6b7280;
-  margin-left: auto;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .clear-btn:hover {
@@ -356,6 +461,7 @@ console.log('ContainerQuickFilters - Enhanced with favorites', {
   transition: all 0.2s;
   color: #6b7280;
   font-weight: 500;
+  position: relative;
 }
 
 .filter-tag:hover {
@@ -374,10 +480,25 @@ console.log('ContainerQuickFilters - Enhanced with favorites', {
   background: #22c55e30;
 }
 
+/* Multi-selected styling */
+.filter-tag.multi-selected {
+  background: #22c55e25;
+  border-color: #22c55e;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.2);
+}
+
 .filter-tag:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Selection indicator */
+.selection-indicator {
+  margin-left: 0.25rem;
+  color: #22c55e;
+  display: flex;
+  align-items: center;
 }
 
 /* Favorites specific styling */
@@ -465,7 +586,17 @@ console.log('ContainerQuickFilters - Enhanced with favorites', {
   border: 1px solid #e5e7eb;
 }
 
-.summary-text {
+.summary-header {
+  margin-bottom: 0.5rem;
+}
+
+.summary-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.summary-content {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -475,12 +606,13 @@ console.log('ContainerQuickFilters - Enhanced with favorites', {
 .filter-pill {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 16px;
   font-size: 0.75rem;
   font-weight: 500;
   border: 1px solid currentColor;
+  position: relative;
 }
 
 .favorites-pill {
@@ -492,6 +624,35 @@ console.log('ContainerQuickFilters - Enhanced with favorites', {
 .container-pill {
   background: var(--pill-bg, #f3f4f6);
   border: 1px solid var(--pill-border, #d1d5db);
+}
+
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Pill remove buttons */
+.pill-remove {
+  background: none;
+  border: none;
+  margin-left: 0.25rem;
+  padding: 0.125rem;
+  cursor: pointer;
+  border-radius: 50%;
+  color: currentColor;
+  opacity: 0.7;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pill-remove:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(1.1);
 }
 
 /* Debug info */
@@ -532,6 +693,47 @@ console.log('ContainerQuickFilters - Enhanced with favorites', {
   .action-btn {
     padding: 0.375rem 0.75rem;
     font-size: 0.8125rem;
+  }
+  
+}
+
+/* Animation for selection changes */
+@keyframes containerSelect {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.filter-tag.active {
+  animation: containerSelect 0.3s ease-out;
+}
+
+/* High contrast support */
+@media (prefers-contrast: high) {
+  .filter-tag {
+    border-width: 2px;
+  }
+  
+  .selection-indicator {
+    filter: contrast(2);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .filter-tag,
+  .action-btn,
+  .pill-remove {
+    transition: none;
+  }
+  
+  .filter-tag:hover,
+  .action-btn:hover {
+    transform: none;
+  }
+  
+  .filter-tag.active {
+    animation: none;
   }
 }
 </style>

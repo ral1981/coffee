@@ -29,7 +29,6 @@
       :container-counts="containerCounts"
       :filtered-count="filteredCount"
       :show-favorites="showFavoritesOnly"
-      @container-click="toggleContainerFilter"
       @toggle-favorites="toggleFavoritesFilter"
       @clear-filters="clearAllFilters"
       @export-favorites="handleExportFavorites"

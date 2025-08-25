@@ -123,14 +123,14 @@
               :key="container.id"
               class="container-chip"
               :class="{ 
-                'assigned': isContainerAssigned(coffee.id, container.id),
+                'assigned': isContainerAssigned(coffee, container.id),
                 'loading': containerLoadingStates[`${coffee.id}-${container.id}`]
               }"
               @click.stop="toggleContainerAssignment(coffee, container)"
               :disabled="containerLoadingStates[`${coffee.id}-${container.id}`] || !isLoggedIn"
               :style="{ 
                 '--container-color': container.color,
-                borderColor: isContainerAssigned(coffee.id, container.id) ? container.color : '#e5e7eb'
+                borderColor: isContainerAssigned(coffee, container.id) ? container.color : '#e5e7eb'
               }"
             >
               <div class="container-dot" :style="{ background: container.color }"></div>
