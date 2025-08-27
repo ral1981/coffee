@@ -209,36 +209,56 @@
           <div class="notes-text">{{ coffee.notes }}</div>
         </div>
 
+
         <!-- Recipe Section -->
         <div v-if="hasRecipeData(coffee)" class="recipe-section">
           <div class="recipe-header">
             <div class="recipe-title">Espresso Recipe</div>
-            <button 
-              v-if="getRecipeValue(coffee, 'recipe_in_grams') && getRecipeValue(coffee, 'recipe_out_grams')"
-              @click.stop="toggleShotMode(coffee.id)"
-              class="shot-mode-toggle"
-              :class="{ active: isDoubleShotMode(coffee.id) }"
-            >
-              {{ isDoubleShotMode(coffee.id) ? '2x' : '1x' }}
-            </button>
+          </div>
+          
+          <!-- Shot Toggle with Icon and Switch -->
+          <div 
+            v-if="getRecipeValue(coffee, 'recipe_in_grams') && getRecipeValue(coffee, 'recipe_out_grams')"
+            class="shot-toggle" 
+            @click.stop="toggleShotMode(coffee.id)"
+          >
+            <!-- Coffee Icon (placeholder for actual shot icons) -->
+            <div class="shot-icon">
+              <img 
+                :src="isDoubleShotMode(coffee.id) ? doubleShotIcon : singleShotIcon" 
+                class="shot-icon-img" 
+                :alt="isDoubleShotMode(coffee.id) ? 'Double Shot' : 'Single Shot'"
+              />
+            </div>
+            
+            <!-- Slide Switch -->
+            <div class="slide-switch" :data-state="isDoubleShotMode(coffee.id) ? 'double' : 'single'">
+              <div class="thumb"></div>
+              <span class="label label-single">Single</span>
+              <span class="label label-double">Double</span>
+            </div>
           </div>
           
           <div class="recipe-grid">
-            <div class="recipe-item">
-              <div class="recipe-label">In</div>
-              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_in_grams') }}g</div>
+            <div class="recipe-item" v-if="getRecipeValue(coffee, 'recipe_in_grams') && getRecipeValue(coffee, 'recipe_out_grams')">
+              <div class="recipe-label">Ratio</div>
+              <div class="recipe-value">{{ (getRecipeValue(coffee, 'recipe_out_grams') / getRecipeValue(coffee, 'recipe_in_grams')).toFixed(2) }}</div>
             </div>
-            <div class="recipe-item">
-              <div class="recipe-label">Out</div>
-              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_out_grams') }}g</div>
+            <div class="recipe-item" v-if="getRecipeValue(coffee, 'recipe_in_grams')">
+              <div class="recipe-label">In (G)</div>
+              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_in_grams') }}</div>
             </div>
-            <div class="recipe-item">
-              <div class="recipe-label">Time</div>
-              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_time_seconds') }}</div>
+            <div class="recipe-item" v-if="getRecipeValue(coffee, 'recipe_out_grams')">
+              <div class="recipe-label">Out (G)</div>
+              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_out_grams') }}</div>
             </div>
-            <div class="recipe-item">
-              <div class="recipe-label">Temp</div>
-              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_temperature_c') }}°C</div>
+            <div class="recipe-item" v-if="coffee.recipe_time_seconds">
+              <div class="recipe-label">Time (S)</div>
+              <div class="recipe-value">{{ coffee.recipe_time_seconds }}</div>
+            </div>
+            <div class="recipe-item" v-if="coffee.recipe_temperature_c">
+              <div class="recipe-label">Temp (°C)</div>
+              <div class="recipe-value">{{ coffee.recipe_temperature_c }}</div>
             </div>
           </div>
         </div>
@@ -305,6 +325,8 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import LogoImage from '../shared/LogoImage.vue'
+import singleShotIcon from '../../assets/icons/1shot.svg'
+import doubleShotIcon from '../../assets/icons/2shot.svg'
 import { useAuth } from '../../composables/useAuth'
 import { useToast } from '../../composables/useToast'
 import { useContainerAssignment } from '../../composables/useContainerAssignment'
@@ -1048,29 +1070,91 @@ onUnmounted(() => {
   color: #9a3412;
 }
 
-.shot-mode-toggle {
-  background: #ea580c;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+/* Shot Toggle Styles */
+.shot-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #fed7aa;
+  margin-bottom: 0.75rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
-.shot-mode-toggle:hover {
-  background: #dc2626;
+.shot-toggle:hover {
+  background: #fef7ed;
+  border-color: #ea580c;
 }
 
-.shot-mode-toggle.active {
-  background: #dc2626;
+.shot-icon {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  color: #ea580c;
+  transition: opacity 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slide-switch {
+  position: relative;
+  width: 100px;
+  height: 30px;
+  background-color: #ddd;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 5px;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: #555;
+}
+
+.label {
+  z-index: 1;
+  width: 50%;
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+.thumb {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  background-color: #3b82f6;
+  border-radius: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: left 0.3s ease, background-color 0.3s ease;
+  left: 50%;
+}
+
+.thumb:hover {
+  background-color: #2563eb;
+}
+
+.slide-switch[data-state="single"] .thumb {
+  left: 0%;
+}
+
+.slide-switch[data-state="single"] .label-single {
+  color: #fff;
+  font-weight: 600;
+}
+
+.slide-switch[data-state="double"] .label-double {
+  color: #fff;
+  font-weight: 600;
 }
 
 .recipe-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
 }
 
@@ -1080,6 +1164,7 @@ onUnmounted(() => {
   padding: 0.75rem 0.5rem;
   border-radius: 8px;
   border: 1px solid #fed7aa;
+  min-width: 0;
 }
 
 .recipe-label {
@@ -1239,10 +1324,6 @@ onUnmounted(() => {
   }
   
   .details-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .recipe-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   
