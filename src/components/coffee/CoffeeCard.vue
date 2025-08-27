@@ -225,20 +225,20 @@
           
           <div class="recipe-grid">
             <div class="recipe-item">
-              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_in_grams') }}g</div>
               <div class="recipe-label">In</div>
+              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_in_grams') }}g</div>
             </div>
             <div class="recipe-item">
-              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_out_grams') }}g</div>
               <div class="recipe-label">Out</div>
+              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_out_grams') }}g</div>
             </div>
             <div class="recipe-item">
-              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_time_seconds') }}s</div>
               <div class="recipe-label">Time</div>
+              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_time_seconds') }}</div>
             </div>
             <div class="recipe-item">
-              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_temperature_c') }}°C</div>
               <div class="recipe-label">Temp</div>
+              <div class="recipe-value">{{ getRecipeValue(coffee, 'recipe_temperature_c') }}°C</div>
             </div>
           </div>
         </div>

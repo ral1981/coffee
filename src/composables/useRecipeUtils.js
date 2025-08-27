@@ -3,7 +3,7 @@ import { ref, reactive } from 'vue'
 export function useRecipeUtils() {
   
   // Track shot mode for each coffee (true = double, false = single)
-  const isDoubleShotMode = reactive({})
+  const doubleShotModes = reactive({})
 
   // Check if coffee has recipe data
   const hasRecipeData = (coffee) => {
@@ -15,25 +15,53 @@ export function useRecipeUtils() {
 
   // Toggle between single and double shot display
   const toggleShotMode = (coffeeId, isDouble) => {
-    isDoubleShotMode[coffeeId] = isDouble
+    if (isDouble === undefined) {
+      // Toggle current state
+      doubleShotModes[coffeeId] = !doubleShotModes[coffeeId]
+    } else {
+      doubleShotModes[coffeeId] = isDouble
+    }
+  }
+
+  // Check if coffee is in double shot mode
+  const isDoubleShotMode = (coffeeId) => {
+    return doubleShotModes[coffeeId] !== false // Default to double shot
   }
 
   // Get recipe value with single/double shot conversion
   const getRecipeValue = (coffee, field) => {
     let originalValue
     
-    if (field === 'inGrams' && coffee.recipe_in_grams) {
-      originalValue = coffee.recipe_in_grams
-    } else if (field === 'outGrams' && coffee.recipe_out_grams) {
-      originalValue = coffee.recipe_out_grams
-    } else {
-      return null
+    // Handle all recipe field types
+    switch (field) {
+      case 'recipe_in_grams':
+      case 'inGrams':
+        originalValue = coffee.recipe_in_grams
+        break
+      case 'recipe_out_grams':
+      case 'outGrams':
+        originalValue = coffee.recipe_out_grams
+        break
+      case 'recipe_time_seconds':
+      case 'timeSeconds':
+        return getRecipeTime(coffee)
+      case 'recipe_temperature_c':
+      case 'temperatureC':
+        return coffee.recipe_temperature_c
+      default:
+        return null
     }
     
-    const isDouble = isDoubleShotMode[coffee.id] !== false
+    // Return null if no value
+    if (!originalValue) return null
     
-    if (!isDouble && (field === 'inGrams' || field === 'outGrams')) {
-      return Math.round(originalValue / 2)
+    // Apply double/single shot conversion only for weight values
+    if (field.includes('grams') || field === 'inGrams' || field === 'outGrams') {
+      const isDouble = isDoubleShotMode(coffee.id) // Use the function
+      
+      if (!isDouble) {
+        return Math.round(originalValue / 2)
+      }
     }
     
     return originalValue
@@ -51,6 +79,8 @@ export function useRecipeUtils() {
     
     // Convert seconds to formatted string
     const seconds = parseInt(timeValue)
+    if (isNaN(seconds)) return null
+    
     if (seconds < 60) {
       return `${seconds}s`
     }
@@ -122,10 +152,11 @@ export function useRecipeUtils() {
 
   return {
     // State
-    isDoubleShotMode,
+    doubleShotModes,
     
     // Recipe checks
     hasRecipeData,
+    isDoubleShotMode,
     
     // Display utilities
     toggleShotMode,
