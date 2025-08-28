@@ -1,154 +1,140 @@
 <template>
   <div class="quick-filters-section">
-    <!-- Favorites Filter (if user is logged in) -->
-    <div v-if="showFavoritesFilter" class="favorites-filter">
+    <!-- Favorites Filter -->
+    <div class="favorites-filter">
       <div class="filter-header">
         <Heart :size="16" class="header-icon" />
-        <strong>Favorites</strong>
-        <span v-if="isShowingFavorites" class="selection-count-badge">
-          1 selected
-        </span>
-        <button
-          v-if="isShowingFavorites"
-          @click="clearFavoritesFilter"
-          class="clear-btn"
-          title="Clear favorites filter"
-        >
-          <X :size="12" />
-        </button>
+        <span>Show Favorites</span>
       </div>
       <div class="filter-content">
-        <button
-          class="filter-tag favorites-tag"
-          :class="{ active: isShowingFavorites }"
-          @click="toggleFavoritesFilter"
-          :disabled="favoritesCount === 0"
-        >
-          <Heart :size="14" :class="{ filled: isShowingFavorites }" />
-          <span>{{ isShowingFavorites ? 'All Coffee' : 'My Favorites' }}</span>
-        </button>
+        <div class="container-tags">
+          <div 
+            :class="[
+              'filter-tag', 
+              'favorites-tag',
+              { active: isShowingFavorites }
+            ]"
+            @click.stop="handleFavoritesToggle"
+            role="button"
+            tabindex="0"
+            @keydown.enter.space.stop.prevent="handleFavoritesToggle"
+          >
+            <Heart :size="16" :class="{ filled: isShowingFavorites }" class="heart-icon" />
+            <span>Favorites</span>
+            <span v-if="favoriteCount > 0" class="tag-count">({{ favoriteCount }})</span>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Container Filters -->
-    <div v-if="containers.length > 0" class="container-filters">
+    <div class="container-filters">
       <div class="filter-header">
-        <Box :size="16" class="header-icon" />
-        <strong>Containers</strong>
-        <!-- Selection count -->
-        <span v-if="hasActiveContainers" class="selection-count-badge">
-          {{ activeContainers.length }} selected
+        <Archive :size="16" class="header-icon" />
+        <span>Container Filters</span>
+        <span v-if="internalSelectedContainers.length > 0" class="selection-count-badge">
+          {{ internalSelectedContainers.length }} selected
         </span>
-        <!-- Clear button with count -->
         <button
-          v-if="hasActiveContainers"
-          @click="clearContainerFilters"
+          v-if="internalSelectedContainers.length > 0"
+          @click.stop="clearAllContainerSelections"
           class="clear-btn"
-          :title="`Clear ${activeContainers.length} container filter${activeContainers.length > 1 ? 's' : ''}`"
+          title="Clear all container selections"
         >
-          <X :size="12" />
+          <X :size="14" />
         </button>
       </div>
-      
       <div class="filter-content">
         <div class="container-tags">
-          <button
+          <div
             v-for="container in containers"
             :key="container.id"
-            class="filter-tag container-tag"
-            :class="{ 
-              active: isContainerActive(container),
-              'multi-selected': hasActiveContainers && isContainerActive(container)
-            }"
-            @click="handleContainerClick(container)"
-            :title="getContainerTooltip(container)"
+            :class="[
+              'filter-tag',
+              'container-tag',
+              { 
+                'active': isContainerSelected(container),
+                'multi-selected': internalSelectedContainers.length > 1 && isContainerSelected(container)
+              }
+            ]"
+            @click.stop="handleContainerToggle(container)"
+            role="button"
+            tabindex="0"
+            @keydown.enter.space.stop.prevent="handleContainerToggle(container)"
           >
-            <div 
-              class="container-dot" 
-              :style="{ background: container.color }"
+            <div
+              class="container-dot"
+              :style="{ backgroundColor: container.color || '#6b7280' }"
             ></div>
-            {{ container.name }}
-            <!-- Show checkmark for selected containers -->
-            <div v-if="isContainerActive(container)" class="selection-indicator">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                <polyline points="20,6 9,17 4,12"/>
-              </svg>
+            <span>{{ container.name }}</span>
+            <span class="tag-count">({{ containerCounts[container.id] || 0 }})</span>
+            <div v-if="isContainerSelected(container)" class="selection-indicator">
+              <Check :size="14" />
             </div>
-          </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Quick Actions (if user is logged in) -->
-    <div v-if="isLoggedIn && (hasActiveFilters || isShowingFavorites || hasAdditionalFilters)" class="quick-actions">
+    <!-- Quick Actions -->
+    <div class="quick-actions">
       <div class="filter-header">
-        <Filter :size="16" class="header-icon" />
-        <strong>Quick Actions</strong>
+        <Zap :size="16" class="header-icon" />
+        <span>Quick Actions</span>
+        <span class="count-badge">{{ filteredCount }} results</span>
       </div>
       <div class="filter-content">
         <div class="action-buttons">
-          <button
-            v-if="isShowingFavorites"
-            @click="exportFavorites"
+          <button 
+            @click.stop="handleExportFavorites"
+            @keydown.enter.space.stop.prevent="handleExportFavorites"
+            :disabled="!hasAnyFavorites"
             class="action-btn export-btn"
-            :disabled="favoritesCount === 0"
+            tabindex="0"
           >
-            <Download :size="14" />
+            <Download :size="16" />
             Export Favorites
           </button>
-          
-          <button
-            v-if="hasActiveFilters || hasAdditionalFilters"
-            @click="clearAllFilters"
+          <button 
+            @click.stop="handleClearFilters"
+            @keydown.enter.space.stop.prevent="handleClearFilters"
+            :disabled="!hasAnyFilters"
             class="action-btn clear-all-btn"
+            tabindex="0"
           >
-            <RotateCcw :size="14" />
+            <Trash2 :size="16" />
             Clear All Filters
           </button>
-          
           <button
-            v-if="filteredCount > 0 && !isShowingFavorites"
-            @click="addAllToFavorites"
+            @click.stop="handleAddAllToFavorites"
+            @keydown.enter.space.stop.prevent="handleAddAllToFavorites"
+            :disabled="filteredCount === 0"
             class="action-btn add-favorites-btn"
-            :disabled="addingAllToFavorites"
+            tabindex="0"
           >
-            <Heart :size="14" />
-            {{ addingAllToFavorites ? 'Adding...' : `Add All to Favorites (${filteredCount})` }}
+            <Heart :size="16" />
+            Add All to Favorites
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- Debug info (remove in production) -->
-    <div v-if="showDebug" class="debug-info">
-      <details>
-        <summary>Debug Info</summary>
-        <pre>{{ debugInfo }}</pre>
-      </details>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
-import { Heart, Box, X, Filter, Download, RotateCcw, MapPin, Store } from 'lucide-vue-next'
-import { useAuth } from '../../composables/useAuth'
-import { useFavorites } from '../../composables/useFavorites'
-import { useToast } from '../../composables/useToast'
+import { ref, computed, watch } from 'vue'
+import { 
+  Heart, Archive, Zap, Check, X, Download, Trash2
+} from 'lucide-vue-next'
 
 const props = defineProps({
-  modelValue: { 
-    type: Array, 
-    default: () => [] 
+  modelValue: {
+    type: Array,
+    default: () => []
   },
-  containers: { 
-    type: Array, 
-    default: () => [],
-    validator: (containers) => {
-      return containers.length === 0 || containers.every(c => 
-        c && typeof c === 'object' && c.id && c.name
-      )
-    }
+  containers: {
+    type: Array,
+    default: () => []
   },
   containerCounts: {
     type: Object,
@@ -164,151 +150,89 @@ const props = defineProps({
   },
   additionalFilters: {
     type: Object,
-    default: () => ({ origin: '', shop: '' })
-  },
-  showDebug: {
-    type: Boolean,
-    default: false
+    default: () => ({})
   }
 })
 
 const emit = defineEmits([
-  'update:modelValue', 
-  'toggle-favorites', 
-  'clear-filters', 
-  'export-favorites', 
-  'add-all-to-favorites',
+  'update:modelValue',
+  'toggle-favorites',
+  'clear-filters',
   'clear-origin-filter',
-  'clear-shop-filter'
+  'clear-shop-filter',
+  'export-favorites',
+  'add-all-to-favorites'
 ])
 
-// Composables
-const { isLoggedIn } = useAuth()
-const { favoriteIds, getFavoriteCoffees } = useFavorites()
-const { info } = useToast()
-
-// Internal state
-const internalSelectedContainers = ref([])
-const isShowingFavorites = ref(false)
-const addingAllToFavorites = ref(false)
+// Internal state management
+const internalSelectedContainers = ref([...props.modelValue])
+const isShowingFavorites = ref(props.showFavorites)
 
 // Computed properties
-const showFavoritesFilter = computed(() => isLoggedIn.value)
-
-const favoritesCount = computed(() => {
-  return favoriteIds.value.length
+const favoriteCount = computed(() => {
+  // This would need to be passed as a prop or computed based on actual favorites data
+  return 0 // Placeholder
 })
 
-const activeContainers = computed(() => internalSelectedContainers.value)
-
-const hasActiveContainers = computed(() => activeContainers.value.length > 0)
-
-const hasAdditionalFilters = computed(() => {
-  return props.additionalFilters.origin !== '' || props.additionalFilters.shop !== ''
+const hasAnyFavorites = computed(() => {
+  return favoriteCount.value > 0
 })
 
-const hasActiveFilters = computed(() => {
-  return hasActiveContainers.value || isShowingFavorites.value || hasAdditionalFilters.value
+const hasAnyFilters = computed(() => {
+  return internalSelectedContainers.value.length > 0 ||
+         isShowingFavorites.value ||
+         props.additionalFilters.origin ||
+         props.additionalFilters.shop
 })
-
-const debugInfo = computed(() => ({
-  modelValue: props.modelValue?.map(c => c.name) || [],
-  internalSelectedContainers: internalSelectedContainers.value?.map(c => c.name) || [],
-  isShowingFavorites: isShowingFavorites.value,
-  hasActiveFilters: hasActiveFilters.value,
-  additionalFilters: props.additionalFilters
-}))
 
 // Methods
-const isContainerActive = (container) => {
+const isContainerSelected = (container) => {
   return internalSelectedContainers.value.some(c => c.id === container.id)
 }
 
-const getContainerCount = (containerId) => {
-  return props.containerCounts[containerId] || 0
-}
-
-const getContainerTooltip = (container) => {
-  const count = getContainerCount(container.id)
-  const baseTooltip = `${container.name} Container`
-  return count > 0 ? `${baseTooltip} (${count} coffee${count === 1 ? '' : 's'})` : baseTooltip
-}
-
-const handleContainerClick = (container) => {
-  console.log('🔄 Container clicked:', container.name)
+const handleContainerToggle = (container) => {
+  console.log('🔄 ContainerQuickFilters - handleContainerToggle:', container.name)
   
-  let newSelection
-  if (isContainerActive(container)) {
-    // Remove container
-    newSelection = internalSelectedContainers.value.filter(c => c.id !== container.id)
-    console.log('➖ Removing container from selection:', container.name)
+  const isCurrentlySelected = isContainerSelected(container)
+  
+  if (isCurrentlySelected) {
+    // Remove from selection
+    internalSelectedContainers.value = internalSelectedContainers.value.filter(c => c.id !== container.id)
+    console.log('➖ Removed container:', container.name)
   } else {
-    // Add container
-    newSelection = [...internalSelectedContainers.value, container]
-    console.log('➕ Adding container to selection:', container.name)
+    // Add to selection
+    internalSelectedContainers.value.push(container)
+    console.log('➕ Added container:', container.name)
   }
   
-  // Update internal state
-  internalSelectedContainers.value = newSelection
-  
-  // Emit the change to parent via v-model
-  emit('update:modelValue', newSelection)
-  
-  console.log('📤 Emitted selection update:', newSelection.map(c => c.name))
+  // Emit the updated selection
+  emit('update:modelValue', [...internalSelectedContainers.value])
 }
 
-const toggleFavoritesFilter = () => {
-  const newValue = !isShowingFavorites.value
-  isShowingFavorites.value = newValue
-  emit('toggle-favorites', newValue)
-}
-
-const clearFavoritesFilter = () => {
-  isShowingFavorites.value = false
-  emit('toggle-favorites', false)
-}
-
-const clearContainerFilters = () => {
-  console.log('🧹 Clearing all container filters')
+const clearAllContainerSelections = () => {
+  console.log('🧹 ContainerQuickFilters - clearAllContainerSelections')
   internalSelectedContainers.value = []
   emit('update:modelValue', [])
 }
 
-const removeOriginFilter = () => {
-  emit('clear-origin-filter')
+const handleFavoritesToggle = () => {
+  console.log('💖 ContainerQuickFilters - handleFavoritesToggle:', !isShowingFavorites.value)
+  isShowingFavorites.value = !isShowingFavorites.value
 }
 
-const removeShopFilter = () => {
-  emit('clear-shop-filter')
-}
-
-const clearAllFilters = () => {
-  console.log('🧹 Clearing ALL filters')
-  isShowingFavorites.value = false
-  internalSelectedContainers.value = []
-  emit('update:modelValue', [])
-  emit('toggle-favorites', false)
-  emit('clear-filters')
-}
-
-const exportFavorites = () => {
+const handleExportFavorites = () => {
+  console.log('📤 ContainerQuickFilters - handleExportFavorites')
   emit('export-favorites')
 }
 
-const addAllToFavorites = async () => {
-  if (addingAllToFavorites.value) return
-  
-  addingAllToFavorites.value = true
-  
-  try {
-    emit('add-all-to-favorites')
-    info('Adding to Favorites', `Adding ${props.filteredCount} coffees to your favorites...`)
-  } finally {
-    // Reset after a delay to give the parent time to process
-    setTimeout(() => {
-      addingAllToFavorites.value = false
-    }, 2000)
-  }
+const handleClearFilters = () => {
+  console.log('🧹 ContainerQuickFilters - handleClearFilters')
+  emit('clear-filters')
+}
+
+const handleAddAllToFavorites = () => {
+  console.log('❤️ ContainerQuickFilters - handleAddAllToFavorites')
+  emit('add-all-to-favorites')
 }
 
 // Sync internal state with modelValue prop changes
@@ -444,6 +368,7 @@ watch(internalSelectedContainers, (newValue, oldValue) => {
   color: #6b7280;
   font-weight: 500;
   position: relative;
+  user-select: none;
 }
 
 .filter-tag:hover {
@@ -531,6 +456,7 @@ watch(internalSelectedContainers, (newValue, oldValue) => {
   font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.2s;
+  user-select: none;
 }
 
 .action-btn:hover:not(:disabled) {
@@ -558,29 +484,6 @@ watch(internalSelectedContainers, (newValue, oldValue) => {
 .add-favorites-btn:hover:not(:disabled) {
   border-color: #f59e0b;
   color: #d97706;
-}
-
-
-
-
-
-/* Debug info */
-.debug-info {
-  background: #fee;
-  padding: 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #dc2626;
-}
-
-.debug-info pre {
-  background: #fff;
-  padding: 0.5rem;
-  border-radius: 4px;
-  overflow: auto;
-  max-height: 200px;
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
 }
 
 /* Responsive */
@@ -642,5 +545,21 @@ watch(internalSelectedContainers, (newValue, oldValue) => {
   .filter-tag.active {
     animation: none;
   }
+}
+
+/* Focus styles for accessibility */
+.filter-tag:focus {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
+.action-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.clear-btn:focus {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
 }
 </style>

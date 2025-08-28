@@ -203,8 +203,9 @@ const totalActiveFilters = computed(() => {
 
 // Methods
 const toggleExpanded = (event) => {
-  // Prevent expansion/collapse if clicking on interactive elements
-  if (event?.target?.closest('.expand-toggle, .filter-tag, .action-btn, .clear-btn, .filter-select, button, input, select')) {
+  // Only prevent expansion/collapse if clicking on the expand toggle button specifically
+  // This allows the header bar itself to be clickable for expand/collapse
+  if (event?.target?.closest('.expand-toggle')) {
     return
   }
   isExpanded.value = !isExpanded.value
@@ -424,110 +425,76 @@ watch(() => props.activeContainers, (newContainers) => {
 }
 
 .filters-content.expanded {
-  max-height: 2000px;
+  max-height: 1000px;
   opacity: 1;
   transform: translateY(0);
 }
 
+/* Filter sections */
 .filters-sections {
-  padding: 0.75rem;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.5) 0%, rgba(255, 255, 255, 0.8) 100%);
+  padding: 1.5rem;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.9) 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Always Visible Active Filters with modern styling - more compact */
+/* Always visible active filters section */
 .active-filters-always-visible {
-  padding: 0.75rem;
-  background: linear-gradient(135deg, #f1f5f9 0%, #f8fafc 100%);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .active-filters-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .active-filters-title {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  color: #64748b;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .clear-all-active-btn {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  border: none;
-  color: white;
-  padding: 0.25rem 0.625rem;
-  border-radius: 6px;
-  font-size: 0.6875rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
   font-weight: 600;
+  color: #dc2626;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
 }
 
 .clear-all-active-btn:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #991b1b;
+  transform: scale(1.05);
 }
 
-.clear-all-active-btn:active {
-  transform: translateY(0);
-}
-
-/* Modern filter pills - smaller and more discrete */
 .active-filters-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  align-items: center;
 }
 
 .filter-pill {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 16px;
-  font-size: 0.75rem;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  font-size: 0.8125rem;
   font-weight: 500;
-  border: 1px solid currentColor;
-  position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
-  animation: slideInScale 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes slideInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.filter-pill:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
 }
 
 .favorites-pill {
@@ -669,50 +636,50 @@ watch(() => props.activeContainers, (newContainers) => {
 
 /* Deep selector overrides for child components to make them more compact */
 .filters-container :deep(.filter-header) {
-  padding: 0.5rem 0.75rem; /* Reduced from 1rem */
+  padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
 }
 
 .filters-container :deep(.filter-content) {
-  padding: 0.5rem 0.75rem; /* Reduced from 1rem */
+  padding: 0.5rem 0.75rem;
 }
 
 .filters-container :deep(.filters-grid) {
-  padding: 0.5rem 0.75rem; /* Reduced from 1rem */
-  gap: 0.75rem; /* Reduced from 1rem */
+  padding: 0.5rem 0.75rem;
+  gap: 0.75rem;
 }
 
 .filters-container :deep(.filter-group) {
-  margin-bottom: 0.5rem; /* Add some spacing between groups */
+  margin-bottom: 0.5rem;
 }
 
 .filters-container :deep(.filter-label) {
-  margin-bottom: 0.375rem; /* Reduced from 0.5rem */
-  font-size: 0.8125rem; /* Slightly smaller */
+  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
 }
 
 .filters-container :deep(.filter-select) {
-  padding: 0.5rem; /* Reduced from 0.75rem */
+  padding: 0.5rem;
 }
 
 .filters-container :deep(.container-tags),
 .filters-container :deep(.action-buttons) {
-  gap: 0.375rem; /* Reduced from 0.5rem */
+  gap: 0.375rem;
 }
 
 .filters-container :deep(.filter-tag) {
-  padding: 0.375rem 0.5rem; /* Reduced from 0.5rem 0.75rem */
-  font-size: 0.8125rem; /* Reduced from 0.875rem */
+  padding: 0.375rem 0.5rem;
+  font-size: 0.8125rem;
 }
 
 .filters-container :deep(.action-btn) {
-  padding: 0.375rem 0.625rem; /* Reduced from 0.5rem 1rem */
-  font-size: 0.8125rem; /* Reduced from 0.875rem */
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
 }
 
 .filters-container :deep(.quick-filters-section) {
-  gap: 0.5rem; /* Reduced from 1rem */
-  margin-bottom: 0.5rem; /* Reduced from 1rem */
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .filters-container :deep(.filter-tag),
@@ -724,6 +691,7 @@ watch(() => props.activeContainers, (newContainers) => {
 .filters-container :deep(select) {
   pointer-events: auto;
 }
+
 .filters-main-header:focus {
   outline: 3px solid #22c55e;
   outline-offset: -3px;
