@@ -3,47 +3,42 @@
     <!-- Main Filter Header with Collapse/Expand -->
     <div class="filters-main-header" @click="toggleExpanded">
       <div class="header-content">
-        <!-- Changed from Filter to Sliders icon -->
         <Sliders :size="18" class="header-icon" />
         <h3 class="header-title">Filters</h3>
         
-        <!-- Active filters count badge with enhanced animation -->
+        <!-- Active filters count badge -->
         <span v-if="totalActiveFilters > 0" class="active-count-badge">
           {{ totalActiveFilters }} active
         </span>
         
-        <!-- Enhanced Expand/Collapse indicator with rotation animation -->
+        <!-- Expand/Collapse toggle -->
         <button class="expand-toggle" :class="{ expanded: isExpanded }" @click="handleToggleClick">
           <ChevronDown :size="16" />
         </button>
       </div>
     </div>
 
-    <!-- Collapsible Content with modern slide animation -->
+    <!-- Collapsible Content -->
     <div class="filters-content" :class="{ expanded: isExpanded }">
       <div class="filters-sections">
         <!-- Additional Filters Section -->
-        <FiltersSection 
-          :model-value="localFilters"
-          @update:model-value="updateFilters"
+        <AdditionalFilters 
+          v-model="localFilters"
           :origins="origins"
           :shops="shops"
         />
 
-        <!-- Container Quick Filters -->
-        <ContainerQuickFilters 
-          :model-value="localActiveContainers"
-          @update:model-value="updateActiveContainers"
+        <!-- Quick Filters (formerly ContainerQuickFilters) -->
+        <QuickFilters 
+          v-model:active-containers="localActiveContainers"
+          v-model:show-favorites="localShowFavorites"
           :containers="containers"
           :container-counts="containerCounts"
           :filtered-count="filteredCount"
-          :show-favorites="showFavorites"
+          :favorite-count="favoriteCount"
           :additional-filters="localFilters"
-          @toggle-favorites="$emit('toggle-favorites', $event)"
-          @clear-filters="$emit('clear-filters')"
-          @clear-origin-filter="clearOriginFilter"
-          @clear-shop-filter="clearShopFilter"
           @export-favorites="$emit('export-favorites')"
+          @clear-filters="handleClearAllFilters"
           @add-all-to-favorites="$emit('add-all-to-favorites')"
         />
       </div>
@@ -55,7 +50,7 @@
         <span class="active-filters-title">Active Filters:</span>
         <button 
           class="clear-all-active-btn"
-          @click="$emit('clear-filters')"
+          @click="handleClearAllFilters"
         >
           Clear All
         </button>
@@ -63,63 +58,44 @@
       
       <div class="active-filters-pills">
         <!-- Favorites pill -->
-        <div v-if="showFavorites" class="filter-pill favorites-pill">
-          <Heart :size="12" class="pill-dot" />
-          Favorites
-          <button 
-            class="pill-remove" 
-            @click="$emit('toggle-favorites', false)"
-            aria-label="Remove favorites filter"
-          >
-            <X :size="12" />
-          </button>
-        </div>
+        <BaseFilterTag
+          v-if="localShowFavorites"
+          label="Favorites"
+          variant="favorites"
+          icon="Heart"
+          removable
+          @remove="localShowFavorites = false"
+        />
         
-        <!-- Origin filter pill -->
-        <div v-if="localFilters.origin" class="filter-pill additional-pill">
-          <MapPin :size="12" class="pill-dot" />
-          {{ localFilters.origin }}
-          <button 
-            class="pill-remove" 
-            @click="clearOriginFilter"
-            aria-label="Remove origin filter"
-          >
-            <X :size="12" />
-          </button>
-        </div>
+        <!-- Additional filter pills -->
+        <BaseFilterTag
+          v-if="localFilters.origin"
+          :label="localFilters.origin"
+          variant="additional"
+          icon="MapPin"
+          removable
+          @remove="clearOriginFilter"
+        />
         
-        <!-- Shop filter pill -->
-        <div v-if="localFilters.shop" class="filter-pill additional-pill">
-          <Store :size="12" class="pill-dot" />
-          {{ localFilters.shop }}
-          <button 
-            class="pill-remove" 
-            @click="clearShopFilter"
-            aria-label="Remove shop filter"
-          >
-            <X :size="12" />
-          </button>
-        </div>
+        <BaseFilterTag
+          v-if="localFilters.shop"
+          :label="localFilters.shop"
+          variant="additional"
+          icon="Store"
+          removable
+          @remove="clearShopFilter"
+        />
         
         <!-- Container filter pills -->
-        <div 
+        <BaseFilterTag 
           v-for="container in localActiveContainers" 
           :key="container.id"
-          class="filter-pill container-pill"
-        >
-          <div 
-            class="pill-dot" 
-            :style="{ backgroundColor: container.color || '#6b7280' }"
-          ></div>
-          {{ container.name }}
-          <button 
-            class="pill-remove" 
-            @click="removeContainerFilter(container)"
-            aria-label="`Remove ${container.name} filter`"
-          >
-            <X :size="12" />
-          </button>
-        </div>
+          :label="container.name"
+          :color-dot="container.color || '#6b7280'"
+          variant="container"
+          removable
+          @remove="removeContainerFilter(container)"
+        />
       </div>
     </div>
   </div>
@@ -127,9 +103,10 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { Sliders, ChevronDown, Heart, MapPin, Store, X } from 'lucide-vue-next'
-import FiltersSection from './FiltersSection.vue'
-import ContainerQuickFilters from './ContainerQuickFilters.vue'
+import { Sliders, ChevronDown } from 'lucide-vue-next'
+import AdditionalFilters from './AdditionalFilters.vue'
+import QuickFilters from './QuickFilters.vue'
+import BaseFilterTag from './shared/BaseFilterTag.vue'
 
 const props = defineProps({
   filters: {
@@ -164,6 +141,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  favoriteCount: {
+    type: Number,
+    default: 0
+  },
   defaultExpanded: {
     type: Boolean,
     default: false
@@ -173,9 +154,9 @@ const props = defineProps({
 const emit = defineEmits([
   'update:filters',
   'update:activeContainers',
-  'toggle-favorites',
-  'clear-filters',
+  'update:showFavorites',
   'export-favorites',
+  'clear-filters',
   'add-all-to-favorites'
 ])
 
@@ -183,6 +164,7 @@ const emit = defineEmits([
 const isExpanded = ref(props.defaultExpanded)
 const localFilters = ref({ ...props.filters })
 const localActiveContainers = ref([...props.activeContainers])
+const localShowFavorites = ref(props.showFavorites)
 
 // Computed properties
 const totalActiveFilters = computed(() => {
@@ -196,15 +178,13 @@ const totalActiveFilters = computed(() => {
   count += localActiveContainers.value.length
   
   // Count favorites filter
-  if (props.showFavorites) count++
+  if (localShowFavorites.value) count++
   
   return count
 })
 
 // Methods
 const toggleExpanded = (event) => {
-  // Only prevent expansion/collapse if clicking on the expand toggle button specifically
-  // This allows the header bar itself to be clickable for expand/collapse
   if (event?.target?.closest('.expand-toggle')) {
     return
   }
@@ -212,34 +192,32 @@ const toggleExpanded = (event) => {
 }
 
 const handleToggleClick = (event) => {
-  // Stop propagation to prevent the header click from also triggering
   event.stopPropagation()
   isExpanded.value = !isExpanded.value
 }
 
-const updateFilters = (newFilters) => {
-  localFilters.value = newFilters
-  emit('update:filters', newFilters)
-}
-
-const updateActiveContainers = (newContainers) => {
-  localActiveContainers.value = newContainers
-  emit('update:activeContainers', newContainers)
+const handleClearAllFilters = () => {
+  console.log('🧹 FiltersContainer - handleClearAllFilters')
+  
+  // Clear all filter states
+  localFilters.value = { origin: '', shop: '' }
+  localActiveContainers.value = []
+  localShowFavorites.value = false
+  
+  // Emit clear event for any external cleanup
+  emit('clear-filters')
 }
 
 const clearOriginFilter = () => {
-  const updatedFilters = { ...localFilters.value, origin: '' }
-  updateFilters(updatedFilters)
+  localFilters.value = { ...localFilters.value, origin: '' }
 }
 
 const clearShopFilter = () => {
-  const updatedFilters = { ...localFilters.value, shop: '' }
-  updateFilters(updatedFilters)
+  localFilters.value = { ...localFilters.value, shop: '' }
 }
 
 const removeContainerFilter = (container) => {
-  const updatedContainers = localActiveContainers.value.filter(c => c.id !== container.id)
-  updateActiveContainers(updatedContainers)
+  localActiveContainers.value = localActiveContainers.value.filter(c => c.id !== container.id)
 }
 
 // Watch for external prop changes and sync with local state
@@ -251,8 +229,22 @@ watch(() => props.activeContainers, (newContainers) => {
   localActiveContainers.value = [...newContainers]
 }, { deep: true, immediate: true })
 
-// REMOVED: Auto-expand behavior when filters are applied
-// The container should only expand/collapse when explicitly toggled by user interaction
+watch(() => props.showFavorites, (newValue) => {
+  localShowFavorites.value = newValue
+}, { immediate: true })
+
+// Emit changes back to parent
+watch(localFilters, (newFilters) => {
+  emit('update:filters', newFilters)
+}, { deep: true })
+
+watch(localActiveContainers, (newContainers) => {
+  emit('update:activeContainers', newContainers)
+}, { deep: true })
+
+watch(localShowFavorites, (newValue) => {
+  emit('update:showFavorites', newValue)
+})
 </script>
 
 <style scoped>
@@ -435,6 +427,9 @@ watch(() => props.activeContainers, (newContainers) => {
   padding: 1.5rem;
   background: linear-gradient(180deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.9) 100%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 /* Always visible active filters section */
@@ -484,66 +479,20 @@ watch(() => props.activeContainers, (newContainers) => {
   gap: 0.5rem;
 }
 
-.filter-pill {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid transparent;
-  border-radius: 20px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+/* Focus styles for accessibility */
+.filters-main-header:focus {
+  outline: 3px solid #22c55e;
+  outline-offset: -3px;
 }
 
-.favorites-pill {
-  background: linear-gradient(135deg, #fef7e7, #fef3c7);
-  color: #d97706;
-  border-color: #f59e0b;
+.expand-toggle:focus {
+  outline: 3px solid #22c55e;
+  outline-offset: 2px;
 }
 
-.additional-pill {
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  color: #2563eb;
-  border-color: #3b82f6;
-}
-
-.container-pill {
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-  border-color: #94a3b8;
-  color: #475569;
-}
-
-.pill-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
-}
-
-.pill-remove {
-  background: rgba(255, 255, 255, 0.8);
-  border: none;
-  margin-left: 0.125rem;
-  padding: 0.125rem;
-  cursor: pointer;
-  border-radius: 50%;
-  color: currentColor;
-  opacity: 0.7;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10px);
-}
-
-.pill-remove:hover {
-  opacity: 1;
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  transform: scale(1.2) rotate(90deg);
+.clear-all-active-btn:focus {
+  outline: 3px solid #ef4444;
+  outline-offset: 2px;
 }
 
 /* Dark mode support */
@@ -597,7 +546,6 @@ watch(() => props.activeContainers, (newContainers) => {
   .filters-main-header,
   .expand-toggle,
   .filters-content,
-  .filter-pill,
   .active-count-badge {
     animation: none;
     transition: none;
@@ -610,10 +558,6 @@ watch(() => props.activeContainers, (newContainers) => {
   .filters-main-header:hover .header-icon {
     transform: none;
   }
-  
-  .pill-remove:hover {
-    transform: none;
-  }
 }
 
 /* High Contrast Mode */
@@ -623,9 +567,8 @@ watch(() => props.activeContainers, (newContainers) => {
     box-shadow: none;
   }
   
-  .active-count-badge,
-  .filter-pill {
-    border-width: 2px;
+  .active-count-badge {
+    border: 2px solid white;
     font-weight: 700;
   }
   
@@ -634,81 +577,22 @@ watch(() => props.activeContainers, (newContainers) => {
   }
 }
 
-/* Deep selector overrides for child components to make them more compact */
-.filters-container :deep(.filter-header) {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-}
-
-.filters-container :deep(.filter-content) {
-  padding: 0.5rem 0.75rem;
-}
-
-.filters-container :deep(.filters-grid) {
-  padding: 0.5rem 0.75rem;
-  gap: 0.75rem;
-}
-
-.filters-container :deep(.filter-group) {
-  margin-bottom: 0.5rem;
-}
-
-.filters-container :deep(.filter-label) {
-  margin-bottom: 0.375rem;
-  font-size: 0.8125rem;
-}
-
-.filters-container :deep(.filter-select) {
-  padding: 0.5rem;
-}
-
-.filters-container :deep(.container-tags),
-.filters-container :deep(.action-buttons) {
-  gap: 0.375rem;
-}
-
-.filters-container :deep(.filter-tag) {
-  padding: 0.375rem 0.5rem;
-  font-size: 0.8125rem;
-}
-
-.filters-container :deep(.action-btn) {
-  padding: 0.375rem 0.625rem;
-  font-size: 0.8125rem;
-}
-
-.filters-container :deep(.quick-filters-section) {
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.filters-container :deep(.filter-tag),
-.filters-container :deep(.action-btn),
-.filters-container :deep(.clear-btn),
-.filters-container :deep(.filter-select),
-.filters-container :deep(button),
-.filters-container :deep(input),
-.filters-container :deep(select) {
-  pointer-events: auto;
-}
-
-.filters-main-header:focus {
-  outline: 3px solid #22c55e;
-  outline-offset: -3px;
-}
-
-.expand-toggle:focus {
-  outline: 3px solid #22c55e;
-  outline-offset: 2px;
-}
-
-.pill-remove:focus {
-  outline: 2px solid #ef4444;
-  outline-offset: 2px;
-}
-
-.clear-all-active-btn:focus {
-  outline: 3px solid #ef4444;
-  outline-offset: 2px;
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .filters-main-header {
+    padding: 1rem;
+  }
+  
+  .filters-sections {
+    padding: 1rem;
+  }
+  
+  .active-filters-always-visible {
+    padding: 0.75rem 1rem;
+  }
+  
+  .header-title {
+    font-size: 1rem;
+  }
 }
 </style>

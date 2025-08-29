@@ -17,7 +17,7 @@ export function useFilters(coffees) {
   const showFavoritesOnly = ref(false)
   
   // Get favorites functionality
-  const { favoriteIds, isFavorited, getFavoriteCoffees } = useFavorites()
+  const { favoriteIds, isFavorited, getFavoriteCoffees, isLoaded, fetchFavorites } = useFavorites()
 
   // Computed filter options
   const availableOrigins = computed(() => {
@@ -49,11 +49,12 @@ export function useFilters(coffees) {
       : coffees.value
     
     relevantCoffees.forEach(coffee => {
-      if (coffee.containerIds) {
-        coffee.containerIds.forEach(containerId => {
-          counts[containerId] = (counts[containerId] || 0) + 1
-        })
-      }
+      const containerIds = coffee.containerIds || 
+        coffee.coffee_container_assignments?.map(a => a.container_id) || []
+      
+      containerIds.forEach(containerId => {
+        counts[containerId] = (counts[containerId] || 0) + 1
+      })
     })
     
     return counts
@@ -65,9 +66,32 @@ export function useFilters(coffees) {
     
     let filtered = [...coffees.value]
     
-    // Apply favorites filter first
+    // Apply favorites filter first - but only if favorites are loaded or not filtering by favorites
     if (showFavoritesOnly.value) {
-      filtered = filtered.filter(coffee => isFavorited(coffee.id))
+      console.log('🔍 Filtering by favorites:', {
+        totalCoffees: filtered.length,
+        favoritesLoaded: isLoaded?.value,
+        favoriteIdsCount: favoriteIds?.value?.length || 0,
+        showFavoritesOnly: showFavoritesOnly.value
+      })
+      
+      if (!isLoaded?.value) {
+        console.warn('⚠️ Favorites filter requested but favorites not loaded yet')
+        // Return empty array or show loading state
+        return []
+      }
+      
+      const beforeCount = filtered.length
+      filtered = filtered.filter(coffee => {
+        const isFav = isFavorited(coffee.id)
+        return isFav
+      })
+      
+      console.log('📊 Favorites filter results:', {
+        before: beforeCount,
+        after: filtered.length,
+        favoriteCoffees: filtered.map(c => c.name)
+      })
     }
     
     // Apply search query
@@ -109,8 +133,11 @@ export function useFilters(coffees) {
     // Apply container filters
     if (activeContainers.value.length > 0) {
       filtered = filtered.filter(coffee => {
+        const coffeeContainerIds = coffee.containerIds || 
+          coffee.coffee_container_assignments?.map(a => a.container_id) || []
+        
         return activeContainers.value.some(container =>
-          coffee.containerIds?.includes(container.id)
+          coffeeContainerIds.includes(container.id)
         )
       })
     }
@@ -155,6 +182,7 @@ export function useFilters(coffees) {
   }
 
   const clearAllFilters = () => {
+    console.log('🧹 useFilters - clearAllFilters called')
     searchQuery.value = ''
     clearFilters()
     clearContainerFilters()
@@ -183,8 +211,33 @@ export function useFilters(coffees) {
   }
 
   // Favorites filter management
-  const toggleFavoritesFilter = (show = !showFavoritesOnly.value) => {
+  const toggleFavoritesFilter = async (show = !showFavoritesOnly.value) => {
+    console.log('💖 useFilters - toggleFavoritesFilter called with:', show)
+    
+    // If turning on favorites filter, ensure favorites are loaded
+    if (show && !isLoaded?.value) {
+      console.log('📥 Favorites not loaded, fetching...')
+      try {
+        await fetchFavorites()
+        console.log('✅ Favorites loaded successfully in useFilters')
+      } catch (error) {
+        console.error('❌ Failed to load favorites:', error)
+        // Don't set the filter if we couldn't load favorites
+        return
+      }
+    }
+    
     showFavoritesOnly.value = show
+    console.log('✅ Favorites filter set to:', show)
+  }
+
+  // Ensure favorites are loaded when needed
+  const ensureFavoritesLoaded = async () => {
+    if (!isLoaded?.value) {
+      console.log('🔄 Ensuring favorites are loaded...')
+      await fetchFavorites()
+    }
+    return isLoaded?.value
   }
 
   // URL synchronization
@@ -210,7 +263,8 @@ export function useFilters(coffees) {
     }
     
     if (query.favorites === 'true') {
-      showFavoritesOnly.value = true
+      // Don't immediately set favorites filter - let the component handle loading
+      console.log('🔗 Favorites filter detected in URL - will be handled by component')
     }
   }
 
@@ -265,23 +319,50 @@ export function useFilters(coffees) {
 
   // Bulk operations for favorites
   const addAllFilteredToFavorites = async () => {
+    await ensureFavoritesLoaded()
+    
     const { addToFavorites } = useFavorites()
     const unfavoritedCoffees = filteredCoffees.value.filter(coffee => !isFavorited(coffee.id))
     
+    console.log('📝 Adding to favorites:', {
+      totalFiltered: filteredCoffees.value.length,
+      unfavorited: unfavoritedCoffees.length
+    })
+    
+    if (unfavoritedCoffees.length === 0) {
+      return {
+        success: true,
+        addedCount: 0,
+        message: 'All filtered coffees are already in favorites'
+      }
+    }
+    
+    let successCount = 0
     const results = []
+    
     for (const coffee of unfavoritedCoffees) {
       try {
         const result = await addToFavorites(coffee.id)
+        if (result.success) {
+          successCount++
+        }
         results.push({ coffee, result })
       } catch (error) {
+        console.error('Failed to add coffee to favorites:', coffee.name, error)
         results.push({ coffee, error })
       }
     }
     
-    return results
+    return {
+      success: successCount > 0,
+      addedCount: successCount,
+      results
+    }
   }
 
   const exportFavoritesData = async () => {
+    await ensureFavoritesLoaded()
+    
     const favoriteCoffees = await getFavoriteCoffees()
     
     const exportData = favoriteCoffees.map(coffee => ({
@@ -328,12 +409,12 @@ export function useFilters(coffees) {
   }
 
   // Preset filter combinations
-  const applyPresetFilter = (preset) => {
+  const applyPresetFilter = async (preset) => {
     clearAllFilters()
     
     switch (preset) {
       case 'favorites':
-        showFavoritesOnly.value = true
+        await toggleFavoritesFilter(true)
         break
       case 'recent':
         // Could add date filtering here
@@ -374,6 +455,7 @@ export function useFilters(coffees) {
     
     // Favorites filters
     toggleFavoritesFilter,
+    ensureFavoritesLoaded,
     
     // URL sync
     syncFiltersWithRoute,
