@@ -1,30 +1,26 @@
 <template>
   <div class="container-filters">
     <div class="filter-content">
-      <div class="filter-group">
-        <label class="filter-label">Containers</label>
-        <div class="container-tags">
-          <BaseFilterTag
-            v-for="container in containers"
-            :key="container.id"
-            :label="container.name"
-            :color-dot="container.color || '#6b7280'"
-            :active="isContainerSelected(container)"
-            :multi-selected="modelValue.length > 1 && isContainerSelected(container)"
-            variant="container"
-            @click="handleContainerToggle(container)"
-          />
-        </div>
-      </div>
+      <!-- Using Reusable Component -->
+      <ContainerAssignmentGrid
+        :available-containers="containers"
+        :selected-containers="modelValue"
+        :container-counts="containerCounts"
+        :disabled="false"
+        variant="filter"
+        title="Containers"
+        :show-title="true"
+        :show-counts="true"
+        @update:selectedContainers="handleSelectionUpdate"
+        @container-changed="handleContainerChange"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import BaseFilterHeader from '../shared/BaseFilterHeader.vue'
-import BaseFilterTag from '../shared/BaseFilterTag.vue'
-import { Archive, X } from 'lucide-vue-next'
+import ContainerAssignmentGrid from '../../shared/ContainerAssignmentGrid.vue'
 
 const props = defineProps({
   modelValue: {
@@ -43,34 +39,26 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-// Methods
-const isContainerSelected = (container) => {
-  return props.modelValue.some(c => c.id === container.id)
+// Handle selection updates from the grid
+const handleSelectionUpdate = (updatedSelection) => {
+  emit('update:modelValue', updatedSelection)
 }
 
-const handleContainerToggle = (container) => {
-  console.log('📦 ContainerFilters - handleContainerToggle:', container.name)
-  
-  const isCurrentlySelected = isContainerSelected(container)
-  let newSelection
-  
-  if (isCurrentlySelected) {
-    // Remove from selection
-    newSelection = props.modelValue.filter(c => c.id !== container.id)
-    console.log('➖ Removed container:', container.name)
-  } else {
-    // Add to selection
-    newSelection = [...props.modelValue, container]
-    console.log('➕ Added container:', container.name)
-  }
-  
-  emit('update:modelValue', newSelection)
+// Handle individual container changes (for logging or additional logic)
+const handleContainerChange = (data) => {
+  const { action, container } = data
+  console.log(`Container filter ${action}:`, container.name)
 }
 
+// Clear all selections method (can be exposed via ref if needed)
 const clearAllSelections = () => {
-  console.log('🧹 ContainerFilters - clearAllSelections')
   emit('update:modelValue', [])
 }
+
+// Expose methods for parent components if needed
+defineExpose({
+  clearAllSelections
+})
 </script>
 <style scoped>
 .container-filters {
@@ -84,62 +72,39 @@ const clearAllSelections = () => {
   padding: 1rem;
 }
 
-.filter-group { 
-  display: flex; 
-  flex-direction: column; 
-}
-
-.filter-label {
+/* Override ContainerAssignmentGrid styles for filter variant to match existing design */
+.filter-content :deep(.container-assignment-grid.variant-filter .container-title) {
   font-size: 0.875rem;
   font-weight: 500;
   color: #666;
   margin-bottom: 0.5rem;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-.container-tags {
+.filter-content :deep(.container-assignment-grid.variant-filter .container-grid) {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-/* Empty state */
-.container-tags:empty::after {
-  content: "No containers available";
-  color: #9ca3af;
-  font-style: italic;
-  font-size: 0.875rem;
-  padding: 1rem;
-  text-align: center;
-  width: 100%;
-  display: block;
-}
-
-/* Loading state */
-.container-tags.loading::after {
-  content: "Loading containers...";
-  color: #6b7280;
-  font-style: italic;
-  font-size: 0.875rem;
-  padding: 1rem;
-  text-align: center;
-  width: 100%;
-  display: block;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* Enhanced selection states */
-.container-filters :deep(.filter-tag.variant-container) {
+/* Apply existing sophisticated filter tag styling to the new component */
+.filter-content :deep(.container-filter-tag) {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  cursor: pointer;
 }
 
-.container-filters :deep(.filter-tag.variant-container::before) {
+.filter-content :deep(.container-filter-tag::before) {
   content: '';
   position: absolute;
   top: 0;
@@ -150,11 +115,11 @@ const clearAllSelections = () => {
   transition: left 0.5s ease;
 }
 
-.container-filters :deep(.filter-tag.variant-container:hover::before) {
+.filter-content :deep(.container-filter-tag:hover::before) {
   left: 100%;
 }
 
-.container-filters :deep(.filter-tag.variant-container.active) {
+.filter-content :deep(.container-filter-tag.active) {
   background: linear-gradient(135deg, #22c55e20, #16a34a15);
   border-color: #22c55e;
   color: #16a34a;
@@ -163,14 +128,14 @@ const clearAllSelections = () => {
   font-weight: 600;
 }
 
-.container-filters :deep(.filter-tag.variant-container.multi-selected) {
+.filter-content :deep(.container-filter-tag.multi-selected) {
   background: linear-gradient(135deg, #22c55e30, #16a34a20);
   border-color: #16a34a;
   box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
   transform: translateY(-2px);
 }
 
-.container-filters :deep(.filter-tag.variant-container:hover:not(.active)) {
+.filter-content :deep(.container-filter-tag:hover:not(.active)) {
   background: linear-gradient(135deg, #f9fafb, #f3f4f6);
   border-color: #d1d5db;
   transform: translateY(-2px);
@@ -178,13 +143,16 @@ const clearAllSelections = () => {
 }
 
 /* Container color dot enhancements */
-.container-filters :deep(.color-dot) {
+.filter-content :deep(.container-dot) {
   transition: all 0.2s ease;
   position: relative;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 }
 
-.container-filters :deep(.filter-tag.active .color-dot) {
+.filter-content :deep(.container-filter-tag.active .container-dot) {
   box-shadow: 
     0 0 0 2px rgba(255, 255, 255, 0.9),
     0 0 8px currentColor,
@@ -192,7 +160,7 @@ const clearAllSelections = () => {
   transform: scale(1.2);
 }
 
-.container-filters :deep(.filter-tag.multi-selected .color-dot) {
+.filter-content :deep(.container-filter-tag.multi-selected .container-dot) {
   animation: colorPulse 1.5s ease-in-out infinite;
 }
 
@@ -208,7 +176,7 @@ const clearAllSelections = () => {
 }
 
 /* Selection indicator enhancement */
-.container-filters :deep(.selection-indicator) {
+.filter-content :deep(.selection-indicator) {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 50%;
   padding: 2px;
@@ -228,7 +196,7 @@ const clearAllSelections = () => {
 }
 
 /* Count styling */
-.container-filters :deep(.tag-count) {
+.filter-content :deep(.container-count) {
   background: rgba(255, 255, 255, 0.8);
   padding: 0.125rem 0.375rem;
   border-radius: 12px;
@@ -239,41 +207,41 @@ const clearAllSelections = () => {
   backdrop-filter: blur(4px);
 }
 
-.container-filters :deep(.filter-tag.active .tag-count) {
+.filter-content :deep(.container-filter-tag.active .container-count) {
   background: rgba(255, 255, 255, 0.95);
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.2);
   box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2);
 }
 
-.container-filters :deep(.filter-tag:hover .tag-count) {
+.filter-content :deep(.container-filter-tag:hover .container-count) {
   background: rgba(255, 255, 255, 0.9);
   transform: scale(1.05);
 }
 
 /* Interactive hover effects */
-.container-filters:hover :deep(.filter-tag:not(:hover):not(.active)) {
+.container-filters:hover :deep(.container-filter-tag:not(:hover):not(.active)) {
   opacity: 0.7;
   transform: scale(0.98);
 }
 
-.container-filters:hover :deep(.filter-tag:hover),
-.container-filters:hover :deep(.filter-tag.active) {
+.container-filters:hover :deep(.container-filter-tag:hover),
+.container-filters:hover :deep(.container-filter-tag.active) {
   opacity: 1;
   z-index: 1;
 }
 
 /* Animation for tag appearance */
-.container-filters :deep(.filter-tag) {
+.filter-content :deep(.container-filter-tag) {
   animation: tagAppear 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
 
-.container-filters :deep(.filter-tag:nth-child(1)) { animation-delay: 0s; }
-.container-filters :deep(.filter-tag:nth-child(2)) { animation-delay: 0.05s; }
-.container-filters :deep(.filter-tag:nth-child(3)) { animation-delay: 0.1s; }
-.container-filters :deep(.filter-tag:nth-child(4)) { animation-delay: 0.15s; }
-.container-filters :deep(.filter-tag:nth-child(5)) { animation-delay: 0.2s; }
-.container-filters :deep(.filter-tag:nth-child(n+6)) { animation-delay: 0.25s; }
+.filter-content :deep(.container-filter-tag:nth-child(1)) { animation-delay: 0s; }
+.filter-content :deep(.container-filter-tag:nth-child(2)) { animation-delay: 0.05s; }
+.filter-content :deep(.container-filter-tag:nth-child(3)) { animation-delay: 0.1s; }
+.filter-content :deep(.container-filter-tag:nth-child(4)) { animation-delay: 0.15s; }
+.filter-content :deep(.container-filter-tag:nth-child(5)) { animation-delay: 0.2s; }
+.filter-content :deep(.container-filter-tag:nth-child(n+6)) { animation-delay: 0.25s; }
 
 @keyframes tagAppear {
   from {
@@ -287,17 +255,46 @@ const clearAllSelections = () => {
 }
 
 /* Focus management for accessibility */
-.container-filters :deep(.filter-tag:focus) {
+.filter-content :deep(.container-filter-tag:focus) {
   outline: 3px solid #22c55e;
   outline-offset: 2px;
   z-index: 2;
   position: relative;
 }
 
-.container-filters :deep(.filter-tag:focus-visible) {
+.filter-content :deep(.container-filter-tag:focus-visible) {
   box-shadow: 
     0 0 0 3px rgba(34, 197, 94, 0.3),
     0 4px 12px rgba(34, 197, 94, 0.2);
+}
+
+/* Empty state */
+.filter-content :deep(.container-grid:empty::after) {
+  content: "No containers available";
+  color: #9ca3af;
+  font-style: italic;
+  font-size: 0.875rem;
+  padding: 1rem;
+  text-align: center;
+  width: 100%;
+  display: block;
+}
+
+/* Loading state */
+.filter-content :deep(.container-loading) {
+  color: #6b7280;
+  font-style: italic;
+  font-size: 0.875rem;
+  padding: 1rem;
+  text-align: center;
+  width: 100%;
+  display: block;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Responsive design */
@@ -306,21 +303,21 @@ const clearAllSelections = () => {
     padding: 0.875rem;
   }
   
-  .container-tags {
+  .filter-content :deep(.container-grid) {
     gap: 0.4rem;
   }
   
-  .container-filters :deep(.filter-tag) {
+  .filter-content :deep(.container-filter-tag) {
     padding: 0.4rem 0.7rem;
     font-size: 0.8125rem;
   }
   
-  .container-filters :deep(.color-dot) {
+  .filter-content :deep(.container-dot) {
     width: 7px;
     height: 7px;
   }
   
-  .container-filters :deep(.tag-count) {
+  .filter-content :deep(.container-count) {
     font-size: 0.7rem;
     padding: 0.0625rem 0.3rem;
   }
@@ -331,26 +328,26 @@ const clearAllSelections = () => {
     padding: 0.75rem;
   }
   
-  .container-tags {
+  .filter-content :deep(.container-grid) {
     gap: 0.375rem;
   }
   
-  .container-filters :deep(.filter-tag) {
+  .filter-content :deep(.container-filter-tag) {
     padding: 0.375rem 0.625rem;
     font-size: 0.8125rem;
   }
   
-  .container-filters :deep(.color-dot) {
+  .filter-content :deep(.container-dot) {
     width: 6px;
     height: 6px;
   }
   
-  .container-filters :deep(.tag-count) {
+  .filter-content :deep(.container-count) {
     font-size: 0.6875rem;
     padding: 0.0625rem 0.25rem;
   }
   
-  .container-filters :deep(.selection-indicator) {
+  .filter-content :deep(.selection-indicator) {
     padding: 1px;
   }
 }
@@ -367,46 +364,45 @@ const clearAllSelections = () => {
     border-color: #4b5563;
   }
   
-  .container-tags:empty::after,
-  .container-tags.loading::after {
+  .filter-content :deep(.container-loading) {
     color: #6b7280;
   }
   
-  .container-filters :deep(.filter-tag.variant-container) {
+  .filter-content :deep(.container-filter-tag) {
     background: #374151;
     color: #d1d5db;
     border-color: #4b5563;
   }
   
-  .container-filters :deep(.filter-tag.variant-container.active) {
+  .filter-content :deep(.container-filter-tag.active) {
     background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.15));
     border-color: #22c55e;
     color: #34d399;
   }
   
-  .container-filters :deep(.filter-tag.variant-container.multi-selected) {
+  .filter-content :deep(.container-filter-tag.multi-selected) {
     background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(22, 163, 74, 0.2));
     border-color: #16a34a;
   }
   
-  .container-filters :deep(.filter-tag.variant-container:hover:not(.active)) {
+  .filter-content :deep(.container-filter-tag:hover:not(.active)) {
     background: linear-gradient(135deg, #4b5563, #374151);
     border-color: #6b7280;
   }
   
-  .container-filters :deep(.tag-count) {
+  .filter-content :deep(.container-count) {
     background: rgba(31, 41, 55, 0.8);
     color: #d1d5db;
     border-color: rgba(255, 255, 255, 0.1);
   }
   
-  .container-filters :deep(.filter-tag.active .tag-count) {
+  .filter-content :deep(.container-filter-tag.active .container-count) {
     background: rgba(31, 41, 55, 0.9);
     color: #34d399;
     border-color: rgba(52, 211, 153, 0.3);
   }
   
-  .container-filters :deep(.selection-indicator) {
+  .filter-content :deep(.selection-indicator) {
     background: rgba(31, 41, 55, 0.95);
   }
 }
@@ -417,30 +413,30 @@ const clearAllSelections = () => {
     border: 2px solid #000;
   }
   
-  .container-filters :deep(.filter-tag) {
+  .filter-content :deep(.container-filter-tag) {
     border-width: 2px;
     font-weight: 600;
   }
   
-  .container-filters :deep(.filter-tag.active) {
+  .filter-content :deep(.container-filter-tag.active) {
     border-width: 3px;
     font-weight: 700;
     background: #f0f9ff !important;
     color: #0c4a6e !important;
   }
   
-  .container-filters :deep(.color-dot) {
+  .filter-content :deep(.container-dot) {
     border: 2px solid #000;
     outline: 1px solid #fff;
   }
   
-  .container-filters :deep(.tag-count) {
+  .filter-content :deep(.container-count) {
     border: 1px solid currentColor;
     font-weight: 700;
     background: #fff !important;
   }
   
-  .container-filters :deep(.selection-indicator) {
+  .filter-content :deep(.selection-indicator) {
     border: 2px solid #000;
     background: #fff !important;
   }
@@ -449,32 +445,32 @@ const clearAllSelections = () => {
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   .container-filters,
-  .container-filters :deep(.filter-tag),
-  .container-filters :deep(.color-dot),
-  .container-filters :deep(.tag-count) {
+  .filter-content :deep(.container-filter-tag),
+  .filter-content :deep(.container-dot),
+  .filter-content :deep(.container-count) {
     animation: none;
     transition: none;
   }
   
   .container-filters:hover,
-  .container-filters :deep(.filter-tag:hover),
-  .container-filters :deep(.filter-tag.active) {
+  .filter-content :deep(.container-filter-tag:hover),
+  .filter-content :deep(.container-filter-tag.active) {
     transform: none;
   }
   
-  .container-filters :deep(.selection-indicator) {
+  .filter-content :deep(.selection-indicator) {
     animation: none;
   }
   
-  .container-tags.loading::after {
+  .filter-content :deep(.container-loading) {
     animation: none;
   }
   
-  .container-filters :deep(.filter-tag.variant-container::before) {
+  .filter-content :deep(.container-filter-tag::before) {
     display: none;
   }
   
-  .container-filters :deep(.filter-tag.multi-selected .color-dot) {
+  .filter-content :deep(.container-filter-tag.multi-selected .container-dot) {
     animation: none;
   }
 }
@@ -487,25 +483,25 @@ const clearAllSelections = () => {
     background: white !important;
   }
   
-  .container-filters :deep(.filter-tag.active) {
+  .filter-content :deep(.container-filter-tag.active) {
     background: #f0f0f0 !important;
     border: 2px solid #000 !important;
     color: #000 !important;
     box-shadow: none !important;
   }
   
-  .container-filters :deep(.color-dot) {
+  .filter-content :deep(.container-dot) {
     border: 1px solid #000;
     box-shadow: none !important;
   }
   
-  .container-filters :deep(.tag-count) {
+  .filter-content :deep(.container-count) {
     background: white !important;
     color: #000 !important;
     border: 1px solid #000;
   }
   
-  .container-filters :deep(.selection-indicator) {
+  .filter-content :deep(.selection-indicator) {
     background: white !important;
     border: 1px solid #000;
   }
@@ -513,15 +509,15 @@ const clearAllSelections = () => {
 
 /* Large screen enhancements */
 @media (min-width: 1200px) {
-  .container-tags {
+  .filter-content :deep(.container-grid) {
     gap: 0.625rem;
   }
   
-  .container-filters :deep(.filter-tag) {
+  .filter-content :deep(.container-filter-tag) {
     padding: 0.625rem 1rem;
   }
   
-  .container-filters :deep(.color-dot) {
+  .filter-content :deep(.container-dot) {
     width: 10px;
     height: 10px;
   }
@@ -529,23 +525,23 @@ const clearAllSelections = () => {
 
 /* Touch device optimizations */
 @media (hover: none) and (pointer: coarse) {
-  .container-filters :deep(.filter-tag) {
+  .filter-content :deep(.container-filter-tag) {
     padding: 0.75rem 1rem;
     font-size: 0.9375rem;
     min-height: 44px; /* WCAG touch target size */
   }
   
-  .container-filters :deep(.color-dot) {
+  .filter-content :deep(.container-dot) {
     width: 8px;
     height: 8px;
   }
   
-  .container-filters :deep(.selection-indicator) {
+  .filter-content :deep(.selection-indicator) {
     padding: 4px;
   }
   
   /* Remove hover effects on touch devices */
-  .container-filters:hover :deep(.filter-tag:not(:hover):not(.active)) {
+  .container-filters:hover :deep(.container-filter-tag:not(:hover):not(.active)) {
     opacity: 1;
     transform: none;
   }
@@ -557,11 +553,11 @@ const clearAllSelections = () => {
     padding: 1.25rem;
   }
   
-  .container-tags {
+  .filter-content :deep(.container-grid) {
     gap: 0.75rem;
   }
   
-  .container-filters :deep(.filter-tag) {
+  .filter-content :deep(.container-filter-tag) {
     padding: 0.75rem 1.25rem;
     font-size: 0.9375rem;
   }

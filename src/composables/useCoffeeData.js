@@ -74,6 +74,44 @@ export function useCoffeeData() {
     }
   }
 
+  // DELETE COFFEE - Added missing method
+  const deleteCoffee = async (coffeeId) => {
+    try {
+      console.log('🗑️ Deleting coffee:', coffeeId)
+      
+      const { error: deleteError } = await supabase
+        .from('coffee_beans')
+        .delete()
+        .eq('id', coffeeId)
+      
+      if (deleteError) {
+        throw deleteError
+      }
+      
+      // Remove from local state immediately
+      const originalLength = coffees.value.length
+      coffees.value = coffees.value.filter(coffee => coffee.id !== coffeeId)
+      
+      console.log(`✅ Coffee deleted. Removed ${originalLength - coffees.value.length} coffee(s) from local state`)
+      
+      return {
+        success: true,
+        data: null,
+        error: null
+      }
+      
+    } catch (err) {
+      console.error('❌ Error deleting coffee:', err)
+      error('Delete failed', 'Could not delete coffee entry')
+      
+      return {
+        success: false,
+        data: null,
+        error: err.message
+      }
+    }
+  }
+
   // AssignContainers
   const assignContainers = async (coffeeId, containerIds, userId) => {
     try {
@@ -246,16 +284,49 @@ export function useCoffeeData() {
   }
 
   const addCoffeeToList = (newCoffee) => {
+    console.log('➕ Adding coffee to global list:', newCoffee.name)
+    
     const existingIndex = coffees.value.findIndex(coffee => coffee.id === newCoffee.id)
     if (existingIndex !== -1) {
-      coffees.value[existingIndex] = newCoffee
+      // Update existing coffee
+      coffees.value[existingIndex] = {
+        ...newCoffee,
+        // Ensure container data is properly formatted
+        containerIds: newCoffee.coffee_container_assignments?.map(a => a.container_id) || [],
+        containers: newCoffee.coffee_container_assignments?.map(a => a.containers).filter(Boolean) || []
+      }
+      console.log('✅ Updated existing coffee in list')
     } else {
-      coffees.value.unshift(newCoffee)
+      // Add new coffee to the beginning
+      coffees.value.unshift({
+        ...newCoffee,
+        // Ensure container data is properly formatted
+        containerIds: newCoffee.coffee_container_assignments?.map(a => a.container_id) || [],
+        containers: newCoffee.coffee_container_assignments?.map(a => a.containers).filter(Boolean) || []
+      })
+      console.log('✅ Added new coffee to list, total:', coffees.value.length)
     }
   }
 
+  const removeCoffeeFromList = (coffeeId) => {
+    const originalLength = coffees.value.length
+    coffees.value = coffees.value.filter(coffee => coffee.id !== coffeeId)
+    const removed = originalLength - coffees.value.length
+    console.log(`🗑️ Removed ${removed} coffee(s) from list`)
+    return removed > 0
+  }
+
   const highlightCoffee = (coffeeId) => {
+    console.log('✨ Highlighting coffee:', coffeeId)
     highlightedCoffeeId.value = coffeeId
+    
+    // Auto-clear highlight after 5 seconds
+    setTimeout(() => {
+      if (highlightedCoffeeId.value === coffeeId) {
+        highlightedCoffeeId.value = null
+        console.log('🧹 Auto-cleared coffee highlight')
+      }
+    }, 5000)
   }
 
   const clearHighlight = () => {
@@ -265,9 +336,23 @@ export function useCoffeeData() {
   const toggleCardExpansion = (coffeeId) => {
     if (expandedCards.value.has(coffeeId)) {
       expandedCards.value.delete(coffeeId)
+      console.log('📉 Collapsed card:', coffeeId)
     } else {
       expandedCards.value.add(coffeeId)
+      console.log('📈 Expanded card:', coffeeId)
     }
+  }
+
+  const expandAllCards = () => {
+    coffees.value.forEach(coffee => {
+      expandedCards.value.add(coffee.id)
+    })
+    console.log('📈 Expanded all cards')
+  }
+
+  const collapseAllCards = () => {
+    expandedCards.value.clear()
+    console.log('📉 Collapsed all cards')
   }
 
   const availableOrigins = computed(() => {
@@ -313,11 +398,15 @@ export function useCoffeeData() {
     fetchCoffees,
     fetchContainers,
     assignContainers,
+    deleteCoffee, // Added missing method
     refreshCoffees,
     addCoffeeToList,
+    removeCoffeeFromList, // Added missing method
     
     // Card expansion
     toggleCardExpansion,
+    expandAllCards, // Added missing method
+    collapseAllCards, // Added missing method
     
     // Highlighting
     highlightCoffee,

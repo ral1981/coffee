@@ -238,30 +238,17 @@
         </div>
 
         <!-- Container Assignments -->
-        <div v-if="availableContainers.length > 0" class="container-section">
-          <div class="container-title">Containers</div>
-          <div class="container-grid">
-            <button
-              v-for="container in availableContainers"
-              :key="container.id"
-              class="container-chip"
-              :class="{ 
-                'assigned': isContainerAssigned(coffee, container.id),
-                'loading': containerLoadingStates[`${coffee.id}-${container.id}`]
-              }"
-              @click.stop="toggleContainerAssignment(coffee, container)"
-              :disabled="containerLoadingStates[`${coffee.id}-${container.id}`] || !isLoggedIn"
-              :style="{ 
-                '--container-color': container.color,
-                borderColor: isContainerAssigned(coffee, container.id) ? container.color : '#e5e7eb'
-              }"
-            >
-              <div class="container-dot" :style="{ background: container.color }"></div>
-              <span class="container-name">{{ container.name }}</span>
-              <div v-if="containerLoadingStates[`${coffee.id}-${container.id}`]" class="loading-spinner"></div>
-            </button>
-          </div>
-        </div>
+        <ContainerAssignmentGrid
+          :available-containers="availableContainers"
+          :selected-containers="getAssignedContainers(coffee)"
+          :context-coffee="coffee"
+          :context-mode="'assign'"
+          :disabled="!isLoggedIn"
+          variant="card"
+          title="Containers"
+          :show-title="true"
+          @container-changed="handleContainerAssignmentChange"
+        />
         
         <!-- Collapse Button -->
         <button 
@@ -325,6 +312,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import LogoImage from '../shared/LogoImage.vue'
+import ContainerAssignmentGrid from '../shared/ContainerAssignmentGrid.vue'
 import singleShotIcon from '../../assets/icons/1shot.svg'
 import doubleShotIcon from '../../assets/icons/2shot.svg'
 import { useAuth } from '../../composables/useAuth'
@@ -387,6 +375,39 @@ const editingNotes = ref({})
 const showFavoriteModal = ref(false)
 const coffeeToUnfavorite = ref(null)
 const isUnfavoriting = ref(false)
+
+// Container assignment methods
+const getAssignedContainers = (coffee) => {
+  if (!coffee.coffee_container_assignments) return []
+  return coffee.coffee_container_assignments.map(assignment => ({
+    id: assignment.container_id,
+    name: assignment.containers?.name || '',
+    color: assignment.containers?.color || '#6b7280'
+  }))
+}
+
+const handleContainerAssignmentChange = async (data) => {
+  const { action, container, conflictingCoffee } = data
+  
+  // Emit event to parent for data refresh
+  emit('container-assignment-changed', {
+    coffeeId: coffee.id,
+    containerId: container.id,
+    action,
+    conflictingCoffee
+  })
+  
+  // Show appropriate toast message
+  if (action === 'assigned') {
+    if (conflictingCoffee) {
+      info('Container Reassigned', `${container.name} moved from "${conflictingCoffee.name}" to "${coffee.name}"`)
+    } else {
+      success('Container Assigned', `${coffee.name} added to ${container.name}`)
+    }
+  } else if (action === 'removed') {
+    success('Container Removed', `${coffee.name} removed from ${container.name}`)
+  }
+}
 
 // Container styling
 const getContainerStyling = (coffee) => {
@@ -920,81 +941,6 @@ onUnmounted(() => {
 
 .origin {
   font-weight: 500;
-}
-
-/* Container Section */
-.container-section {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: #f5f3ff;
-  border-radius: 8px;
-  border-left: 4px solid #8b5cf6;
-}
-
-.container-title {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #7c3aed;
-  margin-bottom: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(255, 255, 255, 0.8);
-  -webkit-font-smoothing: antialiased;
-}
-
-.container-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.container-chip {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(4px);
-  border: 2px solid #e5e7eb;
-  border-radius: 50px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-  min-width: 70px;
-}
-
-.container-chip:hover:not(:disabled) {
-  background: rgba(249, 250, 251, 0.98);
-  border-color: var(--container-color);
-}
-
-.container-chip.assigned {
-  background: rgba(255, 255, 255, 0.98);
-  border-color: var(--container-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.container-chip:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.container-dot {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.container-name {
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #374151;
 }
 
 .loading-spinner {

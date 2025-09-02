@@ -224,33 +224,17 @@
 
     <!-- Container Assignment Section -->
     <div class="form-section">
-      <div class="container-section">
-        <div class="container-title">Container Assignment</div>
-
-        <!-- Loading state for containers -->
-        <div v-if="containerLoading" class="container-loading">
-          <div class="loading-spinner">Loading containers...</div>
-        </div>
-
-        <div v-else class="container-checkboxes">
-          <label 
-            v-for="container in availableContainers" 
-            :key="container.id"
-            class="container-checkbox"
-          >
-            <input 
-              :checked="selectedContainers.includes(container.id)"
-              @change="handleContainerChange($event, container.id)"
-              type="checkbox" 
-            />
-            <div 
-              class="container-dot" 
-              :style="{ background: container.color }"
-            ></div>
-            {{ container.name }}
-          </label>
-        </div>
-      </div>
+      <ContainerAssignmentGrid
+        :available-containers="availableContainers"
+        :selected-containers="selectedContainersForGrid"
+        :container-loading="containerLoading"
+        :disabled="!isLoggedIn"
+        variant="form"
+        title="Container Assignment"
+        :show-title="true"
+        @update:selectedContainers="handleSelectedContainersUpdate"
+        @container-changed="handleContainerChange"
+      />
     </div>
 
     <!-- Action Buttons -->
@@ -272,7 +256,7 @@
       </button>
     </div>
 
-    <!-- Validation Errors (for development/debugging) -->
+    <!-- Validation Errors -->
     <div v-if="showValidation && getValidationErrors().length > 0" class="validation-errors">
       <div class="error-title">Please fix the following:</div>
       <ul>
@@ -283,9 +267,10 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { X } from 'lucide-vue-next'
 import LogoImage from '../shared/LogoImage.vue'
+import ContainerAssignmentGrid from '../shared/ContainerAssignmentGrid.vue'
 import { useAuth } from '../../composables/useAuth'
 import { useToast } from '../../composables/useToast'
 import { useCoffeeEdit } from '../../composables/useCoffeeEdit'
@@ -301,17 +286,13 @@ const props = defineProps({
     type: String,
     default: 'add', // 'add' or 'edit'
     validator: (value) => ['add', 'edit'].includes(value)
-  },
-  fetchCoffees: {
-    type: Function,
-    default: null
   }
 })
 
 const emit = defineEmits(['coffee-saved', 'coffee-updated', 'cancel', 'close'])
 
 // Composables
-const { userId } = useAuth()
+const { userId, isLoggedIn } = useAuth()
 const { success, error, warning, info } = useToast()
 
 // Shared composables
@@ -329,7 +310,6 @@ const {
 
 const {
   selectedContainers,
-  toggleContainerAssignment,
   saveContainerAssignments,
   resetContainerAssignment,
   loadExistingAssignments
@@ -348,51 +328,25 @@ const showValidation = ref(false)
 const availableContainers = ref([])
 const containerLoading = ref(false)
 
-// Container assignment handler
-const handleContainerChange = async (event, containerId) => {
-  const isChecked = event.target.checked
-  
-  console.log('📋 CoffeeForm container change:', {
-    containerId,
-    isChecked,
-    currentlySelected: selectedContainers.value.includes(containerId)
+// Computed property to format selected containers for the grid
+const selectedContainersForGrid = computed(() => {
+  return selectedContainers.value.map(containerId => {
+    const container = availableContainers.value.find(c => c.id === containerId)
+    return container || { id: containerId, name: 'Unknown', color: '#6b7280' }
   })
-  
-  if (!isChecked) {
-    // Unchecking - remove from selection
-    selectedContainers.value = selectedContainers.value.filter(id => id !== containerId)
-    console.log('✅ Container unchecked and removed')
-    return
-  }
-  
-  // Checking - but first check for conflicts
-  const wasSelected = selectedContainers.value.includes(containerId)
-  if (wasSelected) {
-    console.log('ℹ️ Container already selected')
-    return // Already selected
-  }
-  
-  // Temporarily uncheck the box while we handle the conflict
-  event.target.checked = false
-  
-  // Call the conflict-checking logic
-  console.log('🔍 Calling toggleContainerAssignment for conflict check...')
-  const result = await toggleContainerAssignment(
-    containerId,
-    props.mode === 'edit' ? props.initialData.id : null,
-    form.name || 'this coffee',
-    availableContainers.value
+})
+
+// Handle container selection updates from the grid
+const handleSelectedContainersUpdate = (updatedSelection) => {
+  selectedContainers.value = updatedSelection.map(container => 
+    typeof container === 'object' ? container.id : container
   )
-  
-  console.log('🔍 Toggle result:', result)
-  
-  // If toggle was successful and not cancelled, check the box
-  if (result.success && !result.cancelled) {
-    event.target.checked = true
-    console.log('✅ Container successfully assigned')
-  } else {
-    console.log('❌ Container assignment failed or cancelled')
-  }
+}
+
+// Handle individual container changes
+const handleContainerChange = (data) => {
+  const { action, container } = data
+  console.log(`Container ${action}:`, container.name)
 }
 
 // Load available containers
@@ -475,11 +429,6 @@ const save = async () => {
   } else {
     success('Coffee Saved', 'New coffee entry has been added successfully')
     emit('coffee-saved', coffeeResult.data)
-  }
-
-  // Refresh parent data if callback provided
-  if (props.fetchCoffees && typeof props.fetchCoffees === 'function') {
-    await props.fetchCoffees()
   }
 
   // Close the form
@@ -825,64 +774,6 @@ onMounted(async () => {
   margin-top: 0.5rem;
 }
 
-.container-section {
-  background: #f1f5f9;
-  border-radius: 8px;
-  padding: 1rem;
-  border-left: 3px solid #64748b;
-}
-
-.container-title {
-  font-size: 0.75rem;
-  color: #64748b;
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.75rem;
-}
-
-.container-loading {
-  text-align: center;
-  padding: 1rem;
-  color: #666;
-}
-
-.loading-spinner {
-  font-size: 0.875rem;
-}
-
-.container-checkboxes {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.container-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.container-checkbox:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.container-checkbox input {
-  width: 18px;
-  height: 18px;
-  accent-color: #22c55e;
-}
-
-.container-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
 .form-actions {
   display: flex;
   gap: 1rem;
@@ -961,5 +852,170 @@ onMounted(async () => {
 
 .border-red-500 {
   border-bottom-color: #ef4444 !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .coffee-form {
+    background: #1f2937;
+    border-color: #3b82f6;
+    color: #f9fafb;
+  }
+  
+  .close-btn {
+    color: #ef4444;
+  }
+  
+  .close-btn:hover {
+    background: #7f1d1d;
+  }
+  
+  .form-input {
+    color: #f9fafb;
+  }
+  
+  .form-input.coffee-name {
+    border-bottom-color: #4b5563;
+  }
+  
+  .form-input.shop-name,
+  .form-input.shop-url {
+    border-bottom-color: #4b5563;
+  }
+  
+  .details-grid {
+    background: #374151;
+  }
+  
+  .detail-input {
+    background: #1f2937;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+  
+  .detail-input:focus {
+    border-color: #3b82f6;
+  }
+  
+  .flavor-section {
+    background: #064e3b;
+    border-color: #10b981;
+  }
+  
+  .flavor-input {
+    background: #1f2937;
+    border-color: #059669;
+    color: #f9fafb;
+  }
+  
+  .flavor-input:focus {
+    border-color: #10b981;
+  }
+  
+  .notes-section {
+    background: #374151;
+    border-color: #64748b;
+  }
+  
+  .notes-input {
+    background: #1f2937;
+    border-color: #64748b;
+    color: #f9fafb;
+  }
+  
+  .notes-input:focus {
+    border-color: #64748b;
+  }
+  
+  .recipe-section {
+    background: #451a03;
+    border-color: #ea580c;
+  }
+  
+  .recipe-input {
+    background: #1f2937;
+    border-color: #ea580c;
+    color: #f9fafb;
+  }
+  
+  .recipe-input:focus {
+    border-color: #f97316;
+  }
+  
+  .recipe-ratio {
+    background: #1f2937;
+    border-color: #ea580c;
+    color: #f97316;
+  }
+  
+  .btn-secondary {
+    background: #374151;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+  
+  .btn-secondary:hover {
+    background: #4b5563;
+  }
+  
+  .validation-errors {
+    background: #7f1d1d;
+  }
+}
+
+/* Print styles */
+@media print {
+  .coffee-form {
+    box-shadow: none;
+    border: 1px solid #000;
+    background: white !important;
+    color: #000 !important;
+  }
+  
+  .close-btn {
+    display: none;
+  }
+  
+  .form-actions {
+    display: none;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+  
+  .btn:hover {
+    transform: none;
+  }
+  
+  .form-input,
+  .detail-input,
+  .flavor-input,
+  .notes-input,
+  .recipe-input {
+    transition: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .coffee-form {
+    border: 2px solid #000;
+  }
+  
+  .form-input,
+  .detail-input,
+  .flavor-input,
+  .notes-input,
+  .recipe-input {
+    border-width: 2px;
+  }
+  
+  .btn {
+    border: 2px solid currentColor;
+  }
 }
 </style>
