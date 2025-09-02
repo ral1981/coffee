@@ -345,6 +345,8 @@ const handleAddNew = () => {
     return
   }
 
+  console.log('🚀 Add button clicked, tab:', activeTab.value)
+
   switch (activeTab.value) {
     case 'coffee':
       handleTriggerAddForm()
@@ -362,9 +364,22 @@ const handleAddNew = () => {
 
 // Coffee form handlers
 const handleTriggerAddForm = () => {
+  console.log('🎯 Opening add coffee form')
+  
+  // Clear any existing editing state
   editingCoffee.value = null
+  
+  // Open the form
   showAddCoffeeForm.value = true
   window.history.pushState(null, '', window.location.href)
+  
+  // Scroll to top of page to show the form
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+  
+  console.log('📝 Add form opened, scrolled to top')
 }
 
 const handleEditCoffee = (coffee) => {

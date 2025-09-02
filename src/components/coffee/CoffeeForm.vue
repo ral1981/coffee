@@ -229,9 +229,11 @@
         :selected-containers="selectedContainersForGrid"
         :container-loading="containerLoading"
         :disabled="!isLoggedIn"
-        variant="form"
+        variant="card"
         title="Container Assignment"
         :show-title="true"
+        :context-coffee="contextCoffee"
+        :context-mode="'assign'"
         @update:selectedContainers="handleSelectedContainersUpdate"
         @container-changed="handleContainerChange"
       />
@@ -328,6 +330,20 @@ const showValidation = ref(false)
 const availableContainers = ref([])
 const containerLoading = ref(false)
 
+// ContextCoffee for conflict detection
+const contextCoffee = computed(() => {
+  if (props.mode === 'edit' && props.initialData) {
+    return {
+      id: props.initialData.id,
+      name: form.name || props.initialData.name || 'this coffee'
+    }
+  }
+  return {
+    id: null,
+    name: form.name || 'this coffee'
+  }
+})
+
 // Computed property to format selected containers for the grid
 const selectedContainersForGrid = computed(() => {
   return selectedContainers.value.map(containerId => {
@@ -356,24 +372,27 @@ const loadContainers = async () => {
     console.log('Loading containers for form...')
     
     const { supabase } = await import('../../lib/supabase')
+    
+    // FIXED: Use the same query as the coffee card and main app
     const { data, error: fetchError } = await supabase
       .from('containers')
       .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
+      .order('display_order', { ascending: true })  // Removed .eq('is_active', true)
     
     if (fetchError) {
       console.error('Container fetch error:', fetchError)
-      // Use fallback containers
+      // Use fallback containers that match what the coffee card shows
       availableContainers.value = [
-        { id: 'green', name: 'Green Container', color: '#22c55e' },
-        { id: 'grey', name: 'Gray Container', color: '#6b7280' }
+        { id: 'green', name: 'GREEN', color: '#22c55e' },
+        { id: 'red', name: 'RED', color: '#ef4444' },
+        { id: 'grey', name: 'GREY', color: '#6b7280' }
       ]
     } else {
       availableContainers.value = data || []
     }
     
     console.log('Containers loaded:', availableContainers.value.length)
+    console.log('Available containers:', availableContainers.value.map(c => ({ id: c.id, name: c.name, color: c.color })))
     
     // If editing, load existing container assignments
     if (props.mode === 'edit' && props.initialData.id) {
@@ -382,7 +401,12 @@ const loadContainers = async () => {
     
   } catch (err) {
     console.error('Error loading containers:', err)
-    availableContainers.value = []
+    // Use the same fallback as the coffee card
+    availableContainers.value = [
+      { id: 'green', name: 'GREEN', color: '#22c55e' },
+      { id: 'red', name: 'RED', color: '#ef4444' }, 
+      { id: 'grey', name: 'GREY', color: '#6b7280' }
+    ]
   } finally {
     containerLoading.value = false
   }
