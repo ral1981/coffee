@@ -323,7 +323,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import LogoImage from '../shared/LogoImage.vue'
 import singleShotIcon from '../../assets/icons/1shot.svg'
 import doubleShotIcon from '../../assets/icons/2shot.svg'
@@ -388,52 +388,42 @@ const showFavoriteModal = ref(false)
 const coffeeToUnfavorite = ref(null)
 const isUnfavoriting = ref(false)
 
-// Container styling function
+// Container styling
 const getContainerStyling = (coffee) => {
-  const assignments = coffee.containerAssignments || []
+  const assignedContainers = props.availableContainers.filter(container => 
+    isContainerAssigned(coffee, container.id)
+  )
   
-  if (assignments.length === 0) {
+  if (assignedContainers.length === 0) {
     return {
       backgroundColor: '#ffffff',
-      borderLeftColor: '#8b5cf6' // Default violet color
+      borderLeftColor: '#e5e7eb'
     }
   }
   
-  if (assignments.length === 1) {
-    const container = getContainerById(assignments[0])
-    if (container) {
-      return {
-        background: `linear-gradient(135deg, ${container.color}25, ${container.color}10)`,
-        borderLeftColor: container.color
-      }
-    }
-  }
-  
-  // Multiple containers - create gradients
-  const containers = assignments.map(id => getContainerById(id)).filter(Boolean)
-  if (containers.length > 1) {
-    const colors = containers.map(c => c.color)
-    
-    // Create vertical gradient for left border (top to bottom)
-    const borderGradient = `linear-gradient(to bottom, ${colors.join(', ')})`
-    
-    // Create horizontal gradient for background (left to right with higher opacity)
-    const backgroundColors = colors.map(color => `${color}20`).join(', ')
-    const backgroundGradient = `linear-gradient(to right, ${backgroundColors})`
-    
+  if (assignedContainers.length === 1) {
+    const color = assignedContainers[0].color
     return {
-      background: backgroundGradient,
-      borderLeft: `4px solid transparent`,
-      borderImage: `${borderGradient} 1`,
-      borderImageSlice: 1
+      // Convert hex to rgba with very low opacity
+      backgroundColor: hexToRgba(color, 0.05),
+      borderLeftColor: color
     }
   }
   
-  // Fallback
+  // Multiple containers - create subtle gradient
+  const colors = assignedContainers.map(c => hexToRgba(c.color, 0.05))
   return {
-    backgroundColor: '#ffffff',
-    borderLeftColor: '#8b5cf6'
+    background: `linear-gradient(to right, ${colors.join(', ')})`,
+    borderLeftColor: assignedContainers[0].color
   }
+}
+
+// Helper function to convert hex to rgba
+const hexToRgba = (hex, alpha) => {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 // Get container by ID
@@ -704,6 +694,9 @@ onUnmounted(() => {
   transition: all 0.3s ease;
   position: relative;
   overflow: visible;
+  /* Ensure text is readable on colored backgrounds */
+  color: #1f2937;
+  --text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
 }
 
 .coffee-card:hover {
@@ -771,6 +764,9 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* Enhanced text readability on colored backgrounds */
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(255, 255, 255, 0.8);
+  -webkit-font-smoothing: antialiased;
 }
 
 .coffee-shop {
@@ -779,13 +775,17 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* Enhanced text readability on colored backgrounds */
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(255, 255, 255, 0.8);
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Favorites Button */
 .favorite-btn {
   padding: 0.5rem;
   border: none;
-  background: none;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
   cursor: pointer;
   border-radius: 50%;
   transition: all 0.2s;
@@ -794,16 +794,20 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: 1px solid rgba(156, 163, 175, 0.3);
 }
 
 .favorite-btn:hover {
-  background: #f3f4f6;
+  background: rgba(243, 244, 246, 0.98);
   color: #ef4444;
   transform: scale(1.1);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .favorite-btn.favorited {
   color: #ef4444;
+  background: rgba(254, 242, 242, 0.95);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
 .favorite-btn:disabled {
@@ -827,8 +831,9 @@ onUnmounted(() => {
 }
 
 .menu-trigger {
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(107, 114, 128, 0.3);
   border-radius: 50%;
   width: 32px;
   height: 32px;
@@ -842,8 +847,9 @@ onUnmounted(() => {
 
 .menu-trigger:hover,
 .menu-trigger.active {
-  background: #f3f4f6;
+  background: rgba(243, 244, 246, 0.98);
   color: #374151;
+  border-color: rgba(107, 114, 128, 0.5);
 }
 
 .menu-dropdown {
@@ -907,6 +913,9 @@ onUnmounted(() => {
   font-size: 0.875rem;
   color: #6b7280;
   margin-bottom: 1rem;
+  /* Enhanced text readability on colored backgrounds */
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(255, 255, 255, 0.8);
+  -webkit-font-smoothing: antialiased;
 }
 
 .origin {
@@ -923,6 +932,9 @@ onUnmounted(() => {
   font-weight: 500;
   color: #374151;
   margin-bottom: 0.5rem;
+  /* Enhanced text readability on colored backgrounds */
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(255, 255, 255, 0.8);
+  -webkit-font-smoothing: antialiased;
 }
 
 .container-grid {
@@ -936,7 +948,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
   border: 1px solid #e5e7eb;
   border-radius: 20px;
   font-size: 0.75rem;
@@ -946,12 +959,12 @@ onUnmounted(() => {
 }
 
 .container-chip:hover:not(:disabled) {
-  background: #f9fafb;
+  background: rgba(249, 250, 251, 0.98);
   border-color: var(--container-color);
 }
 
 .container-chip.assigned {
-  background: color-mix(in srgb, var(--container-color) 10%, white);
+  background: color-mix(in srgb, var(--container-color) 15%, rgba(255, 255, 255, 0.95));
   border-color: var(--container-color);
   color: #374151;
 }
@@ -1392,10 +1405,24 @@ onUnmounted(() => {
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   .favorite-btn {
-    border: 1px solid currentColor;
+    border: 2px solid currentColor;
   }
   
   .favorite-notes-section {
+    border-width: 2px;
+  }
+  
+  .coffee-name,
+  .coffee-shop,
+  .origin-info,
+  .container-title {
+    text-shadow: var(--text-shadow);
+    color: #1f2937;
+    font-weight: 600;
+  }
+  
+  .menu-trigger,
+  .container-chip {
     border-width: 2px;
   }
 }
@@ -1405,7 +1432,9 @@ onUnmounted(() => {
   .coffee-card,
   .favorite-btn,
   .menu-trigger {
-    transition: none;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   .coffee-card:hover {
