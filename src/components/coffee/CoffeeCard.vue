@@ -114,32 +114,6 @@
           <span class="origin">{{ coffee.origin }}</span>
           <span v-if="coffee.region" class="region">, {{ coffee.region }}</span>
         </div>
-        
-        <!-- Container Assignments -->
-        <div v-if="availableContainers.length > 0" class="container-section">
-          <div class="container-title">Containers</div>
-          <div class="container-grid">
-            <button
-              v-for="container in availableContainers"
-              :key="container.id"
-              class="container-chip"
-              :class="{ 
-                'assigned': isContainerAssigned(coffee, container.id),
-                'loading': containerLoadingStates[`${coffee.id}-${container.id}`]
-              }"
-              @click.stop="toggleContainerAssignment(coffee, container)"
-              :disabled="containerLoadingStates[`${coffee.id}-${container.id}`] || !isLoggedIn"
-              :style="{ 
-                '--container-color': container.color,
-                borderColor: isContainerAssigned(coffee, container.id) ? container.color : '#e5e7eb'
-              }"
-            >
-              <div class="container-dot" :style="{ background: container.color }"></div>
-              <span class="container-name">{{ container.name }}</span>
-              <div v-if="containerLoadingStates[`${coffee.id}-${container.id}`]" class="loading-spinner"></div>
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Expanded Content -->
@@ -260,6 +234,32 @@
               <div class="recipe-label">Temp (°C)</div>
               <div class="recipe-value">{{ coffee.recipe_temperature_c }}</div>
             </div>
+          </div>
+        </div>
+
+        <!-- Container Assignments -->
+        <div v-if="availableContainers.length > 0" class="container-section">
+          <div class="container-title">Containers</div>
+          <div class="container-grid">
+            <button
+              v-for="container in availableContainers"
+              :key="container.id"
+              class="container-chip"
+              :class="{ 
+                'assigned': isContainerAssigned(coffee, container.id),
+                'loading': containerLoadingStates[`${coffee.id}-${container.id}`]
+              }"
+              @click.stop="toggleContainerAssignment(coffee, container)"
+              :disabled="containerLoadingStates[`${coffee.id}-${container.id}`] || !isLoggedIn"
+              :style="{ 
+                '--container-color': container.color,
+                borderColor: isContainerAssigned(coffee, container.id) ? container.color : '#e5e7eb'
+              }"
+            >
+              <div class="container-dot" :style="{ background: container.color }"></div>
+              <span class="container-name">{{ container.name }}</span>
+              <div v-if="containerLoadingStates[`${coffee.id}-${container.id}`]" class="loading-spinner"></div>
+            </button>
           </div>
         </div>
         
@@ -925,14 +925,20 @@ onUnmounted(() => {
 /* Container Section */
 .container-section {
   margin-top: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f5f3ff;
+  border-radius: 8px;
+  border-left: 4px solid #8b5cf6;
 }
 
 .container-title {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
-  margin-bottom: 0.5rem;
-  /* Enhanced text readability on colored backgrounds */
+  color: #7c3aed;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(255, 255, 255, 0.8);
   -webkit-font-smoothing: antialiased;
 }
@@ -946,16 +952,18 @@ onUnmounted(() => {
 .container-chip {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
-  border: 1px solid #e5e7eb;
-  border-radius: 20px;
+  border: 2px solid #e5e7eb;
+  border-radius: 50px;
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+  min-width: 70px;
 }
 
 .container-chip:hover:not(:disabled) {
@@ -964,9 +972,9 @@ onUnmounted(() => {
 }
 
 .container-chip.assigned {
-  background: color-mix(in srgb, var(--container-color) 15%, rgba(255, 255, 255, 0.95));
+  background: rgba(255, 255, 255, 0.98);
   border-color: var(--container-color);
-  color: #374151;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .container-chip:disabled {
@@ -975,13 +983,18 @@ onUnmounted(() => {
 }
 
 .container-dot {
-  width: 8px;
-  height: 8px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .container-name {
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #374151;
 }
 
 .loading-spinner {
@@ -1068,15 +1081,23 @@ onUnmounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
+  padding: 1rem;
+  border-left: 4px solid #e5e7eb;
+  background: #f8f9fa;
+  border-radius: 8px;
 }
 
 .detail-item {
   text-align: center;
+  background: white;
+  padding: 0.75rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
 }
 
 .detail-label {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: #6b7280;
   text-transform: uppercase;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -1085,8 +1106,8 @@ onUnmounted(() => {
 
 .detail-value {
   font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 /* Flavor and Notes */
@@ -1094,16 +1115,19 @@ onUnmounted(() => {
 .notes-section {
   margin-bottom: 1rem;
   padding: 1rem;
-  background: #fafafa;
+  background: #f3f4f6;
   border-radius: 8px;
+  border-left: 4px solid #6b7280;
 }
 
 .flavor-title,
 .notes-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: #4b5563;
   margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .flavor-text,
@@ -1119,7 +1143,7 @@ onUnmounted(() => {
   padding: 1rem;
   background: #fef7ed;
   border-radius: 8px;
-  border: 1px solid #fed7aa;
+  border-left: 4px solid #ea580c;
 }
 
 .recipe-header {
@@ -1133,6 +1157,8 @@ onUnmounted(() => {
   font-size: 0.875rem;
   font-weight: 600;
   color: #9a3412;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Shot Toggle Styles */
