@@ -108,14 +108,6 @@
         </div>
       </div>
 
-      <!-- Basic Info -->
-      <div class="coffee-content">
-        <div class="origin-info">
-          <span class="origin">{{ coffee.origin }}</span>
-          <span v-if="coffee.region" class="region">, {{ coffee.region }}</span>
-        </div>
-      </div>
-
       <!-- Expanded Content -->
       <div v-if="expandedCards.has(coffee.id)" class="expanded-content">
         <!-- Favorite Notes Section -->
@@ -141,34 +133,46 @@
 
         <!-- Details Grid -->
         <div class="details-grid">
-          <!-- Altitude -->
+          <!-- Origin (always show) -->
           <div class="detail-item">
-            <div class="detail-label">Altitude</div>
-            <div class="detail-value">{{ coffee.altitude_meters || '—' }}</div>
+            <div class="detail-label">Origin</div>
+            <div class="detail-value">{{ coffee.origin || '—' }}</div>
+          </div>
+
+          <!-- Region (if available) -->
+          <div class="detail-item" v-if="coffee.region">
+            <div class="detail-label">Region</div>
+            <div class="detail-value">{{ coffee.region }}</div>
+          </div>
+
+          <!-- Altitude -->
+          <div class="detail-item" v-if="coffee.altitude_meters">
+            <div class="detail-label">Altitude (m)</div>
+            <div class="detail-value">{{ coffee.altitude_meters }}</div>
           </div>
 
           <!-- Variety -->
-          <div class="detail-item">
+          <div class="detail-item" v-if="coffee.botanic_variety">
             <div class="detail-label">Variety</div>
-            <div class="detail-value">{{ coffee.botanic_variety || '—' }}</div>
+            <div class="detail-value">{{ coffee.botanic_variety }}</div>
           </div>
 
           <!-- Farm/Producer -->
-          <div class="detail-item">
+          <div class="detail-item" v-if="coffee.farm_producer">
             <div class="detail-label">Farm/Producer</div>
-            <div class="detail-value">{{ coffee.farm_producer || '—' }}</div>
+            <div class="detail-value">{{ coffee.farm_producer }}</div>
           </div>
 
           <!-- Processing -->
-          <div class="detail-item">
+          <div class="detail-item" v-if="coffee.processing_method">
             <div class="detail-label">Processing</div>
-            <div class="detail-value">{{ coffee.processing_method || '—' }}</div>
+            <div class="detail-value">{{ coffee.processing_method }}</div>
           </div>
 
           <!-- SCA Score -->
-          <div class="detail-item">
+          <div class="detail-item" v-if="coffee.sca">
             <div class="detail-label">SCA Score</div>
-            <div class="detail-value">{{ coffee.sca || '—' }}</div>
+            <div class="detail-value">{{ coffee.sca }}</div>
           </div>
         </div>
         
@@ -246,7 +250,7 @@
           :disabled="!isLoggedIn"
           variant="card"
           title="Containers"
-          :show-title="true"
+          :show-title="false"
           @container-changed="handleContainerAssignmentChange"
         />
         
@@ -926,23 +930,6 @@ onUnmounted(() => {
 }
 
 /* Content */
-.coffee-content {
-  margin-bottom: 1rem;
-}
-
-.origin-info {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-bottom: 1rem;
-  /* Enhanced text readability on colored backgrounds */
-  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(255, 255, 255, 0.8);
-  -webkit-font-smoothing: antialiased;
-}
-
-.origin {
-  font-weight: 500;
-}
-
 .loading-spinner {
   position: absolute;
   right: 0.5rem;
@@ -1024,8 +1011,8 @@ onUnmounted(() => {
 
 .details-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
   margin-bottom: 1rem;
   padding: 1rem;
   border-left: 4px solid #e5e7eb;
@@ -1056,8 +1043,31 @@ onUnmounted(() => {
   color: #1f2937;
 }
 
-/* Flavor and Notes */
-.flavor-section,
+/* Flavor */
+.flavor-section {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #dbeafe;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+}
+
+.flavor-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e40af;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.flavor-text {
+  font-size: 0.875rem;
+  color: #1f2937;
+  line-height: 1.5;
+}
+
+/* Notes */
 .notes-section {
   margin-bottom: 1rem;
   padding: 1rem;
@@ -1066,7 +1076,6 @@ onUnmounted(() => {
   border-left: 4px solid #6b7280;
 }
 
-.flavor-title,
 .notes-title {
   font-size: 0.875rem;
   font-weight: 600;
@@ -1076,10 +1085,9 @@ onUnmounted(() => {
   letter-spacing: 0.5px;
 }
 
-.flavor-text,
 .notes-text {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #1f2937;
   line-height: 1.5;
 }
 
@@ -1102,7 +1110,7 @@ onUnmounted(() => {
 .recipe-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #9a3412;
+  color: #c2410c;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1362,6 +1370,7 @@ onUnmounted(() => {
   
   .details-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
   }
   
   .favorite-notes-section {

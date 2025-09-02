@@ -282,6 +282,7 @@ const handleContainerToggle = async (container) => {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  justify-content: center;
 }
 
 /* Form Variant Styles */
@@ -289,6 +290,7 @@ const handleContainerToggle = async (container) => {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
+  justify-content: flex-start;
 }
 
 .container-checkbox {
@@ -410,6 +412,7 @@ const handleContainerToggle = async (container) => {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  justify-content: center;
 }
 
 .container-filter-tag {
