@@ -131,48 +131,82 @@
           </div>
         </div>
 
-        <!-- Details Grid -->
-        <div class="details-grid">
-          <!-- Origin (always show) -->
-          <div class="detail-item">
-            <div class="detail-label">Origin</div>
-            <div class="detail-value">{{ coffee.origin || '—' }}</div>
+        <!-- Details -->
+        <div class="details-list">
+          <div class="detail-row">
+            <strong>Origin: </strong>
+            <template v-if="isEditing">
+              <input
+                id="origin"
+                v-model="form.origin"
+                list="origins"
+                placeholder="Start typing country... *"
+                required
+                class="input" @click.stop
+              />
+              <datalist id="origins">
+                <option
+                  v-for="o in originOptions"
+                  :key="o"
+                  :value="o"
+                />
+              </datalist>
+            </template>
+            <template v-else>{{ coffee.origin }}</template>
           </div>
-
-          <!-- Region (if available) -->
-          <div class="detail-item" v-if="coffee.region">
-            <div class="detail-label">Region</div>
-            <div class="detail-value">{{ coffee.region }}</div>
+          
+          <div class="detail-row">
+            <strong>Region: </strong>
+            <template v-if="isEditing">
+              <input v-model="form.region" class="input" @click.stop />
+            </template>
+            <template v-else>{{ coffee.region }}</template>
           </div>
-
-          <!-- Altitude -->
-          <div class="detail-item" v-if="coffee.altitude_meters">
-            <div class="detail-label">Altitude (m)</div>
-            <div class="detail-value">{{ coffee.altitude_meters }}</div>
+          
+          <div class="detail-row">
+            <strong>Altitude (m): </strong>
+            <template v-if="isEditing">
+              <input v-model="form.altitude_meters" class="input" @click.stop />
+            </template>
+            <template v-else>{{ coffee.altitude_meters }}</template>
           </div>
-
-          <!-- Variety -->
-          <div class="detail-item" v-if="coffee.botanic_variety">
-            <div class="detail-label">Variety</div>
-            <div class="detail-value">{{ coffee.botanic_variety }}</div>
+          
+          <div class="detail-row">
+            <strong>Variety: </strong>
+            <template v-if="isEditing">
+              <input v-model="form.botanic_variety" class="input" @click.stop />
+            </template>
+            <template v-else>{{ coffee.botanic_variety }}</template>
           </div>
-
-          <!-- Farm/Producer -->
-          <div class="detail-item" v-if="coffee.farm_producer">
-            <div class="detail-label">Farm/Producer</div>
-            <div class="detail-value">{{ coffee.farm_producer }}</div>
+          
+          <div class="detail-row">
+            <strong>Farm/Producer: </strong>
+            <template v-if="isEditing">
+              <input v-model="form.farm_producer" class="input" @click.stop />
+            </template>
+            <template v-else>{{ coffee.farm_producer }}</template>
           </div>
-
-          <!-- Processing -->
-          <div class="detail-item" v-if="coffee.processing_method">
-            <div class="detail-label">Processing</div>
-            <div class="detail-value">{{ coffee.processing_method }}</div>
+          
+          <div class="detail-row">
+            <strong>Processing: </strong>
+            <template v-if="isEditing">
+              <input v-model="form.processing_method" class="input" @click.stop />
+            </template>
+            <template v-else>{{ coffee.processing_method }}</template>
           </div>
-
-          <!-- SCA Score -->
-          <div class="detail-item" v-if="coffee.sca">
-            <div class="detail-label">SCA Score</div>
-            <div class="detail-value">{{ coffee.sca }}</div>
+          
+          <div class="detail-row">
+            <strong>SCA Score: </strong>
+            <template v-if="isEditing">
+              <input v-model.number="form.sca"
+                type="number"
+                step="0.1"
+                placeholder="SCA Score"
+                class="input"
+                @click.stop
+              />
+            </template>
+            <template v-else>{{ coffee.sca }}</template>
           </div>
         </div>
         
@@ -1009,38 +1043,27 @@ onUnmounted(() => {
   font-style: italic;
 }
 
-.details-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+.details-list {
   padding: 1rem;
   border-left: 4px solid #e5e7eb;
   background: #f8f9fa;
   border-radius: 8px;
+  margin-bottom: 1rem;
 }
 
-.detail-item {
-  text-align: center;
-  background: white;
-  padding: 0.75rem 0.5rem;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+.detail-row {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-.detail-label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.25rem;
+.detail-row:last-child {
+  margin-bottom: 0;
 }
 
-.detail-value {
-  font-size: 0.875rem;
-  font-weight: 600;
+.detail-row strong {
   color: #1f2937;
+  font-weight: 600;
 }
 
 /* Flavor */
