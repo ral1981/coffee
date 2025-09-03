@@ -422,6 +422,25 @@ const handleCoffeeSaved = async (savedCoffee) => {
   // Add to GLOBAL list immediately - this should trigger reactivity in CoffeeListView
   addCoffeeToList(savedCoffee)
   
+  // 🆕 Check if a new shop was created and refresh shops list
+  if (savedCoffee.shops && savedCoffee.shops.id) {
+    console.log('🏪 New shop detected, refreshing shops list...')
+    try {
+      // Refresh the shops list to include the newly created shop
+      await fetchShops()
+      console.log('✅ Shops list refreshed successfully')
+      
+      // Optionally highlight the new shop for a few seconds
+      if (savedCoffee.shops.id) {
+        setTimeout(() => {
+          highlightShop(savedCoffee.shops.id)
+        }, 1000)
+      }
+    } catch (error) {
+      console.error('❌ Failed to refresh shops list:', error)
+    }
+  }
+  
   console.log('✨ Highlighting newly added coffee...')
   
   // Highlight the newly added coffee

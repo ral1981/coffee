@@ -1,9 +1,9 @@
+// Updated useCoffeeEdit.js - Now uses the unified CoffeeService
 import { ref, reactive, computed } from 'vue'
-import { useToast } from './useToast'
+import { coffeeService } from '../services/coffeeService'
 import { useLogo } from './useLogo'
 
 export function useCoffeeEdit() {
-  const { success, error, warning, info } = useToast()
   const { getLogoUrl } = useLogo()
 
   // Form state
@@ -59,6 +59,7 @@ export function useCoffeeEdit() {
 
   // URL validation
   const isValidUrl = (url) => {
+    if (!url) return true // Allow empty URLs
     try {
       const fullUrl = url.startsWith('http') ? url : `https://${url}`
       new URL(fullUrl)
@@ -68,150 +69,56 @@ export function useCoffeeEdit() {
     }
   }
 
-  // Logo derivation
-  const deriveShopLogo = (url) => {
-    if (isValidUrl(url)) {
-      return getLogoUrl(url)
+  // Derive shop logo from URL
+  const deriveShopLogo = () => {
+    if (form.bean_url && isValidUrl(form.bean_url)) {
+      try {
+        const logoUrl = getLogoUrl(form.bean_url)
+        console.log('Derived logo URL:', logoUrl)
+        return logoUrl
+      } catch (err) {
+        console.warn('Failed to derive logo:', err)
+        return null
+      }
     }
     return null
   }
 
-  // Form management
-  const populateForm = (coffeeData) => {
-    Object.assign(form, {
-      name: coffeeData.name || '',
-      bean_url: coffeeData.shops?.url || coffeeData.bean_url || '',
-      shop_name: coffeeData.shops?.name || coffeeData.shop_name || '',
-      origin: coffeeData.origin || '',
-      region: coffeeData.region || '',
-      altitude_meters: coffeeData.altitude_meters || '',
-      botanic_variety: coffeeData.botanic_variety || '',
-      farm_producer: coffeeData.farm_producer || '',
-      processing_method: coffeeData.processing_method || '',
-      sca: coffeeData.sca || '',
-      flavor: coffeeData.flavor || '',
-      recipe_ratio: coffeeData.recipe_ratio || '',
-      recipe_in_grams: coffeeData.recipe_in_grams || null,
-      recipe_out_grams: coffeeData.recipe_out_grams || null,
-      recipe_time_seconds: coffeeData.recipe_time_seconds || '',
-      recipe_temperature_c: coffeeData.recipe_temperature_c || null,
-      notes: coffeeData.notes || ''
-    })
-    
-    // Store original values
-    Object.assign(originalForm, form)
-  }
-
-  const resetForm = () => {
+  // Populate form with data (for edit mode)
+  const populateForm = (data) => {
+    console.log('Populating form with data:', data)
     Object.keys(form).forEach(key => {
-      if (typeof form[key] === 'number') {
-        form[key] = null
-      } else {
-        form[key] = ''
+      if (data[key] !== undefined) {
+        form[key] = data[key]
       }
     })
-    Object.keys(originalForm).forEach(key => delete originalForm[key])
+    // Store original values for change detection
+    Object.assign(originalForm, { ...form })
   }
 
+  // Reset form
+  const resetForm = () => {
+    Object.keys(form).forEach(key => {
+      form[key] = ''
+    })
+    // Clear numeric fields
+    form.recipe_in_grams = null
+    form.recipe_out_grams = null
+    form.recipe_temperature_c = null
+    form.sca = ''
+  }
+
+  // Check if form has changes
   const hasChanges = computed(() => {
     return Object.keys(form).some(key => form[key] !== originalForm[key])
   })
 
-  // Coffee save/update
-  const saveCoffee = async (coffeeId = null, userId) => {
-    if (!isFormValid.value) {
-      const errors = getValidationErrors()
-      error('Validation failed', errors[0])
-      return { success: false, errors }
-    }
-
-    try {
-      const { supabase } = await import('../lib/supabase')
-      
-      // Prepare coffee data
-      const coffeeData = {
-        name: form.name?.trim(),
-        bean_url: form.bean_url?.trim() || null,
-        shop_name: form.shop_name?.trim() || null,
-        origin: form.origin?.trim() || null,
-        region: form.region?.trim() || null,
-        altitude_meters: form.altitude_meters?.trim() || null,
-        botanic_variety: form.botanic_variety?.trim() || null,
-        farm_producer: form.farm_producer?.trim() || null,
-        processing_method: form.processing_method?.trim() || null,
-        sca: form.sca?.trim() || null,
-        flavor: form.flavor?.trim() || null,
-        recipe_ratio: form.recipe_ratio?.trim() || null,
-        recipe_in_grams: form.recipe_in_grams || null,
-        recipe_out_grams: form.recipe_out_grams || null,
-        recipe_time_seconds: form.recipe_time_seconds?.trim() || null,
-        recipe_temperature_c: form.recipe_temperature_c || null,
-        notes: form.notes?.trim() || null,
-        user_id: userId,
-        updated_at: new Date().toISOString()
-      }
-
-      let result
-      const isUpdate = Boolean(coffeeId)
-
-      if (isUpdate) {
-        // Update existing coffee
-        const { data, error: updateError } = await supabase
-          .from('coffee_beans')
-          .update(coffeeData)
-          .eq('id', coffeeId)
-          .eq('user_id', userId)
-          .select(`
-            *,
-            shops (
-              id,
-              name,
-              url,
-              logo
-            )
-          `)
-        
-        if (updateError) throw updateError
-        result = { success: true, data: data[0], isUpdate: true }
-        
-      } else {
-        // Create new coffee
-        const { data, error: insertError } = await supabase
-          .from('coffee_beans')
-          .insert([coffeeData])
-          .select(`
-            *,
-            shops (
-              id,
-              name,
-              url,
-              logo
-            )
-          `)
-        
-        if (insertError) throw insertError
-        if (!data || data.length === 0) throw new Error('No data returned from insert')
-        
-        result = { success: true, data: data[0], isUpdate: false }
-      }
-
-      return result
-
-    } catch (err) {
-      console.error('Save error:', err)
-      
-      let errorMessage = 'Could not save coffee'
-      if (err.message.includes('duplicate key')) {
-        errorMessage = 'A coffee with this name already exists'
-      } else if (err.message.includes('permission')) {
-        errorMessage = 'You do not have permission to save this coffee'
-      } else if (err.message.includes('network')) {
-        errorMessage = 'Please check your connection and try again'
-      }
-      
-      error('Save Failed', errorMessage)
-      return { success: false, error: err.message }
-    }
+  // Save coffee using the unified service
+  const saveCoffee = async (existingId = null, userId) => {
+    console.log('💾 Using CoffeeService to save coffee')
+    
+    // Use the unified CoffeeService - single point of truth
+    return await coffeeService.saveCoffee(form, userId, existingId)
   }
 
   return {
@@ -235,7 +142,7 @@ export function useCoffeeEdit() {
     populateForm,
     resetForm,
     
-    // Save
+    // Save (now uses unified service)
     saveCoffee
   }
 }

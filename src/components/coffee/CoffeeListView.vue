@@ -274,128 +274,32 @@ const handleCardAction = async (action, coffee) => {
 
 const handleUpdateCoffee = async (updatedCoffee) => {
   try {
-    info('Saving...', 'Updating coffee details...')
-    
-    const { supabase } = await import('../../lib/supabase')
+    console.log('🔄 Using CoffeeService for coffee update')
     
     if (!userId.value) {
       error('Authentication required', 'Please log in to save changes')
       return
     }
 
-    const payload = {
-      name: updatedCoffee.name.trim(),
-      origin: updatedCoffee.origin.trim(),
-      region: updatedCoffee.region || '',
-      altitude_meters: updatedCoffee.altitude_meters || '',
-      botanic_variety: updatedCoffee.botanic_variety || '',
-      farm_producer: updatedCoffee.farm_producer || '',
-      processing_method: updatedCoffee.processing_method || '',
-      sca: updatedCoffee.sca || null,
-      flavor: updatedCoffee.flavor || '',
-      notes: updatedCoffee.notes || '',
-      recipe_in_grams: updatedCoffee.recipe_in_grams || null,
-      recipe_out_grams: updatedCoffee.recipe_out_grams || null,
-      recipe_time_seconds: updatedCoffee.recipe_time_seconds || '',
-      recipe_temperature_c: updatedCoffee.recipe_temperature_c || null,
-      updated_at: new Date().toISOString()
-    }
+    // Use the unified CoffeeService - removes all duplicate shop logic
+    const result = await coffeeService.saveCoffee(updatedCoffee, userId.value, updatedCoffee.id)
 
-    // Handle shop updates
-    const shopName = updatedCoffee.shop_name?.trim()
-    const shopUrl = updatedCoffee.bean_url?.trim()
-    
-    if (shopName && shopUrl) {
-      const normalizedUrl = shopUrl.startsWith('http') ? shopUrl : `https://${shopUrl}`
-      
-      const { data: existingShop, error: shopError } = await supabase
-        .from('shops')
-        .select('id')
-        .eq('name', shopName)
-        .maybeSingle()
-      
-      if (shopError) {
-        throw new Error(`Shop lookup failed: ${shopError.message}`)
-      }
-      
-      let shopId
-      if (existingShop) {
-        shopId = existingShop.id
-        await supabase
-          .from('shops')
-          .update({ 
-            url: normalizedUrl,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', shopId)
-      } else {
-        const { useLogo } = await import('../../composables/useLogo')
-        const { getLogoUrl } = useLogo()
-        
-        const { data: newShop, error: createError } = await supabase
-          .from('shops')
-          .insert({ 
-            name: shopName, 
-            url: normalizedUrl,
-            logo: getLogoUrl(normalizedUrl, null, 128)
-          })
-          .select('id')
-          .single()
-        
-        if (createError) {
-          throw new Error(`Shop creation failed: ${createError.message}`)
-        }
-        shopId = newShop.id
-        info('New shop created', `Added ${shopName} to shop directory`)
-      }
-      
-      payload.shop_id = shopId
-    }
-
-    const { data, error: updateError } = await supabase
-      .from('coffee_beans')
-      .update(payload)
-      .eq('id', updatedCoffee.id)
-      .eq('user_id', userId.value)
-      .select(`
-        *,
-        shops (
-          id,
-          name,
-          url,
-          logo
-        )
-      `)
-      
-    if (updateError) {
-      throw new Error(`Update failed: ${updateError.message}`)
-    }
-    
-    if (data && data.length > 0) {
+    if (result.success) {
+      // Update UI
       const { updateCoffeeInList } = useCoffeeData()
-      updateCoffeeInList(data[0])
-      highlightCoffee(data[0].id)
+      updateCoffeeInList(result.data)
+      highlightCoffee(result.data.id)
       
       success(
         'Coffee updated successfully', 
-        `${data[0].name} has been saved with your changes`
+        `${result.data.name} has been saved with your changes`
       )
-    } else {
-      warning('No changes detected', 'Coffee was not updated - no changes were made')
     }
+    // Error handling is done in CoffeeService
     
   } catch (err) {
     console.error('Failed to update coffee:', err)
-    
-    if (err.message.includes('authentication')) {
-      error('Authentication Error', 'Please log in again to save changes')
-    } else if (err.message.includes('permission')) {
-      error('Permission Denied', 'You do not have permission to edit this coffee')
-    } else if (err.message.includes('network')) {
-      error('Network Error', 'Please check your connection and try again')
-    } else {
-      error('Update Failed', `Could not save changes: ${err.message}`)
-    }
+    error('Update Failed', 'An unexpected error occurred')
   }
 }
 

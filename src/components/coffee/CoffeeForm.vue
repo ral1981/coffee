@@ -258,6 +258,18 @@
       </button>
     </div>
 
+    <CoffeeForm
+      v-if="showAddCoffeeForm && activeTab === 'coffee'"
+      :mode="editingCoffee ? 'edit' : 'add'"
+      :initial-data="editingCoffee || {}"
+      :fetchCoffees="fetchCoffees"
+      @coffee-saved="handleCoffeeSaved"
+      @coffee-updated="handleCoffeeUpdated"
+      @shop-created="handleShopCreated"
+      @close="handleFormClose"
+      @cancel="handleFormClose"
+    />
+
     <!-- Validation Errors -->
     <div v-if="showValidation && getValidationErrors().length > 0" class="validation-errors">
       <div class="error-title">Please fix the following:</div>
@@ -291,7 +303,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['coffee-saved', 'coffee-updated', 'cancel', 'close'])
+const emit = defineEmits(['coffee-saved', 'coffee-updated', 'cancel', 'close', 'shop-created'])
 
 // Composables
 const { userId, isLoggedIn } = useAuth()
@@ -365,6 +377,31 @@ const handleContainerChange = (data) => {
   console.log(`Container ${action}:`, container.name)
 }
 
+// Add new shop
+const handleShopCreated = async (newShop) => {
+  console.log('🏪 New shop created via coffee form:', newShop)
+  
+  try {
+    // Refresh the shops list to include the newly created shop
+    await fetchShops()
+    console.log('✅ Shops list refreshed after shop creation')
+    
+    // Store the newly created shop ID for potential highlighting
+    if (newShop.id) {
+      newlyAddedShopId.value = newShop.id
+      
+      // Highlight the shop if user switches to shops tab
+      setTimeout(() => {
+        highlightShop(newShop.id)
+      }, 500)
+    }
+    
+  } catch (error) {
+    console.error('❌ Failed to refresh shops list after creation:', error)
+    // Don't show error to user since coffee was saved successfully
+  }
+}
+
 // Load available containers
 const loadContainers = async () => {
   containerLoading.value = true
@@ -414,50 +451,100 @@ const loadContainers = async () => {
 
 // Enhanced save with validation feedback
 const save = async () => {
+  console.log('🎯 Save button clicked')
   showValidation.value = true
   
   if (!isFormValid.value) {
     const errors = getValidationErrors()
-    console.log('Validation errors:', errors)
+    console.log('❌ Validation errors:', errors)
+    error('Validation Failed', 'Please fix the validation errors before saving')
     return
   }
 
   if (!userId.value) {
+    console.log('❌ No user ID found')
     error('Authentication required', 'Please log in to save coffee')
     return
   }
 
-  // Save the coffee first
-  const coffeeResult = await saveCoffee(
-    props.mode === 'edit' ? props.initialData.id : null,
-    userId.value
-  )
+  console.log('💾 Starting save process...', {
+    mode: props.mode,
+    userId: userId.value,
+    existingId: props.initialData?.id
+  })
 
-  if (!coffeeResult.success) {
-    return // Error already handled in saveCoffee
+  try {
+    // Check if shop exists before saving (to detect new shop creation)
+    const shopName = form.shop_name?.trim()
+    let shopExistedBefore = false
+    
+    if (shopName) {
+      try {
+        const { supabase } = await import('../../lib/supabase')
+        const { data: existingShop } = await supabase
+          .from('shops')
+          .select('id')
+          .eq('name', shopName)
+          .maybeSingle()
+        
+        shopExistedBefore = !!existingShop
+        console.log('🏪 Shop existence check:', { shopName, existed: shopExistedBefore })
+      } catch (err) {
+        console.warn('⚠️ Could not check shop existence:', err)
+      }
+    }
+
+    // Save the coffee (this may create a new shop)
+    const coffeeResult = await saveCoffee(
+      props.mode === 'edit' ? props.initialData.id : null,
+      userId.value
+    )
+
+    console.log('📊 Coffee save result:', coffeeResult)
+
+    if (!coffeeResult || !coffeeResult.success) {
+      console.error('❌ Coffee save failed:', coffeeResult)
+      return
+    }
+
+    const coffeeId = coffeeResult.data.id
+    console.log('✅ Coffee saved with ID:', coffeeId)
+
+    // Check if a new shop was created during the save
+    if (!shopExistedBefore && coffeeResult.data.shops) {
+      console.log('🆕 New shop was created:', coffeeResult.data.shops)
+      emit('shop-created', coffeeResult.data.shops)
+    }
+
+    // Save container assignments
+    console.log('🗂️ Saving container assignments...')
+    const containerResult = await saveContainerAssignments(coffeeId, userId.value)
+    console.log('📦 Container save result:', containerResult)
+    
+    if (!containerResult.success) {
+      console.warn('⚠️ Container assignment failed but coffee saved')
+      warning('Partial save', 'Coffee saved but container assignments may have failed')
+    }
+
+    // Success handling
+    if (coffeeResult.isUpdate) {
+      console.log('🎉 Coffee updated successfully')
+      success('Coffee Updated', 'Your coffee entry has been updated successfully')
+      emit('coffee-updated', coffeeResult.data)
+    } else {
+      console.log('🎉 Coffee created successfully')
+      success('Coffee Saved', 'New coffee entry has been added successfully')
+      emit('coffee-saved', coffeeResult.data)
+    }
+
+    // Close the form
+    showForm.value = false
+    emit('close')
+
+  } catch (err) {
+    console.error('💥 Unexpected error in save function:', err)
+    error('Save Failed', 'An unexpected error occurred while saving the coffee')
   }
-
-  const coffeeId = coffeeResult.data.id
-
-  // Save container assignments
-  const containerResult = await saveContainerAssignments(coffeeId, userId.value)
-  
-  if (!containerResult.success) {
-    warning('Partial save', 'Coffee saved but container assignments may have failed')
-  }
-
-  // Success handling
-  if (coffeeResult.isUpdate) {
-    success('Coffee Updated', 'Your coffee entry has been updated successfully')
-    emit('coffee-updated', coffeeResult.data)
-  } else {
-    success('Coffee Saved', 'New coffee entry has been added successfully')
-    emit('coffee-saved', coffeeResult.data)
-  }
-
-  // Close the form
-  showForm.value = false
-  emit('close')
 }
 
 // Enhanced cancel with validation reset
