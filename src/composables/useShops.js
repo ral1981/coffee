@@ -79,13 +79,65 @@ export function useShops() {
     emitShopChange('added', newShop)
   }
 
-  // Remove shop from list
-  const removeShopFromList = (shopId) => {
-    const index = globalShops.value.findIndex(s => s.id === shopId)
-    if (index !== -1) {
-      const removedShop = globalShops.value.splice(index, 1)[0]
-      console.log('🗑️ Shop removed from global list:', removedShop.name)
-      emitShopChange('removed', removedShop)
+  // Delete shope from list
+  const deleteShop = async (shopId, shopName) => {
+    try {
+      console.log(`🗑️ Deleting shop: ${shopName} (ID: ${shopId})`)
+      
+      // Check for associated coffee beans first
+      const { count: coffeeCount, error: countError } = await supabase
+        .from('coffee_beans')
+        .select('*', { count: 'exact', head: true })
+        .eq('shop_id', shopId)
+      
+      if (countError) {
+        console.warn('Error counting associated coffees:', countError)
+      }
+
+      console.log(`📊 Found ${coffeeCount || 0} associated coffee beans`)
+
+      // Prevent deletion if there are associated coffees
+      if (coffeeCount && coffeeCount > 0) {
+        const message = `Cannot delete "${shopName}" because it has ${coffeeCount} coffee${coffeeCount === 1 ? '' : 's'} associated with it.`
+        
+        warning('Cannot Delete Shop', message)
+        console.log(`❌ Delete prevented - shop has ${coffeeCount} associated coffees`)
+        
+        return { 
+          success: false, 
+          error: message,
+          coffeeCount: coffeeCount,
+          preventedByAssociations: true
+        }
+      }
+      
+      // Delete the shop (only if no associated coffees)
+      const { error: deleteError } = await supabase
+        .from('shops')
+        .delete()
+        .eq('id', shopId)
+      
+      if (deleteError) {
+        console.error('Error deleting shop:', deleteError)
+        throw new Error(`Failed to delete shop: ${deleteError.message}`)
+      }
+      
+      // Update local shops array
+      const shopIndex = globalShops.value.findIndex(s => s.id === shopId)
+      if (shopIndex > -1) {
+        globalShops.value.splice(shopIndex, 1)
+      }
+      
+      // Emit global shop change event
+      emitShopChange('deleted', { id: shopId, name: shopName })
+      
+      console.log(`✅ Successfully deleted shop: ${shopName}`)
+      return { success: true }
+      
+    } catch (err) {
+      console.error('❌ Error in deleteShop:', err)
+      error('Delete Failed', err.message)
+      return { success: false, error: err.message }
     }
   }
 
@@ -170,7 +222,7 @@ export function useShops() {
     // Methods
     fetchShops,
     addShopToList,
-    removeShopFromList,
+    deleteShop,
     highlightShop,
     clearHighlight
   }

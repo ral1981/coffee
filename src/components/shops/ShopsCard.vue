@@ -122,8 +122,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Coffee, Edit, Trash2 } from 'lucide-vue-next'
 import LogoImage from '../shared/LogoImage.vue'
+import { shopService } from '../../services/shopService'
 import { useCoffeeData } from '../../composables/useCoffeeData'
 import { useToast } from '../../composables/useToast'
+import { useShops } from '../../composables/useShops'
+import { useAuth } from '../../composables/useAuth'
 
 // Props
 const props = defineProps({
@@ -139,11 +142,13 @@ const props = defineProps({
 })
 
 // Events
-const emit = defineEmits(['edit-shop', 'view-coffees'])
+const emit = defineEmits(['edit-shop', 'view-coffees', 'shop-deleted'])
 
 const router = useRouter()
 const { coffees, fetchCoffees } = useCoffeeData()
-const { success, warning, info } = useToast()
+const { success, warning, info, error } = useToast()
+const { deleteShop, fetchShops } = useShops()
+const { user, isLoggedIn } = useAuth()
 
 // Local state
 const activeMenuId = ref(null)
@@ -258,22 +263,83 @@ const handleEditShop = (shop) => {
 }
 
 const handleDeleteShop = async (shop) => {
+  console.log('🗑️ Delete shop clicked:', shop.name)
+  
   const coffeeCount = getCoffeeCount(shop.id)
   
+  // Check if shop has associated coffees BEFORE showing confirmation
   if (coffeeCount > 0) {
-    const confirmMessage = `"${shop.name}" has ${coffeeCount} coffee${coffeeCount === 1 ? '' : 's'} associated with it. Deleting this shop will remove these associations. Are you sure you want to continue?`
-    if (!confirm(confirmMessage)) return
-  } else {
-    if (!confirm(`Are you sure you want to delete "${shop.name}"?`)) return
+    // Show informative message instead of confirmation
+    warning(
+      'Cannot Delete Shop', 
+      `"${shop.name}" has ${coffeeCount} coffee${coffeeCount === 1 ? '' : 's'} associated with it. Please delete or reassign the coffee entries first, then try deleting the shop again.`
+    )
+    closeMenu()
+    return
+  }
+
+  // Only show confirmation if no associated coffees
+  const confirmMessage = `Are you sure you want to delete "${shop.name}"?\n\nThis action cannot be undone.`
+  
+  if (!confirm(confirmMessage)) {
+    console.log('❌ User cancelled delete operation')
+    return
   }
 
   try {
-    // This would need to be implemented with actual delete logic
-    warning('Delete Feature', 'Delete functionality coming soon!')
+    console.log('🚀 Starting delete process...')
+    
+    // Check authentication
+    if (!isLoggedIn.value) {
+      warning('Authentication Required', 'Please log in to delete shops')
+      closeMenu()
+      return
+    }
+
+    console.log('👤 User authenticated, proceeding with delete')
+    
+    // Use the shop service to delete
+    const result = await shopService.deleteShop(shop.id, user.value?.id)
+    
+    console.log('📊 Delete result:', result)
+    
+    if (result.success) {
+      console.log('✅ Shop deleted successfully')
+      
+      // Emit event for listeners
+      emit('shop-deleted', shop)
+      
+      // Refresh the shops list
+      try {
+        await fetchShops()
+        console.log('🔄 Shops list refreshed')
+      } catch (refreshError) {
+        console.warn('⚠️ Could not refresh shops list:', refreshError)
+        // Don't show error to user since delete was successful
+      }
+    } else if (result.preventedByAssociations) {
+      // This case is already handled by the service (shows warning toast)
+      console.log('🚫 Delete prevented due to associated coffees')
+    } else {
+      console.error('❌ Delete failed:', result.error)
+      error('Delete Failed', result.error || 'Could not delete shop')
+    }
+    
+  } catch (deleteError) {
+    console.error('❌ Error deleting shop:', deleteError)
+    
+    let errorMessage = 'Could not delete shop'
+    if (deleteError.message.includes('permission')) {
+      errorMessage = 'You do not have permission to delete this shop'
+    } else if (deleteError.message.includes('network')) {
+      errorMessage = 'Network error. Please check your connection and try again.'
+    } else if (deleteError.message) {
+      errorMessage = deleteError.message
+    }
+    
+    error('Delete Error', errorMessage)
+  } finally {
     closeMenu()
-  } catch (error) {
-    console.error('Error deleting shop:', error)
-    warning('Delete Error', 'Could not delete shop')
   }
 }
 
