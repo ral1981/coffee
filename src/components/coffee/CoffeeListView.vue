@@ -66,6 +66,7 @@
       @card-action="handleCardAction"
       @edit-coffee="$emit('edit-coffee', $event)"
       @container-assignment-changed="handleContainerAssignment"
+      @delete-coffee="handleDeleteCoffee"
     />
 
     <!-- Load More / Pagination -->
@@ -305,9 +306,22 @@ const handleUpdateCoffee = async (updatedCoffee) => {
 
 const handleDeleteCoffee = async (coffee) => {
   try {
+    console.log('CoffeeListView: Deleting coffee:', coffee.name, 'ID:', coffee.id, 'UserID:', userId.value)
+    
+    if (!userId.value) {
+      error('Authentication required', 'Please log in to delete coffee entries')
+      return
+    }
+
     const { deleteCoffee } = useCoffeeData()
-    await deleteCoffee(coffee.id)
-    console.log('Coffee deleted successfully:', coffee.name)
+    const result = await deleteCoffee(coffee.id, userId.value)
+    
+    if (result.success) {
+      console.log('Coffee deleted successfully:', coffee.name)
+      
+    } else {
+      throw new Error(result.error || 'Delete failed')
+    }
   } catch (error) {
     console.error('Failed to delete coffee:', error)
     error('Delete failed', 'Could not delete coffee entry')

@@ -74,25 +74,42 @@ export function useCoffeeData() {
     }
   }
 
-  // DELETE COFFEE - Added missing method
-  const deleteCoffee = async (coffeeId) => {
+  // DELETE COFFEE
+  const deleteCoffee = async (coffeeId, userId = null) => {
     try {
-      console.log('🗑️ Deleting coffee:', coffeeId)
+      console.log('🗑️ useCoffeeData deleteCoffee called with:', { coffeeId, userId })
       
+      if (!userId) {
+        console.error('❌ No userId provided for delete operation')
+        throw new Error('User authentication is required to delete coffee')
+      }
+      
+      console.log('🔍 Executing delete query...')
       const { error: deleteError } = await supabase
         .from('coffee_beans')
         .delete()
         .eq('id', coffeeId)
+        .eq('user_id', userId)
       
       if (deleteError) {
+        console.error('❌ Database delete error:', deleteError)
         throw deleteError
       }
+      
+      console.log('✅ Database delete successful, updating local state...')
       
       // Remove from local state immediately
       const originalLength = coffees.value.length
       coffees.value = coffees.value.filter(coffee => coffee.id !== coffeeId)
+      const removedCount = originalLength - coffees.value.length
       
-      console.log(`✅ Coffee deleted. Removed ${originalLength - coffees.value.length} coffee(s) from local state`)
+      console.log(`✅ Removed ${removedCount} coffee(s) from local state. New count: ${coffees.value.length}`)
+      
+      if (removedCount > 0) {
+        success('Coffee Deleted', 'Coffee entry has been deleted successfully')
+      } else {
+        console.warn('⚠️ No coffee was removed from local state - check if coffee exists')
+      }
       
       return {
         success: true,
@@ -102,7 +119,7 @@ export function useCoffeeData() {
       
     } catch (err) {
       console.error('❌ Error deleting coffee:', err)
-      error('Delete failed', 'Could not delete coffee entry')
+      error('Delete failed', `Could not delete coffee entry: ${err.message}`)
       
       return {
         success: false,

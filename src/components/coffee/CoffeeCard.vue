@@ -371,7 +371,12 @@ const props = defineProps({
 })
 
 // Events - Same pattern as ContainersCard.vue and ShopsCard.vue
-const emit = defineEmits(['card-expand', 'edit-coffee', 'container-assignment-changed'])
+const emit = defineEmits([
+  'card-expand', 
+  'edit-coffee', 
+  'container-assignment-changed',
+  'delete-coffee'
+])
 
 // Auth and toast
 const { isLoggedIn, userId } = useAuth()
@@ -678,11 +683,15 @@ const confirmDeleteAction = async () => {
   isDeleting.value = true
   
   try {
-    await deleteCoffee(coffeeToDelete.value.id)
-    success('Coffee Deleted', `${coffeeToDelete.value.name} has been deleted`)
+    console.log('CoffeeCard: Emitting delete-coffee event for:', coffeeToDelete.value.name)
+    
+    // Emit delete event to parent instead of handling delete directly
+    emit('delete-coffee', coffeeToDelete.value)
+    
+    // Close modal immediately - parent will handle success/error messages
     cancelDelete()
   } catch (error) {
-    console.error('Failed to delete coffee:', error)
+    console.error('Failed to emit delete event:', error)
     error('Delete failed', 'Could not delete coffee entry')
     isDeleting.value = false
   }
@@ -1280,10 +1289,12 @@ onUnmounted(() => {
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 1000;
   overflow-y: auto;
+  padding: 1rem;
+  padding-top: 2rem;
 }
 
 .modal-content {
@@ -1292,9 +1303,10 @@ onUnmounted(() => {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   max-width: 400px;
   width: 100%;
-  margin: 1rem;
-  max-height: calc(100vh - 2rem);
-  overflow-y: auto ;
+  margin: 0 auto 2rem auto;
+  max-height: none;
+  position: relative;
+  min-height: fit-content;
 }
 
 .modal-header {
@@ -1403,6 +1415,35 @@ onUnmounted(() => {
   .favorite-notes-input {
     padding: 0.5rem;
     font-size: 0.8125rem;
+  }
+
+  .modal-overlay {
+    padding: 0.5rem;
+    padding-top: 1rem;
+    align-items: flex-start;
+  }
+  
+  .modal-content {
+    margin: 0 auto 1rem auto;
+    min-height: auto;
+  }
+  
+  .modal-header {
+    padding: 1rem 1rem 0.75rem 1rem;
+  }
+  
+  .modal-body {
+    padding: 0.75rem 1rem;
+  }
+  
+  .modal-actions {
+    padding: 0.75rem 1rem 1rem 1rem;
+    flex-direction: column; /* Stack buttons on mobile */
+  }
+  
+  .modal-btn {
+    width: 100%; /* Full width buttons on mobile */
+    justify-content: center;
   }
 }
 
