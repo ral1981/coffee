@@ -28,7 +28,7 @@
         @cancel="handleFormClose"
       />
       
-      <!-- Shop Form - shows when shop tab is active and form is triggered -->
+      <!-- Shop Form - FIXED: Only shows when shops tab is active and form is triggered -->
       <ShopForm
         v-if="showAddShopForm && activeTab === 'shops'"
         :mode="editingShop ? 'edit' : 'add'"
@@ -184,7 +184,7 @@ const newlyAddedContainerId = ref(null)
 
 // Track card being edited
 const editingCoffeePosition = ref(null)
-const editingShopPosition = ref(null)  // Added for shop navigation
+const editingShopPosition = ref(null)
 const editingContainerPosition = ref(null)
 
 // Back to top button
@@ -539,20 +539,48 @@ const scrollToCoffeeCard = (coffeeId, message = '') => {
   })
 }
 
-// Shop form handlers
+// FIXED: Shop form handlers with proper tab validation
 const handleTriggerAddShop = () => {
+  console.log('🎯 Opening add shop form')
   editingShop.value = null
   showAddShopForm.value = true
   window.history.pushState(null, '', window.location.href)
+  
+  // Scroll to top of page to show the form
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
 }
 
+// FIXED: Main edit shop handler with tab validation
 const handleEditShop = (shop) => {
   console.log('🎯 Starting edit for shop:', shop.name)
+  
+  // CRITICAL: Ensure we're on the shops tab before proceeding
+  if (activeTab.value !== 'shops') {
+    console.log('⚠️ Not on shops tab, switching to shops first')
+    // Switch to shops tab first, then set up edit
+    setActiveTab('shops')
+    router.push('/shops')
+    // Use nextTick to ensure tab switch is complete before opening form
+    nextTick(() => {
+      setupShopEdit(shop)
+    })
+    return
+  }
+  
+  setupShopEdit(shop)
+}
+
+// FIXED: Helper function to set up shop editing (separated for clarity)
+const setupShopEdit = (shop) => {
+  console.log('🔧 Setting up shop edit for:', shop.name)
   
   // Store the shop being edited and its current scroll position
   editingShop.value = shop
   editingShopPosition.value = {
-    shopId: shop.bean_url, // Use bean_url as the identifier for shops
+    shopId: shop.bean_url || shop.id, // Use bean_url or id as the identifier
     scrollPosition: window.scrollY
   }
   
@@ -829,8 +857,33 @@ const scrollToContainerCard = (containerId, message = '') => {
   })
 }
 
+// FIXED: Route change handlers that preserve edit state when appropriate
+const handleRouteChange = (newPath, oldPath) => {
+  // Close forms when leaving their respective tabs, but preserve edit state
+  if (oldPath?.startsWith('/coffee') && !newPath.startsWith('/coffee') && showAddCoffeeForm.value) {
+    console.log('🚫 Leaving coffee tab while editing - closing form but preserving edit state')
+    showAddCoffeeForm.value = false
+    // Don't clear editingCoffee.value here - keep it for when user returns to coffee tab
+  }
+  
+  if (oldPath?.startsWith('/shops') && !newPath.startsWith('/shops') && showAddShopForm.value) {
+    console.log('🚫 Leaving shops tab while editing - closing form but preserving edit state')
+    showAddShopForm.value = false
+    // Don't clear editingShop.value here - keep it for when user returns to shops tab
+  }
+  
+  if (oldPath?.startsWith('/containers') && !newPath.startsWith('/containers') && showAddContainerForm.value) {
+    console.log('🚫 Leaving containers tab while editing - closing form but preserving edit state')
+    showAddContainerForm.value = false
+    // Don't clear editingContainer.value here - keep it for when user returns to containers tab
+  }
+}
+
 // Sync active tab with route changes
-watch(() => route.path, (newPath) => {
+watch(() => route.path, (newPath, oldPath) => {
+  // Handle route change effects first
+  handleRouteChange(newPath, oldPath)
+  
   // Map routes to tabs
   const routeToTab = {
     '/': 'coffee',
@@ -844,20 +897,6 @@ watch(() => route.path, (newPath) => {
     setActiveTab(pathTab)
   }
 }, { immediate: true })
-
-// Close form when navigating away from tabs
-watch(() => route.path, (newPath, oldPath) => {
-  // Close forms when navigating away from the appropriate routes
-  if (oldPath?.startsWith('/coffee') && !newPath.startsWith('/coffee')) {
-    handleFormClose()
-  }
-  if (oldPath?.startsWith('/shops') && !newPath.startsWith('/shops')) {
-    handleShopFormClose()
-  }
-  if (oldPath?.startsWith('/containers') && !newPath.startsWith('/containers')) {
-    handleContainerFormClose()
-  }
-})
 
 // Handle browser back button when form is open
 const handlePopState = () => {
@@ -1145,27 +1184,84 @@ onUnmounted(() => {
   }
 
   .expand-collapse-fab {
-    bottom: 7rem; /* Original: 7rem instead of 1rem */
-    right: 0.75rem;
-    width: 44px;
-    height: 44px;
+    background: var(--card-background);
+    border-color: var(--primary-green);
   }
   
   .back-to-top {
-    bottom: 2.5rem;
-    right: 0.75rem;
-    width: 44px;
-    height: 44px;
-  }
-  
-  .expand-collapse-icon,
-  .back-to-top-icon {
-    width: 18px;
-    height: 18px;
+    background: var(--card-background);
+    border-color: var(--primary-green);
   }
 
   .expand-collapse-fab:hover:not(.expand-collapse-fab--disabled) {
     background: #475569;
+  }
+  
+  .back-to-top:hover {
+    background: #475569;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .expand-collapse-fab,
+  .back-to-top {
+    border-width: 3px;
+    border-color: #000;
+    background: #fff;
+  }
+  
+  .expand-collapse-fab:hover:not(.expand-collapse-fab--disabled),
+  .back-to-top:hover {
+    background: #000;
+    color: #fff;
+  }
+  
+  .expand-collapse-icon,
+  .back-to-top-icon {
+    color: #000;
+  }
+  
+  .expand-collapse-fab:hover:not(.expand-collapse-fab--disabled) .expand-collapse-icon,
+  .back-to-top:hover .back-to-top-icon {
+    color: #fff;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .expand-collapse-fab,
+  .back-to-top {
+    transition: none;
+  }
+  
+  .expand-collapse-fab:hover,
+  .back-to-top:hover {
+    transform: none;
+  }
+  
+  .expand-collapse-icon,
+  .back-to-top-icon {
+    transition: none;
+  }
+  
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .expand-collapse-fab,
+  .back-to-top {
+    display: none;
+  }
+  
+  .main-content {
+    padding-top: 0;
+    padding-bottom: 0;
+    max-width: none;
   }
 }
 
@@ -1177,5 +1273,88 @@ onUnmounted(() => {
 .back-to-top,
 .expand-collapse-fab {
   will-change: transform;
+}
+
+/* Focus styles for accessibility */
+.back-to-top:focus-visible,
+.expand-collapse-fab:focus-visible {
+  outline: 3px solid var(--primary-green);
+  outline-offset: 2px;
+}
+
+/* Loading states for forms */
+.main-content:has(.coffee-form),
+.main-content:has(.shop-form),
+.main-content:has(.container-form) {
+  overflow-x: hidden;
+}
+
+/* Prevent scroll jumping when forms open */
+.app-layout:has(.coffee-form),
+.app-layout:has(.shop-form),
+.app-layout:has(.container-form) {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced hover states for better UX */
+.back-to-top {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.expand-collapse-fab {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Animation for FAB appearance */
+.back-to-top,
+.expand-collapse-fab {
+  animation: fab-slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fab-slide-in {
+  from {
+    transform: translateY(100px) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Ensure proper stacking of elements */
+.app-layout {
+  position: relative;
+  z-index: 0;
+}
+
+.main-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Smooth transitions for better UX */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--border-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
 }
 </style>

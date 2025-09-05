@@ -9,11 +9,11 @@
         'new-shop': isNewlyAdded(shop.id),
         'menu-open': activeMenuId === shop.id
       }"
-      @click="handleCardClick(shop)"
     >
       <!-- Header with logo, name, and actions -->
       <div class="shop-header">
-        <div class="shop-main">
+        <!-- Clickable main area for viewing coffees -->
+        <div class="shop-main" @click="handleCardClick(shop)">
           <!-- Shop logo -->
           <div class="shop-logo">
             <LogoImage
@@ -46,8 +46,9 @@
           </div>
         </div>
         
-        <!-- Actions -->
+        <!-- Actions - separate from clickable area -->
         <div class="shop-actions">
+          <!-- Coffee count button -->
           <button
             @click.stop="handleViewCoffees(shop)"
             class="action-btn coffee-btn"
@@ -85,7 +86,7 @@
               <button 
                 type="button" 
                 class="dropdown-item"
-                @click="handleViewCoffees(shop)"
+                @click.stop="handleViewCoffees(shop)"
               >
                 <Coffee :size="16" />
                 View Coffees ({{ getCoffeeCount(shop.id) }})
@@ -95,7 +96,7 @@
               <button 
                 type="button" 
                 class="dropdown-item"
-                @click="handleEditShop(shop)"
+                @click.stop="handleEditShop(shop)"
               >
                 <Edit :size="16" />
                 Edit Shop
@@ -104,7 +105,7 @@
               <button 
                 type="button" 
                 class="dropdown-item dropdown-item-danger"
-                @click="handleDeleteShop(shop)"
+                @click.stop="handleDeleteShop(shop)"
               >
                 <Trash2 :size="16" />
                 Delete Shop
@@ -221,6 +222,7 @@ const getFullUrl = (url) => {
 }
 
 const toggleMenu = (shopId) => {
+  console.log('🔽 Toggling menu for shop:', shopId)
   activeMenuId.value = activeMenuId.value === shopId ? null : shopId
 }
 
@@ -228,16 +230,23 @@ const closeMenu = () => {
   activeMenuId.value = null
 }
 
+// FIXED: Card click only handles view coffees when menu is not open
 const handleCardClick = (shop) => {
+  console.log('🖱️ Card clicked for shop:', shop.name)
+  
+  // Don't trigger view if menu is open - just close menu
   if (activeMenuId.value === shop.id) {
     closeMenu()
-  } else {
-    handleViewCoffees(shop)
+    return
   }
+  
+  // Otherwise, trigger view coffees
+  handleViewCoffees(shop)
 }
 
+// FIXED: Separate handler for viewing coffees - no longer calls edit
 const handleViewCoffees = (shop) => {
-  console.log('View coffees for shop:', shop.name)
+  console.log('👀 View coffees for shop:', shop.name) // Line 240 from console
   closeMenu()
   
   const coffeeCount = getCoffeeCount(shop.id)
@@ -256,9 +265,12 @@ const handleViewCoffees = (shop) => {
   emit('view-coffees', shop)
 }
 
+// FIXED: Completely separate handler for editing - only emits edit event
 const handleEditShop = (shop) => {
-  console.log('Edit shop:', shop)
+  console.log('✏️ Edit shop:', shop.name) // Line 260 from console
   closeMenu()
+  
+  // IMPORTANT: Only emit the edit event - don't call any other functions
   emit('edit-shop', shop)
 }
 
@@ -387,7 +399,6 @@ onUnmounted(() => {
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border-left: 4px solid #8b5cf6;
-  cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   z-index: 1;
@@ -433,6 +444,15 @@ onUnmounted(() => {
   align-items: flex-start;
   flex: 1;
   min-width: 0;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0.25rem;
+  margin: -0.25rem;
+  transition: background-color 0.2s;
+}
+
+.shop-main:hover {
+  background-color: rgba(139, 92, 246, 0.05);
 }
 
 .shop-logo {

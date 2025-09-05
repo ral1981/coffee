@@ -47,7 +47,7 @@
       v-else
       :shops="filteredShops"
       :highlighted-shop-id="props.highlightedShopId"
-      @edit-shop="$emit('edit-shop', $event)"
+      @edit-shop="handleEditShop"
       @view-coffees="handleViewCoffees"
     />
 
@@ -73,7 +73,7 @@
           <h4 class="info-title">Coffee Shop Directory</h4>
           <p class="info-description">
             Discover coffee roasters and shops from your collection. Each shop shows 
-            the coffees you have from them, making it easy to explore your favorite roasters.
+            the coffees you have from them.
           </p>
         </div>
       </div>
@@ -173,7 +173,15 @@ const loadMore = () => {
   }, 300)
 }
 
+// FIXED: Separate edit and view actions properly
+const handleEditShop = (shop) => {
+  console.log('📝 ShopsListView: Handling edit shop request for:', shop.name)
+  // Only emit the edit-shop event - don't navigate anywhere
+  emit('edit-shop', shop)
+}
+
 const handleViewCoffees = (shop) => {
+  console.log('👀 ShopsListView: Handling view coffees request for:', shop.name)
   // Navigate to coffee view with shop filter
   router.push({
     path: '/coffee',
@@ -210,12 +218,13 @@ onMounted(async () => {
   try {
     await initializeData()
     
-    // If there's a highlighted shop ID prop, highlight it
+    // Highlight shop if specified in props
     if (props.highlightedShopId) {
       highlightShop(props.highlightedShopId)
     }
-  } catch (error) {
-    console.error('Error in onMounted:', error)
+    
+  } catch (err) {
+    console.error('Error during ShopsListView initialization:', err)
   }
 })
 </script>
@@ -224,12 +233,48 @@ onMounted(async () => {
 .shops-list-view {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4, 1rem);
+  gap: 1rem;
   min-height: 100%;
 }
 
-/* Loading Section */
+/* Loading States */
 .loading-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+}
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #22c55e;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Empty States */
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -238,60 +283,30 @@ onMounted(async () => {
   text-align: center;
 }
 
-.loading-spinner {
-  margin-bottom: 1rem;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #f3f4f6;
-  border-top: 3px solid #8b5cf6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-}
-
 .empty-state-icon {
+  color: #d1d5db;
   margin-bottom: 1rem;
-  color: #9ca3af;
 }
 
 .empty-state-title {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem 0;
 }
 
 .empty-state-description {
-  font-size: 0.875rem;
   color: #6b7280;
-  max-width: 400px;
-  margin: 0 auto;
+  font-size: 0.875rem;
+  margin: 0;
+  max-width: 320px;
 }
 
 /* Load More Section */
 .load-more-section {
   display: flex;
   justify-content: center;
-  padding: 2rem 0;
-  margin-top: 2rem;
+  padding: 1rem;
 }
 
 .load-more-btn {
@@ -299,56 +314,55 @@ onMounted(async () => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: white;
-  border: 2px solid #f0f0f0;
+  background: #22c55e;
+  color: white;
+  border: none;
   border-radius: 8px;
-  color: #333;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 .load-more-btn:hover:not(:disabled) {
-  border-color: #8b5cf6;
-  background: #8b5cf6;
-  color: white;
+  background: #16a34a;
   transform: translateY(-1px);
 }
 
 .load-more-btn:disabled {
-  cursor: not-allowed;
   opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .spinner-small {
   width: 1rem;
   height: 1rem;
-  border: 2px solid currentColor;
-  border-top: 2px solid transparent;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 /* Info Section */
 .info-section {
-  margin-top: 2rem;
+  padding: 1rem;
+  margin-top: auto;
 }
 
 .info-card {
-  background: #faf5ff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  border-left: 4px solid #8b5cf6;
   display: flex;
   align-items: flex-start;
   gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
 }
 
 .info-icon {
-  color: #8b5cf6;
+  color: #22c55e;
   flex-shrink: 0;
-  margin-top: 0.125rem;
 }
 
 .info-content {
@@ -356,23 +370,23 @@ onMounted(async () => {
 }
 
 .info-title {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: #7c3aed;
+  color: #1e293b;
   margin: 0 0 0.5rem 0;
 }
 
 .info-description {
-  color: #7c3aed;
+  font-size: 0.875rem;
+  color: #64748b;
   line-height: 1.5;
   margin: 0;
-  opacity: 0.9;
 }
 
-/* Mobile responsiveness */
+/* Responsive Design */
 @media (max-width: 640px) {
   .shops-list-view {
-    padding: 0 0.5rem;
+    gap: 0.75rem;
   }
   
   .info-card {
@@ -380,7 +394,11 @@ onMounted(async () => {
   }
   
   .info-title {
-    font-size: 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .info-description {
+    font-size: 0.8125rem;
   }
 }
 </style>
