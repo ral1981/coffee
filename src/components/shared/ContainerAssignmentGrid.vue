@@ -191,20 +191,23 @@ const handleContainerToggle = async (container) => {
   justify-content: center;
 }
 
-/* Unified container chip design */
 .container-chip {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 0.75rem;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 2px solid #e5e7eb;
   border-radius: 20px;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  min-height: 80px;
+  text-align: center;
 }
 
 .container-chip:hover:not(:disabled) {
@@ -214,11 +217,14 @@ const handleContainerToggle = async (container) => {
 }
 
 .container-chip.assigned {
-  border-color: var(--container-color);
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(22, 163, 74, 0.08));
-  color: #16a34a;
+  border: 2px solid var(--container-color);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--container-color) 12%, transparent), 
+    color-mix(in srgb, var(--container-color) 8%, transparent)
+  );
+  color: var(--container-color);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--container-color) 25%, transparent);
 }
 
 .container-chip:disabled {
@@ -227,22 +233,31 @@ const handleContainerToggle = async (container) => {
   transform: none;
 }
 
+.container-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
 .container-icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--container-color, #e2e8f0);
+  border: 2px solid var(--container-color, #e2e8f0);
   background: rgba(255, 255, 255, 0.9);
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
 
 .coffee-beans-icon {
-  width: 12px;
-  height: 12px;
+  width: 14px; /* Adjusted icon size */
+  height: 14px;
   transition: all 0.2s ease;
 }
 
@@ -250,6 +265,7 @@ const handleContainerToggle = async (container) => {
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 8px currentColor;
   transform: scale(1.1);
+  border-width: 2px;
 }
 
 .container-chip.assigned .coffee-beans-icon {
@@ -257,14 +273,19 @@ const handleContainerToggle = async (container) => {
 }
 
 .container-name {
-  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: inherit;
+  width: 100%;
+  text-align: center;
+  color: var(--container-color, #666);
 }
 
 .container-count {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
   background: rgba(255, 255, 255, 0.8);
   padding: 0.125rem 0.375rem;
   border-radius: 12px;
@@ -278,9 +299,9 @@ const handleContainerToggle = async (container) => {
 
 .container-chip.assigned .container-count {
   background: rgba(255, 255, 255, 0.95);
-  color: #16a34a;
-  border-color: rgba(22, 163, 74, 0.2);
-  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2);
+  color: var(--container-color);
+  border-color: color-mix(in srgb, var(--container-color) 20%, transparent);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--container-color) 20%, transparent);
 }
 
 .loading-spinner-small {
@@ -300,23 +321,28 @@ const handleContainerToggle = async (container) => {
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .container-grid {
-    gap: 0.375rem;
+    gap: 0.5rem;
   }
   
   .container-chip {
-    padding: 0.625rem;
-    font-size: 0.8125rem;
-    min-width: 70px;
+    padding: 0.75rem;
+    font-size: 0.65rem;
+    min-width: 90px;
+    min-height: 90px;
+  }
+  
+  .container-content {
+    gap: 0.75rem;
   }
   
   .container-icon {
-    width: 32px;
-    height: 32px;
+    width: 48px;
+    height: 48px;
   }
   
   .coffee-beans-icon {
-    width: 20px;
-    height: 20px;
+    width: 32px;
+    height: 32px;
   }
   
   .container-count {
@@ -341,10 +367,14 @@ const handleContainerToggle = async (container) => {
     border-color: #4b5563;
   }
   
+  /* Updated to use container's color instead of hardcoded green */
   .container-chip.assigned {
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.15));
-    border-color: #22c55e;
-    color: #34d399;
+    background: linear-gradient(135deg, 
+      color-mix(in srgb, var(--container-color) 20%, transparent), 
+      color-mix(in srgb, var(--container-color) 15%, transparent)
+    );
+    border-color: var(--container-color);
+    color: var(--container-color);
   }
   
   .container-chip:hover:not(:disabled) {
@@ -360,8 +390,12 @@ const handleContainerToggle = async (container) => {
   
   .container-chip.assigned .container-count {
     background: rgba(31, 41, 55, 0.9);
-    color: #34d399;
-    border-color: rgba(52, 211, 153, 0.3);
+    color: var(--container-color);
+    border-color: color-mix(in srgb, var(--container-color) 30%, transparent);
+  }
+  
+  .container-name {
+    color: var(--container-color, #d1d5db);
   }
 }
 
