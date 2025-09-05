@@ -226,14 +226,14 @@
     <div class="form-section">
       <ContainerAssignmentGrid
         :available-containers="availableContainers"
-        :selected-containers="selectedContainersForGrid"
+        :selected-containers="selectedContainers"
         :container-loading="containerLoading"
         :disabled="!isLoggedIn"
-        variant="card"
+        variant="form"
         title="Container Assignment"
         :show-title="true"
         :context-coffee="contextCoffee"
-        :context-mode="'assign'"
+        :context-mode="'toggle'"
         @update:selectedContainers="handleSelectedContainersUpdate"
         @container-changed="handleContainerChange"
       />
@@ -324,9 +324,10 @@ const {
 
 const {
   selectedContainers,
-  saveContainerAssignments,
-  resetContainerAssignment,
-  loadExistingAssignments
+  toggleContainerAssignment,
+  assignContainersToDatabase,
+  resetContainerSelection,
+  setInitialContainers
 } = useContainerAssignment()
 
 const {
@@ -358,17 +359,14 @@ const contextCoffee = computed(() => {
 
 // Computed property to format selected containers for the grid
 const selectedContainersForGrid = computed(() => {
-  return selectedContainers.value.map(containerId => {
-    const container = availableContainers.value.find(c => c.id === containerId)
-    return container || { id: containerId, name: 'Unknown', color: '#6b7280' }
-  })
+  return selectedContainers.value
 })
 
 // Handle container selection updates from the grid
 const handleSelectedContainersUpdate = (updatedSelection) => {
-  selectedContainers.value = updatedSelection.map(container => 
-    typeof container === 'object' ? container.id : container
-  )
+  selectedContainers.value = Array.isArray(updatedSelection) 
+    ? updatedSelection.map(item => typeof item === 'object' ? item.id : item)
+    : []
 }
 
 // Handle individual container changes
@@ -517,12 +515,12 @@ const save = async () => {
     }
 
     // Save container assignments
-    console.log('🗂️ Saving container assignments...')
-    const containerResult = await saveContainerAssignments(coffeeId, userId.value)
-    console.log('📦 Container save result:', containerResult)
-    
+    console.log('Saving container assignments...')
+    const containerResult = await assignContainersToDatabase(coffeeId, selectedContainers.value, userId.value)
+    console.log('Container save result:', containerResult)
+
     if (!containerResult.success) {
-      console.warn('⚠️ Container assignment failed but coffee saved')
+      console.warn('Container assignment failed but coffee saved')
       warning('Partial save', 'Coffee saved but container assignments may have failed')
     }
 
@@ -575,6 +573,8 @@ onMounted(async () => {
   // Populate form if editing
   if (props.mode === 'edit' && props.initialData) {
     populateForm(props.initialData)
+    // Initialize container assignments for editing
+    setInitialContainers(props.initialData)
   }
   
   await loadContainers()

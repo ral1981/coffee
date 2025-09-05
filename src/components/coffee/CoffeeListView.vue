@@ -26,6 +26,7 @@
       :filtered-count="filteredCount"
       :favorite-count="favoriteCount"
       :default-expanded="false"
+      @update:activeContainers="handleActiveContainersUpdate"
       @toggle-favorites="handleToggleFavoritesFilter"
       @clear-filters="clearAllFilters"
       @export-favorites="handleExportFavorites"
@@ -65,7 +66,7 @@
       @card-expand="toggleCardExpansion"
       @card-action="handleCardAction"
       @edit-coffee="$emit('edit-coffee', $event)"
-      @container-assignment-changed="handleContainerAssignment"
+      @container-assignment-changed="handleContainerAssignmentChanged"
       @delete-coffee="handleDeleteCoffee"
     />
 
@@ -364,6 +365,30 @@ const handleContainerAssignment = async ({ coffee, container, action }) => {
     console.error('Container assignment error:', error)
     error('Assignment failed', 'Could not update container assignment')
   }
+}
+
+const handleContainerAssignmentChanged = async (data) => {
+  const { coffeeId, containerId, action, needsRefresh } = data
+  
+  console.log('Container assignment changed:', data)
+  
+  if (needsRefresh) {
+    // Refresh the coffee data to get updated container assignments
+    await refreshCoffees()
+  }
+}
+
+const handleActiveContainersUpdate = (updatedContainers) => {
+  // Convert IDs to full objects for consistent data format
+  activeContainers.value = updatedContainers.map(item => {
+    if (typeof item === 'object' && item.id) {
+      return item // Keep full objects
+    } else {
+      // Convert ID to full object
+      const container = availableContainers.value.find(c => c.id === item)
+      return container || { id: item, name: 'Unknown', color: '#6b7280' }
+    }
+  })
 }
 
 const handleExportFavorites = async () => {

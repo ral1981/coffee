@@ -285,7 +285,7 @@
           variant="card"
           title="Containers"
           :show-title="false"
-          @container-changed="handleContainerAssignmentChange"
+          @container-changed="(data) => handleContainerAssignmentChange({ ...data, coffee })"
         />
         
         <!-- Collapse Button -->
@@ -385,9 +385,11 @@ const { success, error, warning, info } = useToast()
 // Composables
 const {
   selectedContainers,
-  containerLoadingStates,
   isContainerAssigned,
-  toggleContainerAssignment
+  isContainerLoading,
+  toggleContainerAssignment,
+  setInitialContainers,
+  resetContainerSelection
 } = useContainerAssignment()
 
 const {
@@ -422,33 +424,73 @@ const isUnfavoriting = ref(false)
 // Container assignment methods
 const getAssignedContainers = (coffee) => {
   if (!coffee.coffee_container_assignments) return []
-  return coffee.coffee_container_assignments.map(assignment => ({
-    id: assignment.container_id,
-    name: assignment.containers?.name || '',
-    color: assignment.containers?.color || '#6b7280'
-  }))
+  return coffee.coffee_container_assignments.map(assignment => assignment.container_id)
 }
 
 const handleContainerAssignmentChange = async (data) => {
-  const { action, container, conflictingCoffee } = data
+  const { action, container, coffee } = data
   
-  // Emit event to parent for data refresh
-  emit('container-assignment-changed', {
-    coffeeId: coffee.id,
-    containerId: container.id,
-    action,
-    conflictingCoffee
-  })
+  if (!coffee || !container) {
+    console.error('Missing coffee or container data in assignment change')
+    return
+  }
   
-  // Show appropriate toast message
-  if (action === 'assigned') {
-    if (conflictingCoffee) {
-      info('Container Reassigned', `${container.name} moved from "${conflictingCoffee.name}" to "${coffee.name}"`)
-    } else {
+  try {
+    const { supabase } = await import('../../lib/supabase')
+    
+    if (action === 'removed') {
+      const { error: deleteError } = await supabase
+        .from('coffee_container_assignments')
+        .delete()
+        .eq('coffee_id', coffee.id)
+        .eq('container_id', container.id)
+      
+      if (deleteError) {
+        console.error('Failed to remove container assignment:', deleteError)
+        error('Update Failed', 'Could not remove container assignment')
+        return
+      }
+      
+      success('Container Removed', `${coffee.name} removed from ${container.name}`)
+    } else if (action === 'assigned') {
+      const { error: conflictError } = await supabase
+        .from('coffee_container_assignments')
+        .delete()
+        .eq('container_id', container.id)
+        .neq('coffee_id', coffee.id)
+      
+      if (conflictError) {
+        console.warn('Failed to remove conflicting assignments:', conflictError)
+      }
+      
+      const { error: insertError } = await supabase
+        .from('coffee_container_assignments')
+        .insert({
+          coffee_id: coffee.id,
+          container_id: container.id,
+          assigned_by: userId.value
+        })
+      
+      if (insertError) {
+        console.error('Failed to add container assignment:', insertError)
+        error('Update Failed', 'Could not add container assignment')
+        return
+      }
+      
       success('Container Assigned', `${coffee.name} added to ${container.name}`)
     }
-  } else if (action === 'removed') {
-    success('Container Removed', `${coffee.name} removed from ${container.name}`)
+    
+    // CRITICAL: Request parent to refresh data
+    emit('container-assignment-changed', {
+      coffeeId: coffee.id,
+      containerId: container.id,
+      action,
+      needsRefresh: true // This triggers the refresh
+    })
+    
+  } catch (err) {
+    console.error('Database operation failed:', err)
+    error('Update Failed', 'Could not update container assignment')
   }
 }
 
@@ -731,6 +773,11 @@ onMounted(async () => {
     await fetchFavorites()
     initializeFavoriteNotes()
   }
+  
+  // Initialize container assignments for each coffee
+  props.coffees.forEach(coffee => {
+    setInitialContainers(coffee)
+  })
 })
 
 onUnmounted(() => {

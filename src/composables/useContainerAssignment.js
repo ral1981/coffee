@@ -10,38 +10,25 @@ export function useContainerAssignment() {
     loadCoffeesForConflictDetection
   } = useContainerConflict()
 
-  // Shared state
   const selectedContainers = ref([])
   const containerLoadingStates = reactive({})
 
-  // Check if container is assigned to a coffee (for data objects)
   const isContainerAssigned = (coffee, containerId) => {
-    if (!coffee || !coffee.coffee_container_assignments) return false
+    if (!coffee?.coffee_container_assignments) return false
     return coffee.coffee_container_assignments.some(assignment => 
       assignment.container_id === containerId
     )
   }
 
-  // Check if container ID is in selected containers array
-  const isContainerSelected = (containerId, selectedList = null) => {
-    const list = selectedList || selectedContainers.value
-    return list.some(item => {
-      if (typeof item === 'object') {
-        return item.id === containerId
-      }
-      return item === containerId
-    })
+  const isContainerSelected = (containerId) => {
+    return selectedContainers.value.includes(containerId)
   }
 
-  // Get container loading state
   const isContainerLoading = (containerId, coffeeId = null) => {
-    if (coffeeId) {
-      return containerLoadingStates[`${coffeeId}-${containerId}`] || false
-    }
-    return containerLoadingStates[containerId] || false
+    const key = coffeeId ? `${coffeeId}-${containerId}` : containerId
+    return containerLoadingStates[key] || false
   }
 
-  // MAIN METHOD: Toggle container assignment with proper conflict detection
   const toggleContainerAssignment = async (
     containerId, 
     currentCoffeeId = null, 
@@ -61,42 +48,98 @@ export function useContainerAssignment() {
         currentlySelected: isContainerSelected(containerId)
       })
 
-      // Load conflict detection data if not already loaded
+      // Load conflict detection data
       await loadCoffeesForConflictDetection()
 
-      // Handle removal
-      if (mode === 'remove' || isContainerSelected(containerId)) {
-        selectedContainers.value = selectedContainers.value.filter(item => {
-          const id = typeof item === 'object' ? item.id : item
-          return id !== containerId
-        })
-        console.log('Container removed:', containerId)
-        return { success: true, action: 'removed' }
+      const isCurrentlySelected = isContainerSelected(containerId)
+
+      // For card context with coffee ID, perform immediate database operations
+      if (currentCoffeeId && (mode === 'toggle' || mode === 'assign')) {
+        const { supabase } = await import('../lib/supabase')
+        const { user } = await import('./useAuth')
+        
+        if (mode === 'remove' || isCurrentlySelected) {
+          // Remove from database
+          const { error: deleteError } = await supabase
+            .from('coffee_container_assignments')
+            .delete()
+            .eq('coffee_id', currentCoffeeId)
+            .eq('container_id', containerId)
+          
+          if (deleteError) {
+            console.error('Failed to remove container assignment:', deleteError)
+            return { success: false, error: deleteError.message }
+          }
+          
+          // Update local state
+          selectedContainers.value = selectedContainers.value.filter(id => id !== containerId)
+          console.log('Container removed from database:', containerId)
+          return { success: true, action: 'removed' }
+        }
+
+        // Handle assignment with conflict detection
+        const result = await handleContainerAssignmentWithConflict(
+          containerId,
+          currentCoffeeId,
+          currentCoffeeName,
+          availableContainers
+        )
+
+        if (result.cancelled) {
+          console.log('Assignment cancelled due to conflict')
+          return { success: false, cancelled: true }
+        }
+
+        // Remove conflicting assignments
+        const { error: conflictError } = await supabase
+          .from('coffee_container_assignments')
+          .delete()
+          .eq('container_id', containerId)
+          .neq('coffee_id', currentCoffeeId)
+        
+        if (conflictError) {
+          console.warn('Failed to remove conflicting assignments:', conflictError)
+        }
+
+        // Add new assignment to database
+        const { error: insertError } = await supabase
+          .from('coffee_container_assignments')
+          .insert({
+            coffee_id: currentCoffeeId,
+            container_id: containerId,
+            assigned_by: user.value?.id
+          })
+        
+        if (insertError) {
+          console.error('Failed to add container assignment:', insertError)
+          return { success: false, error: insertError.message }
+        }
+
+        // Update local state
+        selectedContainers.value.push(containerId)
+        console.log('Container added to database:', containerId)
+        
+        return { 
+          success: true, 
+          action: 'assigned', 
+          conflictingCoffee: result.conflictingCoffee 
+        }
       }
 
-      // Handle assignment with conflict detection
-      const result = await handleContainerAssignmentWithConflict(
-        containerId,
-        currentCoffeeId,
-        currentCoffeeName,
-        availableContainers
-      )
-
-      console.log('Conflict check result:', result)
-
-      if (result.cancelled) {
-        console.log('Assignment cancelled due to conflict')
-        return { success: false, cancelled: true }
+      // For form context, just update local state (will be saved when form is saved)
+      if (mode === 'remove' || isCurrentlySelected) {
+        selectedContainers.value = selectedContainers.value.filter(id => id !== containerId)
+        console.log('Container removed from selection:', containerId)
+        return { success: true, action: 'removed' }
       }
 
       // Add container to selection
       selectedContainers.value.push(containerId)
-      console.log('Container added:', containerId, 'Total selected:', selectedContainers.value.length)
+      console.log('Container added to selection:', containerId)
       
       return { 
         success: true, 
-        action: 'assigned', 
-        conflictingCoffee: result.conflictingCoffee 
+        action: 'assigned'
       }
 
     } catch (err) {
@@ -108,309 +151,41 @@ export function useContainerAssignment() {
     }
   }
 
-  // DIRECT DATABASE ASSIGNMENT: For immediate coffee-container assignments
-  const assignContainerToDatabase = async (coffeeId, containerId, userId, availableContainers = []) => {
-    const loadingKey = `${coffeeId}-${containerId}`
-    containerLoadingStates[loadingKey] = true
-
+  const assignContainersToDatabase = async (coffeeId, containerIds, userId) => {
     try {
-      // Check for conflicts first
       await loadCoffeesForConflictDetection()
       
-      const coffee = { id: coffeeId, name: 'this coffee' }
-      const result = await handleContainerAssignmentWithConflict(
-        containerId,
-        coffeeId,
-        coffee.name,
-        availableContainers
-      )
-
-      if (result.cancelled) {
-        return { success: false, cancelled: true }
-      }
-
-      // Perform the database assignment
-      const { supabase } = await import('../lib/supabase')
-      
-      // Remove any existing assignment for this container (conflict resolution)
-      await supabase
-        .from('coffee_container_assignments')
-        .delete()
-        .eq('container_id', containerId)
-
-      // Add the new assignment
-      const { error: insertError } = await supabase
-        .from('coffee_container_assignments')
-        .insert({
-          coffee_id: coffeeId,
-          container_id: containerId,
-          assigned_by: userId
-        })
-
-      if (insertError) throw insertError
-
-      success('Container Assigned', 'Container assignment updated successfully')
-      
-      return { 
-        success: true, 
-        action: 'assigned',
-        conflictingCoffee: result.conflictingCoffee 
-      }
-
-    } catch (err) {
-      console.error('Database assignment error:', err)
-      error('Assignment Failed', 'Could not update container assignment')
-      return { success: false, error: err.message }
-    } finally {
-      containerLoadingStates[loadingKey] = false
-    }
-  }
-
-  // REMOVE FROM DATABASE: Direct removal of coffee-container assignment
-  const removeContainerFromDatabase = async (coffeeId, containerId) => {
-    const loadingKey = `${coffeeId}-${containerId}`
-    containerLoadingStates[loadingKey] = true
-
-    try {
-      const { supabase } = await import('../lib/supabase')
-      
-      const { error: deleteError } = await supabase
-        .from('coffee_container_assignments')
-        .delete()
-        .eq('coffee_id', coffeeId)
-        .eq('container_id', containerId)
-
-      if (deleteError) throw deleteError
-
-      success('Container Removed', 'Container assignment removed successfully')
-      return { success: true, action: 'removed' }
-
-    } catch (err) {
-      console.error('Database removal error:', err)
-      error('Removal Failed', 'Could not remove container assignment')
-      return { success: false, error: err.message }
-    } finally {
-      containerLoadingStates[loadingKey] = false
-    }
-  }
-
-  // GRID-SPECIFIC TOGGLE: For coffee card container buttons with immediate database updates
-  const toggleContainerForGrid = async (coffee, container, availableContainers = []) => {
-    const loadingKey = `${coffee.id}-${container.id}`
-    containerLoadingStates[loadingKey] = true
-
-    try {
-      console.log('Grid container toggle:', {
-        coffeeId: coffee.id,
-        containerId: container.id,
-        currentlyAssigned: isContainerAssigned(coffee, container.id)
-      })
-
-      // Load conflict detection data
-      await loadCoffeesForConflictDetection()
-
-      const isCurrentlyAssigned = isContainerAssigned(coffee, container.id)
-
-      if (isCurrentlyAssigned) {
-        // Remove assignment - no conflict check needed
-        const result = await removeContainerFromDatabase(coffee.id, container.id)
-        return { 
-          success: result.success, 
-          action: 'remove',
-          coffee,
-          container,
-          error: result.error
-        }
-      }
-
-      // Adding assignment - check for conflicts
-      const result = await handleContainerAssignmentWithConflict(
-        container.id,
-        coffee.id,
-        coffee.name,
-        availableContainers
-      )
-
-      console.log('Grid conflict check result:', result)
-
-      if (result.cancelled) {
-        console.log('Grid assignment cancelled due to conflict')
-        return { success: false, cancelled: true }
-      }
-
-      // Proceed with database assignment
-      const assignResult = await assignContainerToDatabase(
-        coffee.id, 
-        container.id, 
-        null, // userId will be handled by auth context
-        availableContainers
-      )
-
-      return { 
-        success: assignResult.success, 
-        action: 'assign',
-        coffee,
-        container,
-        conflictingCoffee: result.conflictingCoffee,
-        error: assignResult.error
-      }
-
-    } catch (err) {
-      console.error('Grid container assignment error:', err)
-      return { success: false, error: err.message }
-    } finally {
-      containerLoadingStates[loadingKey] = false
-    }
-  }
-
-  // FORM SAVE: Save all selected containers for a coffee (used by forms)
-  const saveContainerAssignments = async (coffeeId, userId) => {
-    try {
-      console.log('Saving container assignments:', {
-        coffeeId,
-        selectedContainers: selectedContainers.value
-      })
-      
-      // Convert selected containers to IDs if they're objects
-      const containerIds = selectedContainers.value.map(item => 
-        typeof item === 'object' ? item.id : item
-      )
-      
-      const result = await assignContainersWithConflictResolution(
-        coffeeId, 
-        containerIds, 
-        userId
-      )
+      const result = await assignContainersWithConflictResolution(coffeeId, containerIds, userId)
       
       if (result.success) {
-        success('Containers Saved', `Container assignments updated for coffee`)
+        // Update local state to match database
+        selectedContainers.value = [...containerIds]
+        success('Containers Updated', 'Container assignments saved successfully')
       }
       
       return result
+      
     } catch (err) {
-      console.error('Error saving container assignments:', err)
+      console.error('Database assignment error:', err)
       error('Save Failed', 'Could not save container assignments')
       return { success: false, error: err.message }
     }
   }
 
-  // BULK ASSIGNMENT: Assign multiple containers at once
-  const assignMultipleContainers = async (coffeeId, containerIds, userId, availableContainers = []) => {
-    try {
-      const results = []
-      
-      for (const containerId of containerIds) {
-        const result = await assignContainerToDatabase(coffeeId, containerId, userId, availableContainers)
-        results.push({ containerId, ...result })
-        
-        // Small delay to prevent overwhelming the database
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-      
-      const successCount = results.filter(r => r.success).length
-      const failCount = results.length - successCount
-      
-      if (successCount > 0 && failCount === 0) {
-        success('All Containers Assigned', `Successfully assigned ${successCount} containers`)
-      } else if (successCount > 0) {
-        warning('Partial Success', `Assigned ${successCount} containers, ${failCount} failed`)
-      } else {
-        error('Assignment Failed', 'Could not assign any containers')
-      }
-      
-      return {
-        success: successCount > 0,
-        results,
-        successCount,
-        failCount
-      }
-    } catch (err) {
-      console.error('Bulk assignment error:', err)
-      return { success: false, error: err.message }
-    }
-  }
-
-  // RESET STATE: Clear all selections and loading states
-  const resetContainerAssignment = () => {
+  // Reset state
+  const resetContainerSelection = () => {
     selectedContainers.value = []
-    Object.keys(containerLoadingStates).forEach(key => {
-      delete containerLoadingStates[key]
-    })
-    console.log('Container assignment state reset')
   }
 
-  // LOAD EXISTING: Load existing assignments for edit mode
-  const loadExistingAssignments = async (coffeeId) => {
-    try {
-      const { supabase } = await import('../lib/supabase')
-      const { data, error: fetchError } = await supabase
-        .from('coffee_container_assignments')
-        .select(`
-          container_id,
-          containers (
-            id,
-            name,
-            color
-          )
-        `)
-        .eq('coffee_id', coffeeId)
-      
-      if (fetchError) {
-        console.error('Error loading existing assignments:', fetchError)
-        return false
-      }
-      
-      // Store as container objects for form compatibility
-      selectedContainers.value = data?.map(assignment => ({
-        id: assignment.container_id,
-        name: assignment.containers?.name || 'Unknown',
-        color: assignment.containers?.color || '#6b7280'
-      })) || []
-      
-      console.log('Loaded existing assignments:', selectedContainers.value.length)
-      return true
-    } catch (err) {
-      console.error('Error loading existing assignments:', err)
-      return false
+  // Set initial state from coffee data
+  const setInitialContainers = (coffee) => {
+    if (!coffee?.coffee_container_assignments) {
+      selectedContainers.value = []
+      return
     }
-  }
-
-  // GET ASSIGNED CONTAINERS: Extract assigned containers from coffee object
-  const getAssignedContainers = (coffee) => {
-    if (!coffee || !coffee.coffee_container_assignments) return []
-    return coffee.coffee_container_assignments.map(assignment => ({
-      id: assignment.container_id,
-      name: assignment.containers?.name || 'Unknown Container',
-      color: assignment.containers?.color || '#6b7280'
-    }))
-  }
-
-  // CONTAINER COUNTS: Get count of coffees per container
-  const getContainerCounts = (coffees, containers) => {
-    const counts = {}
     
-    containers.forEach(container => {
-      counts[container.id] = 0
-    })
-    
-    coffees.forEach(coffee => {
-      if (coffee.coffee_container_assignments) {
-        coffee.coffee_container_assignments.forEach(assignment => {
-          if (counts[assignment.container_id] !== undefined) {
-            counts[assignment.container_id]++
-          }
-        })
-      }
-    })
-    
-    return counts
-  }
-
-  // VALIDATION: Check if assignments are valid
-  const validateAssignments = (assignments) => {
-    if (!Array.isArray(assignments)) return false
-    return assignments.every(assignment => 
-      assignment && (typeof assignment === 'string' || assignment.id)
+    selectedContainers.value = coffee.coffee_container_assignments.map(
+      assignment => assignment.container_id
     )
   }
 
@@ -419,26 +194,17 @@ export function useContainerAssignment() {
     selectedContainers,
     containerLoadingStates,
     
-    // Core Methods
+    // Computed helpers
     isContainerAssigned,
     isContainerSelected,
     isContainerLoading,
+    
+    // Main methods
     toggleContainerAssignment,
+    assignContainersToDatabase,
     
-    // Database Operations
-    assignContainerToDatabase,
-    removeContainerFromDatabase,
-    toggleContainerForGrid,
-    saveContainerAssignments,
-    assignMultipleContainers,
-    
-    // State Management
-    resetContainerAssignment,
-    loadExistingAssignments,
-    
-    // Utility Methods
-    getAssignedContainers,
-    getContainerCounts,
-    validateAssignments
+    // Utilities
+    resetContainerSelection,
+    setInitialContainers
   }
 }

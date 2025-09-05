@@ -1,95 +1,207 @@
 <template>
   <div class="container-filters">
     <div class="filter-content">
-      <!-- Using Reusable Component -->
-      <ContainerAssignmentGrid
-        :available-containers="containers"
-        :selected-containers="modelValue"
-        :container-counts="containerCounts"
-        :disabled="false"
-        variant="filter"
-        title="Containers"
-        :show-title="true"
-        :show-counts="true"
-        @update:selectedContainers="handleSelectionUpdate"
-        @container-changed="handleContainerChange"
-      />
+      <!-- Optional Title -->
+      <h3 v-if="showTitle" class="filter-title">{{ title }}</h3>
+      
+      <!-- Container Tags Grid - Simplified Direct Implementation -->
+      <div class="container-grid">
+        <button
+          v-for="container in containers"
+          :key="container.id"
+          class="container-filter-tag"
+          :class="{ 
+            'active': isContainerSelected(container.id),
+            'has-count': showCounts && containerCounts[container.id],
+            'multi-selected': selectedCount > 1 && isContainerSelected(container.id)
+          }"
+          @click="handleContainerToggle(container)"
+          :disabled="disabled"
+          :aria-pressed="isContainerSelected(container.id)"
+          :aria-label="`${isContainerSelected(container.id) ? 'Remove' : 'Add'} ${container.name} filter`"
+        >
+          <!-- Container Color Dot -->
+          <div 
+            class="container-dot" 
+            :style="{ backgroundColor: container.color }"
+            :aria-hidden="true"
+          ></div>
+          
+          <!-- Container Name -->
+          <span class="container-name">{{ container.name }}</span>
+          
+          <!-- Count Badge (if enabled and available) -->
+          <span 
+            v-if="showCounts && containerCounts[container.id]" 
+            class="container-count"
+            :aria-label="`${containerCounts[container.id]} items`"
+          >
+            {{ containerCounts[container.id] }}
+          </span>
+          
+          <!-- Selection Indicator -->
+          <div 
+            v-if="isContainerSelected(container.id)" 
+            class="selection-indicator"
+            :aria-hidden="true"
+          >
+            <Check :size="12" />
+          </div>
+        </button>
+      </div>
+      
+      <!-- Empty State -->
+      <div v-if="containers.length === 0" class="empty-state">
+        <Package :size="24" class="empty-icon" />
+        <p class="empty-text">No containers available</p>
+      </div>
+      
+      <!-- Loading State -->
+      <div v-if="loading" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading containers...</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import ContainerAssignmentGrid from '../../shared/ContainerAssignmentGrid.vue'
+import { Check, Package } from 'lucide-vue-next'
 
 const props = defineProps({
+  /** Array of selected container IDs */
   modelValue: {
     type: Array,
     default: () => []
   },
+  
+  /** Array of available container objects */
   containers: {
     type: Array,
     default: () => []
   },
+  
+  /** Object mapping container IDs to counts */
   containerCounts: {
     type: Object,
     default: () => ({})
+  },
+  
+  /** Whether to show the title */
+  showTitle: {
+    type: Boolean,
+    default: true
+  },
+  
+  /** Title text */
+  title: {
+    type: String,
+    default: 'Containers'
+  },
+  
+  /** Whether to show count badges */
+  showCounts: {
+    type: Boolean,
+    default: true
+  },
+  
+  /** Whether the filter is disabled */
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+  
+  /** Loading state */
+  loading: {
+    type: Boolean,
+    default: false
   }
 })
 
 const emit = defineEmits(['update:modelValue'])
 
-// Handle selection updates from the grid
-const handleSelectionUpdate = (updatedSelection) => {
+// Computed properties
+const selectedCount = computed(() => props.modelValue.length)
+
+// Simple selection check - directly compare container IDs
+const isContainerSelected = (containerId) => {
+  return props.modelValue.includes(containerId)
+}
+
+// Handle container toggle - emit container ID directly
+const handleContainerToggle = (container) => {
+  if (props.disabled || props.loading) return
+  
+  const isSelected = isContainerSelected(container.id)
+  let updatedSelection
+  
+  if (isSelected) {
+    // Remove container ID from selection
+    updatedSelection = props.modelValue.filter(id => id !== container.id)
+    console.log('🗑️ ContainerFilters - Removed filter:', container.name)
+  } else {
+    // Add container ID to selection
+    updatedSelection = [...props.modelValue, container.id]
+    console.log('➕ ContainerFilters - Added filter:', container.name)
+  }
+  
+  // Emit the updated selection (array of container IDs)
   emit('update:modelValue', updatedSelection)
 }
 
-// Handle individual container changes (for logging or additional logic)
-const handleContainerChange = (data) => {
-  const { action, container } = data
-  console.log(`Container filter ${action}:`, container.name)
-}
-
-// Clear all selections method (can be exposed via ref if needed)
+// Utility method to clear all selections (can be called by parent)
 const clearAllSelections = () => {
-  emit('update:modelValue', [])
+  if (props.modelValue.length > 0) {
+    console.log('🧹 ContainerFilters - Cleared all filters')
+    emit('update:modelValue', [])
+  }
 }
 
 // Expose methods for parent components if needed
 defineExpose({
-  clearAllSelections
+  clearAllSelections,
+  isContainerSelected
 })
 </script>
+
 <style scoped>
+/* Container Filters Base Styles */
 .container-filters {
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.container-filters:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .filter-content {
   padding: 1rem;
 }
 
-/* Override ContainerAssignmentGrid styles for filter variant to match existing design */
-.filter-content :deep(.container-assignment-grid.variant-filter .container-title) {
+/* Filter Title */
+.filter-title {
   font-size: 0.875rem;
   font-weight: 500;
   color: #666;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   text-transform: none;
   letter-spacing: normal;
 }
 
-.filter-content :deep(.container-assignment-grid.variant-filter .container-grid) {
+/* Container Grid Layout */
+.container-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-/* Apply existing sophisticated filter tag styling to the new component */
-.filter-content :deep(.container-filter-tag) {
+/* Container Filter Tag Styles */
+.container-filter-tag {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -102,9 +214,12 @@ defineExpose({
   border-radius: 20px;
   font-size: 0.875rem;
   cursor: pointer;
+  outline: none;
+  min-height: 36px;
 }
 
-.filter-content :deep(.container-filter-tag::before) {
+/* Hover shimmer effect */
+.container-filter-tag::before {
   content: '';
   position: absolute;
   top: 0;
@@ -115,12 +230,21 @@ defineExpose({
   transition: left 0.5s ease;
 }
 
-.filter-content :deep(.container-filter-tag:hover::before) {
+.container-filter-tag:hover::before {
   left: 100%;
 }
 
-.filter-content :deep(.container-filter-tag.active) {
-  background: linear-gradient(135deg, #22c55e20, #16a34a15);
+/* Hover state */
+.container-filter-tag:hover:not(.active):not(:disabled) {
+  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+  border-color: #d1d5db;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Active state */
+.container-filter-tag.active {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(22, 163, 74, 0.08));
   border-color: #22c55e;
   color: #16a34a;
   transform: translateY(-1px);
@@ -128,31 +252,32 @@ defineExpose({
   font-weight: 600;
 }
 
-.filter-content :deep(.container-filter-tag.multi-selected) {
-  background: linear-gradient(135deg, #22c55e30, #16a34a20);
+/* Multi-selected enhancement */
+.container-filter-tag.multi-selected {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(22, 163, 74, 0.12));
   border-color: #16a34a;
   box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
   transform: translateY(-2px);
 }
 
-.filter-content :deep(.container-filter-tag:hover:not(.active)) {
-  background: linear-gradient(135deg, #f9fafb, #f3f4f6);
-  border-color: #d1d5db;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+/* Disabled state */
+.container-filter-tag:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
-/* Container color dot enhancements */
-.filter-content :deep(.container-dot) {
-  transition: all 0.2s ease;
-  position: relative;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
+/* Container Color Dot */
+.container-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
+  flex-shrink: 0;
 }
 
-.filter-content :deep(.container-filter-tag.active .container-dot) {
+.container-filter-tag.active .container-dot {
   box-shadow: 
     0 0 0 2px rgba(255, 255, 255, 0.9),
     0 0 8px currentColor,
@@ -160,7 +285,7 @@ defineExpose({
   transform: scale(1.2);
 }
 
-.filter-content :deep(.container-filter-tag.multi-selected .container-dot) {
+.container-filter-tag.multi-selected .container-dot {
   animation: colorPulse 1.5s ease-in-out infinite;
 }
 
@@ -175,13 +300,49 @@ defineExpose({
   }
 }
 
-/* Selection indicator enhancement */
-.filter-content :deep(.selection-indicator) {
+/* Container Name */
+.container-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: inherit;
+}
+
+/* Count Badge */
+.container-count {
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.125rem 0.375rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(4px);
+  flex-shrink: 0;
+}
+
+.container-filter-tag.active .container-count {
+  background: rgba(255, 255, 255, 0.95);
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2);
+}
+
+.container-filter-tag:hover .container-count {
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(1.05);
+}
+
+/* Selection Indicator */
+.selection-indicator {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 50%;
   padding: 2px;
+  color: #16a34a;
   animation: checkmarkAppear 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+  flex-shrink: 0;
 }
 
 @keyframes checkmarkAppear {
@@ -195,53 +356,29 @@ defineExpose({
   }
 }
 
-/* Count styling */
-.filter-content :deep(.container-count) {
-  background: rgba(255, 255, 255, 0.8);
-  padding: 0.125rem 0.375rem;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.75rem;
-  transition: all 0.2s ease;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(4px);
-}
-
-.filter-content :deep(.container-filter-tag.active .container-count) {
-  background: rgba(255, 255, 255, 0.95);
-  color: #16a34a;
-  border-color: rgba(22, 163, 74, 0.2);
-  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2);
-}
-
-.filter-content :deep(.container-filter-tag:hover .container-count) {
-  background: rgba(255, 255, 255, 0.9);
-  transform: scale(1.05);
-}
-
-/* Interactive hover effects */
-.container-filters:hover :deep(.container-filter-tag:not(:hover):not(.active)) {
+/* Interactive hover effects on container */
+.container-filters:hover .container-filter-tag:not(:hover):not(.active) {
   opacity: 0.7;
   transform: scale(0.98);
 }
 
-.container-filters:hover :deep(.container-filter-tag:hover),
-.container-filters:hover :deep(.container-filter-tag.active) {
+.container-filters:hover .container-filter-tag:hover,
+.container-filters:hover .container-filter-tag.active {
   opacity: 1;
   z-index: 1;
 }
 
-/* Animation for tag appearance */
-.filter-content :deep(.container-filter-tag) {
+/* Staggered animation for tag appearance */
+.container-filter-tag {
   animation: tagAppear 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
 
-.filter-content :deep(.container-filter-tag:nth-child(1)) { animation-delay: 0s; }
-.filter-content :deep(.container-filter-tag:nth-child(2)) { animation-delay: 0.05s; }
-.filter-content :deep(.container-filter-tag:nth-child(3)) { animation-delay: 0.1s; }
-.filter-content :deep(.container-filter-tag:nth-child(4)) { animation-delay: 0.15s; }
-.filter-content :deep(.container-filter-tag:nth-child(5)) { animation-delay: 0.2s; }
-.filter-content :deep(.container-filter-tag:nth-child(n+6)) { animation-delay: 0.25s; }
+.container-filter-tag:nth-child(1) { animation-delay: 0s; }
+.container-filter-tag:nth-child(2) { animation-delay: 0.05s; }
+.container-filter-tag:nth-child(3) { animation-delay: 0.1s; }
+.container-filter-tag:nth-child(4) { animation-delay: 0.15s; }
+.container-filter-tag:nth-child(5) { animation-delay: 0.2s; }
+.container-filter-tag:nth-child(n+6) { animation-delay: 0.25s; }
 
 @keyframes tagAppear {
   from {
@@ -254,70 +391,86 @@ defineExpose({
   }
 }
 
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #9ca3af;
+}
+
+.empty-icon {
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}
+
+.empty-text {
+  font-style: italic;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #6b7280;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #22c55e;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 0.5rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-style: italic;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
 /* Focus management for accessibility */
-.filter-content :deep(.container-filter-tag:focus) {
+.container-filter-tag:focus {
   outline: 3px solid #22c55e;
   outline-offset: 2px;
   z-index: 2;
   position: relative;
 }
 
-.filter-content :deep(.container-filter-tag:focus-visible) {
+.container-filter-tag:focus-visible {
   box-shadow: 
     0 0 0 3px rgba(34, 197, 94, 0.3),
     0 4px 12px rgba(34, 197, 94, 0.2);
 }
 
-/* Empty state */
-.filter-content :deep(.container-grid:empty::after) {
-  content: "No containers available";
-  color: #9ca3af;
-  font-style: italic;
-  font-size: 0.875rem;
-  padding: 1rem;
-  text-align: center;
-  width: 100%;
-  display: block;
-}
-
-/* Loading state */
-.filter-content :deep(.container-loading) {
-  color: #6b7280;
-  font-style: italic;
-  font-size: 0.875rem;
-  padding: 1rem;
-  text-align: center;
-  width: 100%;
-  display: block;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* Responsive design */
+/* Responsive Design */
 @media (max-width: 768px) {
   .filter-content {
     padding: 0.875rem;
   }
   
-  .filter-content :deep(.container-grid) {
+  .container-grid {
     gap: 0.4rem;
   }
   
-  .filter-content :deep(.container-filter-tag) {
+  .container-filter-tag {
     padding: 0.4rem 0.7rem;
     font-size: 0.8125rem;
   }
   
-  .filter-content :deep(.container-dot) {
+  .container-dot {
     width: 7px;
     height: 7px;
   }
   
-  .filter-content :deep(.container-count) {
+  .container-count {
     font-size: 0.7rem;
     padding: 0.0625rem 0.3rem;
   }
@@ -328,31 +481,31 @@ defineExpose({
     padding: 0.75rem;
   }
   
-  .filter-content :deep(.container-grid) {
+  .container-grid {
     gap: 0.375rem;
   }
   
-  .filter-content :deep(.container-filter-tag) {
+  .container-filter-tag {
     padding: 0.375rem 0.625rem;
     font-size: 0.8125rem;
   }
   
-  .filter-content :deep(.container-dot) {
+  .container-dot {
     width: 6px;
     height: 6px;
   }
   
-  .filter-content :deep(.container-count) {
+  .container-count {
     font-size: 0.6875rem;
     padding: 0.0625rem 0.25rem;
   }
   
-  .filter-content :deep(.selection-indicator) {
+  .selection-indicator {
     padding: 1px;
   }
 }
 
-/* Dark mode support */
+/* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
   .container-filters {
     background: rgba(31, 41, 55, 0.95);
@@ -364,202 +517,118 @@ defineExpose({
     border-color: #4b5563;
   }
   
-  .filter-content :deep(.container-loading) {
-    color: #6b7280;
+  .filter-title {
+    color: #d1d5db;
   }
   
-  .filter-content :deep(.container-filter-tag) {
+  .container-filter-tag {
     background: #374151;
     color: #d1d5db;
     border-color: #4b5563;
   }
   
-  .filter-content :deep(.container-filter-tag.active) {
+  .container-filter-tag.active {
     background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.15));
     border-color: #22c55e;
     color: #34d399;
   }
   
-  .filter-content :deep(.container-filter-tag.multi-selected) {
+  .container-filter-tag.multi-selected {
     background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(22, 163, 74, 0.2));
     border-color: #16a34a;
   }
   
-  .filter-content :deep(.container-filter-tag:hover:not(.active)) {
+  .container-filter-tag:hover:not(.active) {
     background: linear-gradient(135deg, #4b5563, #374151);
     border-color: #6b7280;
   }
   
-  .filter-content :deep(.container-count) {
+  .container-count {
     background: rgba(31, 41, 55, 0.8);
     color: #d1d5db;
     border-color: rgba(255, 255, 255, 0.1);
   }
   
-  .filter-content :deep(.container-filter-tag.active .container-count) {
+  .container-filter-tag.active .container-count {
     background: rgba(31, 41, 55, 0.9);
     color: #34d399;
     border-color: rgba(52, 211, 153, 0.3);
   }
   
-  .filter-content :deep(.selection-indicator) {
+  .selection-indicator {
     background: rgba(31, 41, 55, 0.95);
+  }
+  
+  .empty-state,
+  .loading-state {
+    color: #6b7280;
+  }
+  
+  .loading-spinner {
+    border-color: #4b5563;
+    border-top-color: #22c55e;
   }
 }
 
-/* High contrast mode */
+/* High Contrast Mode */
 @media (prefers-contrast: high) {
   .container-filters {
     border: 2px solid #000;
   }
   
-  .filter-content :deep(.container-filter-tag) {
+  .container-filter-tag {
     border-width: 2px;
     font-weight: 600;
   }
   
-  .filter-content :deep(.container-filter-tag.active) {
+  .container-filter-tag.active {
     border-width: 3px;
     font-weight: 700;
     background: #f0f9ff !important;
     color: #0c4a6e !important;
   }
   
-  .filter-content :deep(.container-dot) {
+  .container-dot {
     border: 2px solid #000;
     outline: 1px solid #fff;
   }
   
-  .filter-content :deep(.container-count) {
+  .container-count {
     border: 1px solid currentColor;
     font-weight: 700;
     background: #fff !important;
   }
   
-  .filter-content :deep(.selection-indicator) {
+  .selection-indicator {
     border: 2px solid #000;
     background: #fff !important;
   }
 }
 
-/* Reduced motion support */
+/* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   .container-filters,
-  .filter-content :deep(.container-filter-tag),
-  .filter-content :deep(.container-dot),
-  .filter-content :deep(.container-count) {
+  .container-filter-tag,
+  .container-dot,
+  .container-count,
+  .selection-indicator {
     animation: none;
     transition: none;
   }
   
   .container-filters:hover,
-  .filter-content :deep(.container-filter-tag:hover),
-  .filter-content :deep(.container-filter-tag.active) {
+  .container-filter-tag:hover,
+  .container-filter-tag.active {
     transform: none;
   }
   
-  .filter-content :deep(.selection-indicator) {
-    animation: none;
-  }
-  
-  .filter-content :deep(.container-loading) {
-    animation: none;
-  }
-  
-  .filter-content :deep(.container-filter-tag::before) {
+  .container-filter-tag::before {
     display: none;
   }
   
-  .filter-content :deep(.container-filter-tag.multi-selected .container-dot) {
+  .loading-spinner {
     animation: none;
-  }
-}
-
-/* Print styles */
-@media print {
-  .container-filters {
-    box-shadow: none;
-    border: 1px solid #000;
-    background: white !important;
-  }
-  
-  .filter-content :deep(.container-filter-tag.active) {
-    background: #f0f0f0 !important;
-    border: 2px solid #000 !important;
-    color: #000 !important;
-    box-shadow: none !important;
-  }
-  
-  .filter-content :deep(.container-dot) {
-    border: 1px solid #000;
-    box-shadow: none !important;
-  }
-  
-  .filter-content :deep(.container-count) {
-    background: white !important;
-    color: #000 !important;
-    border: 1px solid #000;
-  }
-  
-  .filter-content :deep(.selection-indicator) {
-    background: white !important;
-    border: 1px solid #000;
-  }
-}
-
-/* Large screen enhancements */
-@media (min-width: 1200px) {
-  .filter-content :deep(.container-grid) {
-    gap: 0.625rem;
-  }
-  
-  .filter-content :deep(.container-filter-tag) {
-    padding: 0.625rem 1rem;
-  }
-  
-  .filter-content :deep(.container-dot) {
-    width: 10px;
-    height: 10px;
-  }
-}
-
-/* Touch device optimizations */
-@media (hover: none) and (pointer: coarse) {
-  .filter-content :deep(.container-filter-tag) {
-    padding: 0.75rem 1rem;
-    font-size: 0.9375rem;
-    min-height: 44px; /* WCAG touch target size */
-  }
-  
-  .filter-content :deep(.container-dot) {
-    width: 8px;
-    height: 8px;
-  }
-  
-  .filter-content :deep(.selection-indicator) {
-    padding: 4px;
-  }
-  
-  /* Remove hover effects on touch devices */
-  .container-filters:hover :deep(.container-filter-tag:not(:hover):not(.active)) {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* Ultra-wide screen support */
-@media (min-width: 1600px) {
-  .filter-content {
-    padding: 1.25rem;
-  }
-  
-  .filter-content :deep(.container-grid) {
-    gap: 0.75rem;
-  }
-  
-  .filter-content :deep(.container-filter-tag) {
-    padding: 0.75rem 1.25rem;
-    font-size: 0.9375rem;
+    border-top-color: transparent;
   }
 }
 </style>

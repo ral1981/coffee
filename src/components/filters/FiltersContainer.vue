@@ -88,13 +88,13 @@
         
         <!-- Container filter pills -->
         <BaseFilterTag 
-          v-for="container in localActiveContainers" 
-          :key="container.id"
-          :label="container.name"
-          :color-dot="container.color || '#6b7280'"
+          v-for="containerData in activeContainerFilters" 
+          :key="`container-${containerData.id}`"
+          :label="containerData.name"
+          :color-dot="containerData.color"
           variant="container"
           removable
-          @remove="removeContainerFilter(container)"
+          @remove="removeContainerFilter(containerData)"
         />
       </div>
     </div>
@@ -183,6 +183,25 @@ const totalActiveFilters = computed(() => {
   return count
 })
 
+const activeContainerFilters = computed(() => {
+  return localActiveContainers.value.map(containerItem => {
+    // Handle both ID-only and full object formats
+    if (typeof containerItem === 'object' && containerItem.id) {
+      // Already a full object
+      return containerItem
+    } else {
+      // Convert ID to full object
+      const containerId = containerItem
+      const container = props.containers.find(c => c.id === containerId)
+      return {
+        id: containerId,
+        name: container?.name || 'Unknown Container',
+        color: container?.color || '#6b7280'
+      }
+    }
+  })
+})
+
 // Methods
 const toggleExpanded = (event) => {
   if (event?.target?.closest('.expand-toggle')) {
@@ -216,8 +235,13 @@ const clearShopFilter = () => {
   localFilters.value = { ...localFilters.value, shop: '' }
 }
 
-const removeContainerFilter = (container) => {
-  localActiveContainers.value = localActiveContainers.value.filter(c => c.id !== container.id)
+const removeContainerFilter = (containerData) => {
+  const containerId = typeof containerData === 'object' ? containerData.id : containerData
+  
+  localActiveContainers.value = localActiveContainers.value.filter(item => {
+    const itemId = typeof item === 'object' ? item.id : item
+    return itemId !== containerId
+  })
 }
 
 // Watch for external prop changes and sync with local state

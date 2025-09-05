@@ -17,25 +17,27 @@
 
     <!-- Container grid/list -->
     <div v-else class="container-grid">
-      <!-- Form variant: Checkboxes -->
+      <!-- Form variant: Toggle buttons -->
       <template v-if="variant === 'form'">
-        <label 
-          v-for="container in availableContainers" 
+        <button
+          v-for="container in availableContainers"
           :key="container.id"
-          class="container-checkbox"
+          class="container-chip"
+          :class="{ 
+            'assigned': isContainerSelected(container.id),
+            'loading': isContainerLoading(container.id)
+          }"
+          @click="handleContainerToggle(container)"
+          :disabled="disabled || isContainerLoading(container.id)"
+          :style="{ 
+            '--container-color': container.color,
+            borderColor: isContainerSelected(container.id) ? container.color : '#e5e7eb'
+          }"
         >
-          <input 
-            :checked="isContainerSelected(container.id)"
-            @change="handleContainerChange($event, container)"
-            type="checkbox"
-            :disabled="disabled || isContainerLoading(container.id)"
-          />
-          <div 
-            class="container-dot" 
-            :style="{ background: container.color }"
-          ></div>
+          <div class="container-dot" :style="{ background: container.color }"></div>
           <span class="container-name">{{ container.name }}</span>
-        </label>
+          <div v-if="isContainerLoading(container.id)" class="loading-spinner-small"></div>
+        </button>
       </template>
 
       <!-- Card variant: Toggle buttons -->
@@ -207,49 +209,32 @@ const handleContainerToggle = async (container) => {
     return
   }
   
-  // Card/Form variants: Use conflict detection
+  // Card/Form variants: Update local state and emit for database handling
   try {
-    let result
+    let updated
+    let action
     
-    if (props.contextMode === 'assign' && props.contextCoffee) {
-      // Use the grid-specific toggle for direct assignments
-      result = await toggleContainerAssignment(
-        container.id,
-        props.contextCoffee.id,
-        props.contextCoffee.name,
-        props.availableContainers
+    if (isCurrentlySelected) {
+      // Remove from selection
+      updated = props.selectedContainers.filter(id => 
+        (typeof id === 'object' ? id.id : id) !== container.id
       )
+      action = 'removed'
     } else {
-      // Use form-style toggle
-      result = await toggleContainerAssignment(
-        container.id,
-        props.contextCoffee?.id,
-        props.contextCoffee?.name || 'this coffee',
-        props.availableContainers,
-        isCurrentlySelected ? 'remove' : 'toggle'
-      )
+      // Add to selection
+      updated = [...props.selectedContainers.filter(id => 
+        (typeof id === 'object' ? id.id : id) !== container.id
+      ), container.id]
+      action = 'assigned'
     }
     
-    if (result.success && !result.cancelled) {
-      // Update the selection based on result
-      let updated
-      if (result.action === 'removed') {
-        updated = props.selectedContainers.filter(id => 
-          (typeof id === 'object' ? id.id : id) !== container.id
-        )
-      } else {
-        updated = [...props.selectedContainers.filter(id => 
-          (typeof id === 'object' ? id.id : id) !== container.id
-        ), container]
-      }
-      
-      emit('update:selectedContainers', updated)
-      emit('container-changed', { 
-        action: result.action, 
-        container,
-        conflictingCoffee: result.conflictingCoffee 
-      })
-    }
+    emit('update:selectedContainers', updated)
+    emit('container-changed', { 
+      action, 
+      container,
+      coffee: props.contextCoffee // Pass the coffee context
+    })
+    
   } catch (error) {
     console.error('Container toggle error:', error)
   }
@@ -288,29 +273,22 @@ const handleContainerToggle = async (container) => {
 /* Form Variant Styles */
 .variant-form .container-grid {
   display: flex;
-  gap: 1rem;
   flex-wrap: wrap;
-  justify-content: flex-start;
-}
-
-.container-checkbox {
-  display: flex;
-  align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  justify-content: center;
 }
 
-.container-checkbox:hover {
-  background: rgba(255, 255, 255, 0.5);
+.variant-form .container-assignment-grid {
+  padding: 1rem;
+  background: #f0fdf4;
+  border-radius: 8px;
+  border-left: 4px solid #22c55e;
 }
 
-.container-checkbox input {
-  width: 18px;
-  height: 18px;
-  accent-color: #22c55e;
+.variant-form .container-title {
+  color: #16a34a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Card Variant Styles */
