@@ -3,6 +3,7 @@
     <div class="filter-content">
       <div class="actions-row">
         <BaseActionButton
+          v-if="showExport"
           icon="Download"
           label="Export"
           variant="primary"
@@ -22,6 +23,7 @@
         />
         
         <BaseActionButton
+          v-if="showAddAll"
           icon="Heart"
           label="Add All"
           variant="success"
@@ -52,6 +54,14 @@ const props = defineProps({
   hasAnyFilters: {
     type: Boolean,
     default: false
+  },
+  showExport: {
+    type: Boolean,
+    default: false  // Set to false to hide by default
+  },
+  showAddAll: {
+    type: Boolean,
+    default: false  // Set to false to hide by default
   }
 })
 
