@@ -133,9 +133,10 @@ const isContainerSelected = (containerId) => {
 const handleContainerToggle = (container) => {
   if (props.disabled || props.loading) return
   
+  const containerId = container.id
   const isSelected = isContainerSelected(container.id)
+
   let updatedSelection
-  
   if (isSelected) {
     // Remove container ID from selection
     updatedSelection = props.modelValue.filter(id => id !== container.id)

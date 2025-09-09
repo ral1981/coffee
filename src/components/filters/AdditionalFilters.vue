@@ -43,7 +43,7 @@
         </div>
       </div>
       
-      <!-- Active filter pills (optional visual enhancement) -->
+      <!-- Active filter pills -->
       <div v-if="hasActiveFilters" class="active-filters-pills">
         <BaseFilterTag
           v-if="modelValue.origin"
@@ -51,6 +51,7 @@
           variant="additional"
           icon="MapPin"
           removable
+          @click.stop
           @remove="clearOriginFilter"
         />
         
@@ -60,6 +61,7 @@
           variant="additional"
           icon="Store"
           removable
+          @click.stop
           @remove="clearShopFilter"
         />
       </div>
@@ -68,7 +70,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick } from 'vue'
 import BaseFilterHeader from './shared/BaseFilterHeader.vue'
 import BaseFilterTag from './shared/BaseFilterTag.vue'
 
@@ -101,28 +103,51 @@ const activeFiltersCount = computed(() => {
 })
 
 const clearAdditionalFilters = () => {
-  console.log('🧹 AdditionalFilters - clearAdditionalFilters')
+  console.log('AdditionalFilters - clearAdditionalFilters')
   emit('update:modelValue', { origin: '', shop: '' })
 }
 
 const clearOriginFilter = () => {
-  console.log('🧹 AdditionalFilters - clearOriginFilter')
+  console.log('AdditionalFilters - clearOriginFilter')
   emit('update:modelValue', { ...props.modelValue, origin: '' })
 }
 
 const clearShopFilter = () => {
-  console.log('🧹 AdditionalFilters - clearShopFilter')
+  console.log('AdditionalFilters - clearShopFilter')
   emit('update:modelValue', { ...props.modelValue, shop: '' })
 }
 
+// FIXED: Debounced updates to prevent double-triggering
+let updateTimeout = null
+
 const updateOrigin = (event) => {
-  console.log('📍 AdditionalFilters - updateOrigin:', event.target.value)
-  emit('update:modelValue', { ...props.modelValue, origin: event.target.value })
+  const newValue = event.target.value
+  console.log('AdditionalFilters - updateOrigin:', newValue)
+  
+  // Clear any pending update
+  if (updateTimeout) {
+    clearTimeout(updateTimeout)
+  }
+  
+  // Debounce the update slightly to prevent route-triggered double updates
+  updateTimeout = setTimeout(() => {
+    emit('update:modelValue', { ...props.modelValue, origin: newValue })
+  }, 10)
 }
 
 const updateShop = (event) => {
-  console.log('🏪 AdditionalFilters - updateShop:', event.target.value)
-  emit('update:modelValue', { ...props.modelValue, shop: event.target.value })
+  const newValue = event.target.value
+  console.log('AdditionalFilters - updateShop:', newValue)
+  
+  // Clear any pending update
+  if (updateTimeout) {
+    clearTimeout(updateTimeout)
+  }
+  
+  // Debounce the update slightly
+  updateTimeout = setTimeout(() => {
+    emit('update:modelValue', { ...props.modelValue, shop: newValue })
+  }, 10)
 }
 </script>
 

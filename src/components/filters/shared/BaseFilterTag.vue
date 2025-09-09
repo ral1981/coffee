@@ -10,7 +10,7 @@
         'has-remove': removable
       }
     ]"
-    @click="handleClick"
+    @click.stop="handleClick"
     @keydown.enter.space.stop.prevent="handleClick"
     role="button"
     :tabindex="disabled ? -1 : 0"

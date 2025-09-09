@@ -14,11 +14,12 @@
       @clear="clearSearch"
     />
 
-    <!-- All Filters in a Single Collapsible Container -->
+    <!-- FiltersContainer -->
     <FiltersContainer 
-      v-model:filters="filters"
-      v-model:active-containers="activeContainers"
-      v-model:show-favorites="showFavoritesOnly"
+      :filters="filters"
+      :active-container-ids="activeContainerIds"
+      :active-containers="activeContainersForDisplay"
+      :show-favorites="showFavoritesOnly"
       :origins="availableOrigins"
       :shops="availableShops"
       :containers="availableContainers"
@@ -26,8 +27,9 @@
       :filtered-count="filteredCount"
       :favorite-count="favoriteCount"
       :default-expanded="false"
-      @update:activeContainers="handleActiveContainersUpdate"
-      @toggle-favorites="handleToggleFavoritesFilter"
+      @update:filters="filters = $event"
+      @update:activeContainerIds="activeContainerIds = $event"
+      @update:showFavorites="showFavoritesOnly = $event"
       @clear-filters="clearAllFilters"
       @export-favorites="handleExportFavorites"
       @add-all-to-favorites="handleAddAllToFavorites"
@@ -117,40 +119,59 @@ const emit = defineEmits(['edit-coffee', 'trigger-add-form'])
 const route = useRoute()
 const router = useRouter()
 const { userId, isLoggedIn } = useAuth()
-const { containers } = useContainers()
 const { error, success, info, warning } = useToast()
+
+// FIXED: Ensure containers are fetched
+const { containers, fetchContainers } = useContainers()
 const { favoriteIds } = useFavorites()
 
 const { 
   coffees, 
   loading, 
-  loadingMore,
   expandedCards,
   toggleCardExpansion,
   fetchCoffees,
   refreshCoffees,
-  fetchContainers,
   highlightedCoffeeId: internalHighlightedId,
   highlightCoffee,
   clearHighlight,
   isCoffeeHighlighted
 } = useCoffeeData()
 
+// Use the fixed useFilters
 const {
   searchQuery,
   filters,
+  activeContainerIds,
   activeContainers,
   filteredCoffees,
+  hasActiveFilters,
+  filteredCount,
+  totalCount,
+  availableOrigins,
+  availableShops,
+  containerCounts,
+  showFavoritesOnly,
   clearAllFilters,
   clearSearch,
   syncFiltersWithRoute,
   updateRoute,
-  showFavoritesOnly,
   toggleFavoritesFilter,
   addAllFilteredToFavorites,
   exportFavoritesData,
   ensureFavoritesLoaded
 } = useFilters(coffees)
+
+// DEBUGGING
+watch(filters, (newFilters) => {
+  console.log('🔍 CoffeeListView - filters changed:', newFilters)
+  console.log('🔍 CoffeeListView - filteredCoffees length:', filteredCoffees.value?.length)
+}, { deep: true, immediate: true })
+
+// DEBUGGING
+watch(filteredCoffees, (newFiltered) => {
+  console.log('🔍 CoffeeListView - filteredCoffees changed:', newFiltered?.length)
+}, { immediate: true })
 
 const {
   assignContainersWithConflictResolution,
@@ -160,20 +181,9 @@ const {
 // Local state
 const itemsToShow = ref(12)
 const isLoadingMore = ref(false)
-const allContainers = ref([])
 
 // Computed properties
-const totalCount = computed(() => coffees.value.length)
-const filteredCount = computed(() => filteredCoffees.value.length)
 const favoriteCount = computed(() => favoriteIds.value?.length || 0)
-
-const hasActiveFilters = computed(() => {
-  return searchQuery.value || 
-         filters.value.origin || 
-         filters.value.shop || 
-         activeContainers.value.length > 0 ||
-         showFavoritesOnly.value
-})
 
 const paginatedCoffees = computed(() => {
   return filteredCoffees.value.slice(0, itemsToShow.value)
@@ -191,45 +201,24 @@ const searchPlaceholder = computed(() => {
   return `Search ${totalCount.value} coffees...`
 })
 
-// Highlighting - combine prop and internal state
 const highlightedCoffeeId = computed(() => {
   return props.highlightedCoffeeId || internalHighlightedId.value
 })
 
-// Available filter options
-const availableOrigins = computed(() => {
-  const origins = new Set()
-  coffees.value.forEach(coffee => {
-    if (coffee.origin) origins.add(coffee.origin)
-  })
-  return Array.from(origins).sort()
+// FIXED: Compute active containers properly for display
+const activeContainersForDisplay = computed(() => {
+  if (!containers.value || !activeContainerIds.value.length) return []
+  
+  return activeContainerIds.value.map(id => {
+    const container = containers.value.find(c => c.id === id)
+    return container || { id, name: 'Unknown Container', color: '#6b7280' }
+  }).filter(Boolean)
 })
 
-const availableShops = computed(() => {
-  const shops = new Set()
-  coffees.value.forEach(coffee => {
-    const shopName = coffee.shops?.name || coffee.shop_name || coffee.shop
-    if (shopName) shops.add(shopName)
-  })
-  return Array.from(shops).sort()
-})
-
-const availableContainers = computed(() => allContainers.value)
+// FIXED: Ensure containers are available for FiltersContainer
+const availableContainers = computed(() => containers.value || [])
 
 // Methods
-const loadAllContainers = async () => {
-  try {
-    console.log('Loading all available containers...')
-    const result = await fetchContainers()
-    if (result.success) {
-      allContainers.value = result.data || []
-      console.log('Containers loaded:', allContainers.value.length)
-    }
-  } catch (error) {
-    console.error('Failed to load containers:', error)
-  }
-}
-
 const loadMoreCoffees = () => {
   if (isLoadingMore.value) return
   
@@ -257,11 +246,7 @@ const handleCardAction = async (action, coffee) => {
   
   switch (action) {
     case 'edit':
-      if (coffee.name && coffee.origin && coffee.shop_name) {
-        await handleUpdateCoffee(coffee)
-      } else {
-        emit('edit-coffee', coffee)
-      }
+      emit('edit-coffee', coffee)
       break
     case 'delete':
       await handleDeleteCoffee(coffee)
@@ -274,41 +259,8 @@ const handleCardAction = async (action, coffee) => {
   }
 }
 
-const handleUpdateCoffee = async (updatedCoffee) => {
-  try {
-    console.log('🔄 Using CoffeeService for coffee update')
-    
-    if (!userId.value) {
-      error('Authentication required', 'Please log in to save changes')
-      return
-    }
-
-    // Use the unified CoffeeService - removes all duplicate shop logic
-    const result = await coffeeService.saveCoffee(updatedCoffee, userId.value, updatedCoffee.id)
-
-    if (result.success) {
-      // Update UI
-      const { updateCoffeeInList } = useCoffeeData()
-      updateCoffeeInList(result.data)
-      highlightCoffee(result.data.id)
-      
-      success(
-        'Coffee updated successfully', 
-        `${result.data.name} has been saved with your changes`
-      )
-    }
-    // Error handling is done in CoffeeService
-    
-  } catch (err) {
-    console.error('Failed to update coffee:', err)
-    error('Update Failed', 'An unexpected error occurred')
-  }
-}
-
 const handleDeleteCoffee = async (coffee) => {
   try {
-    console.log('CoffeeListView: Deleting coffee:', coffee.name, 'ID:', coffee.id, 'UserID:', userId.value)
-    
     if (!userId.value) {
       error('Authentication required', 'Please log in to delete coffee entries')
       return
@@ -319,7 +271,7 @@ const handleDeleteCoffee = async (coffee) => {
     
     if (result.success) {
       console.log('Coffee deleted successfully:', coffee.name)
-      
+      success('Coffee deleted', `${coffee.name} has been removed`)
     } else {
       throw new Error(result.error || 'Delete failed')
     }
@@ -329,66 +281,14 @@ const handleDeleteCoffee = async (coffee) => {
   }
 }
 
-const handleContainerAssignment = async ({ coffee, container, action }) => {
-  try {
-    if (!userId.value) {
-      info('Authentication required', 'Please log in to assign containers')
-      return
-    }
-
-    const currentContainerIds = coffee.coffee_container_assignments?.map(a => a.container_id) || []
-    
-    let newContainerIds
-    if (action === 'assign') {
-      newContainerIds = currentContainerIds.includes(container.id) 
-        ? currentContainerIds 
-        : [...currentContainerIds, container.id]
-    } else {
-      newContainerIds = currentContainerIds.filter(id => id !== container.id)
-    }
-
-    const result = await assignContainersWithConflictResolution(
-      coffee.id, 
-      newContainerIds, 
-      userId.value
-    )
-    
-    if (result.success) {
-      await refreshCoffees()
-      await refreshConflictData()
-      highlightCoffee(coffee.id)
-      success('Container updated', 'Coffee container assignment updated successfully')
-    } else {
-      error('Update failed', 'Could not update container assignment')
-    }
-  } catch (error) {
-    console.error('Container assignment error:', error)
-    error('Assignment failed', 'Could not update container assignment')
-  }
-}
-
 const handleContainerAssignmentChanged = async (data) => {
   const { coffeeId, containerId, action, needsRefresh } = data
   
   console.log('Container assignment changed:', data)
   
   if (needsRefresh) {
-    // Refresh the coffee data to get updated container assignments
     await refreshCoffees()
   }
-}
-
-const handleActiveContainersUpdate = (updatedContainers) => {
-  // Convert IDs to full objects for consistent data format
-  activeContainers.value = updatedContainers.map(item => {
-    if (typeof item === 'object' && item.id) {
-      return item // Keep full objects
-    } else {
-      // Convert ID to full object
-      const container = availableContainers.value.find(c => c.id === item)
-      return container || { id: item, name: 'Unknown', color: '#6b7280' }
-    }
-  })
 }
 
 const handleExportFavorites = async () => {
@@ -414,34 +314,44 @@ const handleAddAllToFavorites = async () => {
   }
 }
 
-const applyContainerFilter = async (containerId) => {
-  if (!containerId || !containers.value) return
+// Apply container filter from URL
+const applyContainerFilter = async (containerName) => {
+  if (!containerName || !containers.value) return
   
-  const container = containers.value.find(c => c.id === containerId)
+  const container = containers.value.find(c => 
+    c.name.toLowerCase() === containerName.toLowerCase()
+  )
   if (container) {
-    activeContainers.value = [container]
+    activeContainerIds.value = [container.id]
   }
 }
 
+// FIXED: Initialize data with proper container loading
 const initializeData = async () => {
   try {
     console.log('Fetching all coffees and containers...')
+    
+    // Ensure both data sources are loaded
     await Promise.all([
       fetchCoffees(),
-      loadAllContainers()
+      fetchContainers()
     ])
     
-    console.log(`Data loaded successfully - ${coffees.value.length} coffees found`)
+    console.log(`Data loaded successfully:`, {
+      coffees: coffees.value?.length || 0,
+      containers: containers.value?.length || 0
+    })
     
+    // Sync with route after data is loaded
     syncFiltersWithRoute(route.query)
     
     if (route.query.container) {
       const containerName = route.query.container
-      const matchingContainer = availableContainers.value.find(
+      const matchingContainer = containers.value?.find(
         c => c.name.toLowerCase() === containerName.toLowerCase()
       )
       if (matchingContainer) {
-        activeContainers.value = [matchingContainer]
+        activeContainerIds.value = [matchingContainer.id]
       }
     }
 
@@ -451,6 +361,7 @@ const initializeData = async () => {
     }
   } catch (error) {
     console.error('Error initializing data:', error)
+    error('Data Loading Failed', 'Could not load coffee data')
   }
 }
 
@@ -461,19 +372,19 @@ watch(() => props.highlightedCoffeeId, (newId, oldId) => {
   }
 })
 
-watch([searchQuery, filters, activeContainers, showFavoritesOnly], () => {
+watch([searchQuery, filters, activeContainerIds, showFavoritesOnly], () => {
   itemsToShow.value = 12
 }, { deep: true })
 
-watch([searchQuery, filters, activeContainers, showFavoritesOnly], () => {
+/* watch([searchQuery, filters, activeContainerIds, showFavoritesOnly], () => {
   updateRoute()
-}, { deep: true, flush: 'post' })
+}, { deep: true, flush: 'post' }) */
 
-watch(() => route.query.container, (newContainerId) => {
-  if (newContainerId) {
-    applyContainerFilter(newContainerId)
+watch(() => route.query.container, (newContainerName) => {
+  if (newContainerName) {
+    applyContainerFilter(newContainerName)
   } else {
-    activeContainers.value = []
+    activeContainerIds.value = []
   }
 })
 
@@ -494,9 +405,9 @@ onMounted(async () => {
   // Handle container query parameter
   if (route.query.container) {
     await nextTick()
-    if (containers.value.length === 0) {
+    if (!containers.value || containers.value.length === 0) {
       watch(containers, (newContainers) => {
-        if (newContainers.length > 0) {
+        if (newContainers && newContainers.length > 0) {
           applyContainerFilter(route.query.container)
         }
       }, { once: true })
@@ -513,6 +424,7 @@ defineExpose({
   isCoffeeHighlighted
 })
 </script>
+
 <style scoped>
 /* Base Layout */
 .coffee-list-view {

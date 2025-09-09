@@ -13,7 +13,8 @@ export function useFilters(coffees) {
     shop: '',
     name: ''
   })
-  const activeContainers = ref([])
+  // FIXED: Renamed to match what components expect
+  const activeContainerIds = ref([])  // Was activeContainersIds (typo)
   const showFavoritesOnly = ref(false)
   
   // Get favorites functionality
@@ -37,6 +38,13 @@ export function useFilters(coffees) {
       if (shopName) shops.add(shopName)
     })
     return Array.from(shops).sort()
+  })
+
+  // FIXED: Compute activeContainers from IDs (no need for containers parameter)
+  const activeContainers = computed(() => {
+    // This will be computed by the component that has access to containers
+    // For now, return array of objects with just IDs for compatibility
+    return activeContainerIds.value.map(id => ({ id }))
   })
 
   // Container counts for each container
@@ -68,7 +76,7 @@ export function useFilters(coffees) {
     
     // Apply favorites filter first - but only if favorites are loaded or not filtering by favorites
     if (showFavoritesOnly.value) {
-      console.log('🔍 Filtering by favorites:', {
+      console.log('Filtering by favorites:', {
         totalCoffees: filtered.length,
         favoritesLoaded: isLoaded?.value,
         favoriteIdsCount: favoriteIds?.value?.length || 0,
@@ -76,7 +84,7 @@ export function useFilters(coffees) {
       })
       
       if (!isLoaded?.value) {
-        console.warn('⚠️ Favorites filter requested but favorites not loaded yet')
+        console.warn('Favorites filter requested but favorites not loaded yet')
         // Return empty array or show loading state
         return []
       }
@@ -87,7 +95,7 @@ export function useFilters(coffees) {
         return isFav
       })
       
-      console.log('📊 Favorites filter results:', {
+      console.log('Favorites filter results:', {
         before: beforeCount,
         after: filtered.length,
         favoriteCoffees: filtered.map(c => c.name)
@@ -113,10 +121,13 @@ export function useFilters(coffees) {
     
     // Apply filters
     if (filters.value.origin) {
+      console.log('🔍 Applying origin filter:', filters.value.origin)
       filtered = filtered.filter(coffee => coffee.origin === filters.value.origin)
+      console.log('🔍 After origin filter:', filtered.length)
     }
     
     if (filters.value.shop) {
+      console.log('🔍 Applying shop filter:', filters.value.shop)
       filtered = filtered.filter(coffee => {
         const shopName = coffee.shops?.name || coffee.shop_name
         return shopName === filters.value.shop
@@ -130,14 +141,14 @@ export function useFilters(coffees) {
       )
     }
     
-    // Apply container filters
-    if (activeContainers.value.length > 0) {
+    // FIXED: Apply container filters using IDs correctly
+    if (activeContainerIds.value.length > 0) {
       filtered = filtered.filter(coffee => {
         const coffeeContainerIds = coffee.containerIds || 
           coffee.coffee_container_assignments?.map(a => a.container_id) || []
         
-        return activeContainers.value.some(container =>
-          coffeeContainerIds.includes(container.id)
+        return activeContainerIds.value.some(containerId =>
+          coffeeContainerIds.includes(containerId)  // Fixed: was container.id
         )
       })
     }
@@ -152,7 +163,7 @@ export function useFilters(coffees) {
       filters.value.origin !== '' ||
       filters.value.shop !== '' ||
       filters.value.name !== '' ||
-      activeContainers.value.length > 0 ||
+      activeContainerIds.value.length > 0 ||
       showFavoritesOnly.value
     )
   })
@@ -174,7 +185,7 @@ export function useFilters(coffees) {
   }
 
   const clearContainerFilters = () => {
-    activeContainers.value = []
+    activeContainerIds.value = []  // Fixed: was activeContainers.value
   }
 
   const clearFavoritesFilter = () => {
@@ -182,7 +193,7 @@ export function useFilters(coffees) {
   }
 
   const clearAllFilters = () => {
-    console.log('🧹 useFilters - clearAllFilters called')
+    console.log('useFilters - clearAllFilters called')
     searchQuery.value = ''
     clearFilters()
     clearContainerFilters()
@@ -191,50 +202,53 @@ export function useFilters(coffees) {
 
   // Container filter management
   const toggleContainerFilter = (container) => {
-    const index = activeContainers.value.findIndex(c => c.id === container.id)
+    const containerId = typeof container === 'object' ? container.id : container
+    const index = activeContainerIds.value.indexOf(containerId)
+    
     if (index > -1) {
-      activeContainers.value.splice(index, 1)
+      activeContainerIds.value.splice(index, 1)
     } else {
-      activeContainers.value.push(container)
+      activeContainerIds.value.push(containerId)
     }
   }
 
   const addContainerFilter = (container) => {
-    const exists = activeContainers.value.some(c => c.id === container.id)
+    const containerId = typeof container === 'object' ? container.id : container
+    const exists = activeContainerIds.value.includes(containerId)
     if (!exists) {
-      activeContainers.value.push(container)
+      activeContainerIds.value.push(containerId)
     }
   }
 
   const removeContainerFilter = (containerId) => {
-    activeContainers.value = activeContainers.value.filter(c => c.id !== containerId)
+    activeContainerIds.value = activeContainerIds.value.filter(id => id !== containerId)
   }
 
   // Favorites filter management
   const toggleFavoritesFilter = async (show = !showFavoritesOnly.value) => {
-    console.log('💖 useFilters - toggleFavoritesFilter called with:', show)
+    console.log('useFilters - toggleFavoritesFilter called with:', show)
     
     // If turning on favorites filter, ensure favorites are loaded
     if (show && !isLoaded?.value) {
-      console.log('📥 Favorites not loaded, fetching...')
+      console.log('Favorites not loaded, fetching...')
       try {
         await fetchFavorites()
-        console.log('✅ Favorites loaded successfully in useFilters')
+        console.log('Favorites loaded successfully in useFilters')
       } catch (error) {
-        console.error('❌ Failed to load favorites:', error)
+        console.error('Failed to load favorites:', error)
         // Don't set the filter if we couldn't load favorites
         return
       }
     }
     
     showFavoritesOnly.value = show
-    console.log('✅ Favorites filter set to:', show)
+    console.log('Favorites filter set to:', show)
   }
 
   // Ensure favorites are loaded when needed
   const ensureFavoritesLoaded = async () => {
     if (!isLoaded?.value) {
-      console.log('🔄 Ensuring favorites are loaded...')
+      console.log('Ensuring favorites are loaded...')
       await fetchFavorites()
     }
     return isLoaded?.value
@@ -256,15 +270,15 @@ export function useFilters(coffees) {
     
     if (query.container) {
       const containerName = query.container
-      console.log('🔗 Single container from URL:', containerName)
+      console.log('Single container from URL:', containerName)
     } else if (query.containers) {
       const containerNames = query.containers.split(',')
-      console.log('🔗 Multiple containers from URL:', containerNames)
+      console.log('Multiple containers from URL:', containerNames)
     }
     
     if (query.favorites === 'true') {
       // Don't immediately set favorites filter - let the component handle loading
-      console.log('🔗 Favorites filter detected in URL - will be handled by component')
+      console.log('Favorites filter detected in URL - will be handled by component')
     }
   }
 
@@ -287,7 +301,6 @@ export function useFilters(coffees) {
     if (activeContainers.value.length === 1) {
       query.container = activeContainers.value[0].name
     }
-    // For multiple containers or no containers, don't set container param
     
     if (showFavoritesOnly.value) {
       query.favorites = 'true'
@@ -298,22 +311,13 @@ export function useFilters(coffees) {
     const queryChanged = Object.keys(query).length !== Object.keys(currentQuery).length ||
       Object.keys(query).some(key => query[key] !== currentQuery[key])
     
-    // Only update route when we have meaningful single-container changes
-    const shouldUpdateRoute = queryChanged && (
-      // Update for search/filter changes
-      query.search !== currentQuery.search ||
-      query.origin !== currentQuery.origin ||
-      query.shop !== currentQuery.shop ||
-      query.favorites !== currentQuery.favorites ||
-      // Update for single container changes only
-      (activeContainers.value.length <= 1 && query.container !== currentQuery.container)
-    )
-    
-    if (shouldUpdateRoute) {
-      console.log('🔄 Updating route with query:', query)
-      router.push({ query }).catch(() => {})
+    // FIXED: Only update route if there's a meaningful change
+    if (queryChanged) {
+      console.log('Updating route with query:', query)
+      // Use replace instead of push to avoid navigation that triggers re-renders
+      router.replace({ query }).catch(() => {})
     } else {
-      console.log('⏭️ Skipping route update - multiple containers or no change')
+      console.log('Skipping route update - no change')
     }
   }
 
@@ -324,7 +328,7 @@ export function useFilters(coffees) {
     const { addToFavorites } = useFavorites()
     const unfavoritedCoffees = filteredCoffees.value.filter(coffee => !isFavorited(coffee.id))
     
-    console.log('📝 Adding to favorites:', {
+    console.log('Adding to favorites:', {
       totalFiltered: filteredCoffees.value.length,
       unfavorited: unfavoritedCoffees.length
     })
@@ -429,6 +433,7 @@ export function useFilters(coffees) {
     // State
     searchQuery,
     filters,
+    activeContainerIds,  // Fixed export name
     activeContainers,
     showFavoritesOnly,
     

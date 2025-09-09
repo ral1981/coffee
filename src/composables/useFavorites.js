@@ -7,6 +7,7 @@ import { useAuth } from './useAuth'
 // Global state for favorites
 const userFavorites = ref(new Map()) // Map of coffee_id -> favorite_record
 const loading = ref(false)
+const isLoaded = ref(false)
 
 export function useFavorites() {
   const { success, error } = useToast()
@@ -16,6 +17,19 @@ export function useFavorites() {
   const favoriteIds = computed(() => Array.from(userFavorites.value.keys()))
   const favoritesCount = computed(() => userFavorites.value.size)
   
+  // Get favorites
+  const getFavoriteCoffees = async () => {
+    if (!isLoaded.value) {
+      await fetchFavorites()
+    }
+    
+    return Array.from(userFavorites.value.values()).map(fav => ({
+      ...fav.coffee,
+      favoritedAt: fav.favoritedAt,
+      favoriteNotes: fav.notes
+    }))
+  }
+
   // Check if a coffee is favorited
   const isFavorited = (coffeeId) => {
     return userFavorites.value.has(String(coffeeId))
@@ -30,6 +44,7 @@ export function useFavorites() {
   const fetchFavorites = async () => {
     if (!user.value?.id) {
       console.warn('No authenticated user for fetching favorites')
+      isLoaded.value = false  // Add this line
       return
     }
 
@@ -75,12 +90,14 @@ export function useFavorites() {
         })
       }
 
+      isLoaded.value = true  // Add this line
       console.log(`✅ Loaded ${data?.length || 0} favorites`)
       return { success: true, data }
 
     } catch (err) {
       console.error('Error fetching favorites:', err)
       error('Failed to load favorites', err.message)
+      isLoaded.value = false  // Add this line
       return { success: false, error: err.message }
     } finally {
       loading.value = false
@@ -230,12 +247,14 @@ export function useFavorites() {
   // Clear all favorites (for user logout, etc.)
   const clearFavorites = () => {
     userFavorites.value.clear()
+    isLoaded.value = false
   }
 
   return {
     // State
     userFavorites,
     loading,
+    isLoaded,
     
     // Computed
     favoriteIds,
@@ -244,6 +263,7 @@ export function useFavorites() {
     // Query methods
     isFavorited,
     getFavoriteRecord,
+    getFavoriteCoffees,
     
     // CRUD operations
     fetchFavorites,

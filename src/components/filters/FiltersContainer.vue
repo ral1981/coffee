@@ -1,100 +1,112 @@
 <template>
   <div class="filters-container" :class="{ 'is-expanded': isExpanded }">
-    <!-- Main Filter Header with Collapse/Expand -->
-    <div class="filters-main-header" @click="toggleExpanded">
+    <!-- Header -->
+    <div class="filters-main-header" @click="handleHeaderClick">
       <div class="header-content">
         <Sliders :size="18" class="header-icon" />
         <h3 class="header-title">Filters</h3>
         
-        <!-- Active filters count badge -->
         <span v-if="totalActiveFilters > 0" class="active-count-badge">
           {{ totalActiveFilters }} active
         </span>
         
-        <!-- Expand/Collapse toggle -->
-        <button class="expand-toggle" :class="{ expanded: isExpanded }" @click="handleToggleClick">
+        <button 
+          class="expand-toggle" 
+          :class="{ expanded: isExpanded }"
+          @click.stop="toggleExpanded"
+          @keydown.enter.space.stop.prevent="toggleExpanded"
+          :aria-expanded="isExpanded"
+          aria-label="Toggle filters panel"
+        >
           <ChevronDown :size="16" />
         </button>
       </div>
     </div>
 
-    <!-- Collapsible Content -->
-    <div class="filters-content" :class="{ expanded: isExpanded }">
+    <!-- Content -->
+    <div 
+      class="filters-content" 
+      :class="{ expanded: isExpanded }"
+      @click.stop
+    >
       <div class="filters-sections">
-        <!-- Additional Filters Section -->
+        <!-- FIXED: Use correct props for AdditionalFilters -->
         <AdditionalFilters 
-          v-model="localFilters"
+          :model-value="filters"
           :origins="origins"
           :shops="shops"
+          @update:model-value="$emit('update:filters', $event)"
         />
 
-        <!-- Quick Filters (formerly ContainerQuickFilters) -->
+        <!-- FIXED: Use correct props for QuickFilters -->
         <QuickFilters 
-          v-model:active-containers="localActiveContainers"
-          v-model:show-favorites="localShowFavorites"
+          :active-container-ids="activeContainerIds"
           :containers="containers"
           :container-counts="containerCounts"
-          :filtered-count="filteredCount"
+          :show-favorites="showFavorites"
           :favorite-count="favoriteCount"
-          :additional-filters="localFilters"
+          :additional-filters="filters"
+          @update:activeContainerIds="$emit('update:activeContainerIds', $event)"
+          @update:showFavorites="$emit('update:showFavorites', $event)"
+          @clear-filters="$emit('clear-filters')"
           @export-favorites="$emit('export-favorites')"
-          @clear-filters="handleClearAllFilters"
           @add-all-to-favorites="$emit('add-all-to-favorites')"
         />
       </div>
     </div>
 
-    <!-- Always Visible Active Filters Section -->
+    <!-- Active filter tags -->
     <div v-if="totalActiveFilters > 0" class="active-filters-always-visible">
       <div class="active-filters-header">
         <span class="active-filters-title">Active Filters:</span>
         <button 
           class="clear-all-active-btn"
-          @click="handleClearAllFilters"
+          @click.stop="$emit('clear-filters')"
         >
           Clear All
         </button>
       </div>
       
       <div class="active-filters-pills">
-        <!-- Favorites pill -->
         <BaseFilterTag
-          v-if="localShowFavorites"
+          v-if="showFavorites"
           label="Favorites"
           variant="favorites"
           icon="Heart"
           removable
-          @remove="localShowFavorites = false"
+          @click.stop
+          @remove="$emit('update:showFavorites', false)"
         />
         
-        <!-- Additional filter pills -->
         <BaseFilterTag
-          v-if="localFilters.origin"
-          :label="localFilters.origin"
+          v-if="filters.origin"
+          :label="filters.origin"
           variant="additional"
           icon="MapPin"
           removable
-          @remove="clearOriginFilter"
+          @click.stop
+          @remove="handleClearOrigin"
         />
         
         <BaseFilterTag
-          v-if="localFilters.shop"
-          :label="localFilters.shop"
+          v-if="filters.shop"
+          :label="filters.shop"
           variant="additional"
           icon="Store"
           removable
-          @remove="clearShopFilter"
+          @click.stop
+          @remove="handleClearShop"
         />
         
-        <!-- Container filter pills -->
         <BaseFilterTag 
-          v-for="containerData in activeContainerFilters" 
-          :key="`container-${containerData.id}`"
-          :label="containerData.name"
-          :color-dot="containerData.color"
+          v-for="container in activeContainers" 
+          :key="`container-${container.id}`"
+          :label="container.name"
+          :color-dot="container.color"
           variant="container"
           removable
-          @remove="removeContainerFilter(containerData)"
+          @click.stop
+          @remove="handleRemoveContainer(container.id)"
         />
       </div>
     </div>
@@ -102,173 +114,70 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { Sliders, ChevronDown } from 'lucide-vue-next'
 import AdditionalFilters from './AdditionalFilters.vue'
 import QuickFilters from './QuickFilters.vue'
 import BaseFilterTag from './shared/BaseFilterTag.vue'
 
 const props = defineProps({
-  filters: {
-    type: Object,
-    default: () => ({ origin: '', shop: '' })
-  },
-  activeContainers: {
-    type: Array,
-    default: () => []
-  },
-  origins: {
-    type: Array,
-    default: () => []
-  },
-  shops: {
-    type: Array,
-    default: () => []
-  },
-  containers: {
-    type: Array,
-    default: () => []
-  },
-  containerCounts: {
-    type: Object,
-    default: () => ({})
-  },
-  filteredCount: {
-    type: Number,
-    default: 0
-  },
-  showFavorites: {
-    type: Boolean,
-    default: false
-  },
-  favoriteCount: {
-    type: Number,
-    default: 0
-  },
-  defaultExpanded: {
-    type: Boolean,
-    default: false
-  }
+  filters: Object,
+  activeContainerIds: Array,
+  activeContainers: Array,
+  showFavorites: Boolean,
+  origins: Array,
+  shops: Array,
+  containers: Array,
+  containerCounts: Object,
+  favoriteCount: Number,
+  defaultExpanded: { type: Boolean, default: false }
 })
 
 const emit = defineEmits([
   'update:filters',
-  'update:activeContainers',
+  'update:activeContainerIds',
   'update:showFavorites',
-  'export-favorites',
   'clear-filters',
+  'export-favorites',
   'add-all-to-favorites'
 ])
 
-// Local state
+// REMOVED: All local state management that was causing conflicts
 const isExpanded = ref(props.defaultExpanded)
-const localFilters = ref({ ...props.filters })
-const localActiveContainers = ref([...props.activeContainers])
-const localShowFavorites = ref(props.showFavorites)
 
-// Computed properties
+// SIMPLIFIED: Direct computed from props
 const totalActiveFilters = computed(() => {
   let count = 0
-  
-  // Count additional filters
-  if (localFilters.value.origin) count++
-  if (localFilters.value.shop) count++
-  
-  // Count container filters
-  count += localActiveContainers.value.length
-  
-  // Count favorites filter
-  if (localShowFavorites.value) count++
-  
+  if (props.filters?.origin) count++
+  if (props.filters?.shop) count++
+  count += props.activeContainerIds?.length || 0
+  if (props.showFavorites) count++
   return count
 })
 
-const activeContainerFilters = computed(() => {
-  return localActiveContainers.value.map(containerItem => {
-    // Handle both ID-only and full object formats
-    if (typeof containerItem === 'object' && containerItem.id) {
-      // Already a full object
-      return containerItem
-    } else {
-      // Convert ID to full object
-      const containerId = containerItem
-      const container = props.containers.find(c => c.id === containerId)
-      return {
-        id: containerId,
-        name: container?.name || 'Unknown Container',
-        color: container?.color || '#6b7280'
-      }
-    }
-  })
-})
-
-// Methods
-const toggleExpanded = (event) => {
-  if (event?.target?.closest('.expand-toggle')) {
-    return
+// Event handlers
+const handleHeaderClick = (event) => {
+  if (!event.target.closest('.expand-toggle')) {
+    toggleExpanded()
   }
+}
+
+const toggleExpanded = () => {
   isExpanded.value = !isExpanded.value
 }
 
-const handleToggleClick = (event) => {
-  event.stopPropagation()
-  isExpanded.value = !isExpanded.value
+const handleClearOrigin = () => {
+  emit('update:filters', { ...props.filters, origin: '' })
 }
 
-const handleClearAllFilters = () => {
-  console.log('🧹 FiltersContainer - handleClearAllFilters')
-  
-  // Clear all filter states
-  localFilters.value = { origin: '', shop: '' }
-  localActiveContainers.value = []
-  localShowFavorites.value = false
-  
-  // Emit clear event for any external cleanup
-  emit('clear-filters')
+const handleClearShop = () => {
+  emit('update:filters', { ...props.filters, shop: '' })
 }
 
-const clearOriginFilter = () => {
-  localFilters.value = { ...localFilters.value, origin: '' }
+const handleRemoveContainer = (containerId) => {
+  const updatedIds = props.activeContainerIds.filter(id => id !== containerId)
+  emit('update:activeContainerIds', updatedIds)
 }
-
-const clearShopFilter = () => {
-  localFilters.value = { ...localFilters.value, shop: '' }
-}
-
-const removeContainerFilter = (containerData) => {
-  const containerId = typeof containerData === 'object' ? containerData.id : containerData
-  
-  localActiveContainers.value = localActiveContainers.value.filter(item => {
-    const itemId = typeof item === 'object' ? item.id : item
-    return itemId !== containerId
-  })
-}
-
-// Watch for external prop changes and sync with local state
-watch(() => props.filters, (newFilters) => {
-  localFilters.value = { ...newFilters }
-}, { deep: true, immediate: true })
-
-watch(() => props.activeContainers, (newContainers) => {
-  localActiveContainers.value = [...newContainers]
-}, { deep: true, immediate: true })
-
-watch(() => props.showFavorites, (newValue) => {
-  localShowFavorites.value = newValue
-}, { immediate: true })
-
-// Emit changes back to parent
-watch(localFilters, (newFilters) => {
-  emit('update:filters', newFilters)
-}, { deep: true })
-
-watch(localActiveContainers, (newContainers) => {
-  emit('update:activeContainers', newContainers)
-}, { deep: true })
-
-watch(localShowFavorites, (newValue) => {
-  emit('update:showFavorites', newValue)
-})
 </script>
 
 <style scoped>
