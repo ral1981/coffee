@@ -19,32 +19,30 @@ export function useContainers() {
   const fetchContainers = async () => {
     loading.value = true
     try {
-      console.log('🔄 Fetching containers from database...')
+      console.log('📄 Fetching containers from database...')
       
-      // Check if user is authenticated
-      if (!user.value?.id) {
-        console.warn('No authenticated user, using fallback containers')
-        containers.value = getFallbackContainers()
-        return {
-          success: false,
-          error: 'User not authenticated',
-          data: containers.value
-        }
-      }
-      
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from('containers')
         .select('*')
-        .eq('user_id', user.value.id)
         .order('created_at', { ascending: false })
       
+      // Only filter by user_id if user is authenticated
+      if (user.value?.id) {
+        query = query.eq('user_id', user.value.id)
+        console.log('Fetching containers for authenticated user:', user.value.id)
+      } else {
+        console.log('Fetching public containers (no user filter)')
+      }
+      
+      const { data, error: fetchError } = await query
+      
       if (fetchError) {
-        console.warn('Database fetch failed, using fallback:', fetchError.message)
-        containers.value = getFallbackContainers()
+        console.error('Database fetch failed:', fetchError.message)
+        containers.value = []
         return {
           success: false,
           error: fetchError.message,
-          data: containers.value
+          data: []
         }
       }
       
@@ -59,12 +57,12 @@ export function useContainers() {
       
     } catch (err) {
       console.error('Error fetching containers:', err)
-      containers.value = getFallbackContainers()
+      containers.value = []
       
       return {
         success: false,
         error: err.message,
-        data: containers.value
+        data: []
       }
     } finally {
       loading.value = false
@@ -199,39 +197,6 @@ export function useContainers() {
 
   const clearHighlight = () => {
     highlightedContainerId.value = null
-  }
-
-  // Fallback data when database is unavailable
-  const getFallbackContainers = () => {
-    return [
-      {
-        id: 'fallback-green',
-        user_id: 'fallback-user',
-        name: 'Green Container', 
-        color: '#22c55e',
-        display_order: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: 'fallback-blue',
-        user_id: 'fallback-user',
-        name: 'Blue Container', 
-        color: '#3b82f6',
-        display_order: 2,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: 'fallback-purple',
-        user_id: 'fallback-user',
-        name: 'Purple Container',
-        color: '#8b5cf6',
-        display_order: 3,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ]
   }
 
   // Computed properties
